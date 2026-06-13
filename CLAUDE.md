@@ -34,7 +34,9 @@ API-first; clients hold zero business logic.
 - `src/lib/` — `errors.ts` (ApiError + pg-error mapping), `http.ts` (route wrapper), `dates.ts` (midnight-local).
 - `src/planner/` — `types.ts` (interface), `index.ts` (v1 fill-to-capacity), `constants.ts` (difficulty→hours).
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
-  `completion` (the cascade) + `scoring`, `engagement`, `roadmap`, `blocked`, `validation`.
+  `completion` (the cascade) + `scoring`, `engagement`, `roadmap`, `blocked`, `validation`,
+  `replan/` (proposal pipeline: `analyze` diff producer, `apply` transactional apply + #4/#5
+  guards, `proposals` service, `types`; consumes the pure planner, never lives inside it).
 - `src/app/v1/` — route handlers (one folder per endpoint). URL base path is `/v1`
   (in App Router the URL mirrors the folder, so routes live under `app/v1`, not `app/api`).
 - `src/testing/fixtures.ts` — `provisionWorkspace` / `seedScenario` / `teardownWorkspace` (shared by tests + seed).
@@ -59,4 +61,5 @@ API-first; clients hold zero business logic.
 ## Build state
 See `docs/PROGRESS.md` for the live checklist. In short: the 8-endpoint vertical spine +
 the task-completion cascade are built and pass against Supabase. Dependencies, the flow
-diagram, replanning, and most read endpoints are NOT built yet.
+diagram, and the replanning pipeline (Phase 4) are now built too. The slippage detector
+job (Phase 5), notifications, and most read endpoints are NOT built yet.

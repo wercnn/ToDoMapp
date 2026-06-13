@@ -3,7 +3,7 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-13 — Phase 3 (Project Flow Diagram) landed and verified against Supabase._
+_Last updated: 2026-06-13 — Phase 4 (Replanning pipeline) landed and verified against Supabase._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -42,13 +42,39 @@ _Last updated: 2026-06-13 — Phase 3 (Project Flow Diagram) landed and verified
   midnight-LOCAL (`app_user.timezone`, invariant #3), `now` injectable. **6 tests pass**
   (`tests/flow.test.ts`) incl. a pure `longestPath` unit test, a WP-edge-decided critical
   path (proves expansion + direction), and a non-UTC timezone guard.
+- **Replanning pipeline (Phase 4)**: `src/domain/replan/` — `analyze.ts` (pure `computeDiff`
+  + `analyzeReplan` reading state → `{summary, changes}`), `apply.ts` (the transactional
+  apply + guards), `proposals.ts` (create/list/get/approve/reject + superseding),
+  `types.ts` (the JSONB diff shape + `parseChanges` for edited-approve). Routes:
+  `POST/GET /replan-proposals`, `GET/approve/reject /{id}`. Diff producer lives in a
+  **sibling domain module, not the planner** — the planner stays pure (Decision #19);
+  replan consumes `proposeDays` for the target schedule then diffs against the persisted
+  plan. **Invariant #4** enforced at apply: any time-fixed task in `moves` without an
+  explicit `time_fixed_resolutions` choice → **422, zero writes** (and `computeDiff` never
+  emits a time-fixed task into `moves` by construction). **Locked days untouchable both
+  directions** (from_date OR to_date locked → 422). Apply defers-before-inserts (respects
+  the `one_planned_per_task` partial unique); fresh items `origin='replanned'`; new target
+  days created `confirmed` (approval = authorization, matches `confirmDay`). Approve/reject
+  **claim the row** (`UPDATE … WHERE status='pending'`, assert 1) before any mutation, so a
+  double-approve/expired-approve race writes nothing (→ 409). ⚡eng on approve/reject; NO
+  penalty events (Principle 3). **`new_work_package`**: WP-create on a confirmed roadmap
+  emits a pending proposal (WP + proposal in one tx) instead of touching the plan.
+  **16 tests pass** (`tests/replan.test.ts` DB-backed + `tests/replan-diff.test.ts` pure),
+  incl. the time-fixed 422 keystone, renegotiate-allows, locked both-directions,
+  double-apply/expired → 409, a real **concurrent-approve race** (`Promise.allSettled`:
+  one wins, one 409, one successor), superseding, and new_work_package present/absent.
+  Confirmed-day shape is one source of truth (`src/domain/planDays.ts` — `confirmedDayValues`
+  / `createConfirmedDay`) shared by `confirmDay` and replan apply (no DB CHECK on
+  status/confirmed_at, so the API is the guarantee).
+  _Descope trace:_ `deferred` is read nowhere yet; a descoped item is `deferred` with no
+  `replanned` successor, and its authoritative record is `applied_changes.time_fixed_resolutions`.
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
 - **Phase 1 — Vertical spine** ✅ — 8-endpoint slice + completion cascade, live-verified.
 - **Phase 2 — Dependencies + acyclicity** ✅ — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
 - **Phase 3 — Project Flow Diagram** ✅ — `/projects/{id}/flow`: derived node states + critical path to next milestone.
-- **Phase 4 — Replanning pipeline** — `replan_proposal` create/list/approve/reject, JSONB diff + apply, time-fixed conflicts (invariants #4/#5), `new_work_package` proposal.
+- **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, `new_work_package` proposal. `user_request` + `new_work_package` wired; `slippage` shares the machinery (detector job is Phase 5).
 - **Phase 5 — Notifications & jobs** — slippage detector, morning-brief push, contextual nudges, stale-token prune; per-user local-midnight scheduling.
 - **Phase 6 — Roadmap projection & daily-planning reads** — `GET /roadmap` (persisted ∪ projected), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen.
 - **Phase 7 — Companion & motivation reads** — `/me*`, stats, engagement, morning-brief, points/history, milestones CRUD, devices, notif-prefs.
@@ -79,9 +105,10 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 **Open question for the Phase 4 plan (record, don't resolve):** does the analyze/propose logic (the JSONB-diff producer) live behind the existing planner interface (`proposeDays`) or in a sibling module (e.g. `src/domain/replan` calling the planner)? Decide at plan time to keep it modular/replaceable per Decision #19.
 
 ## Not built yet (next up, post-review)
-- **Replanning pipeline** (`replan_proposal` create/list/approve/reject; slippage detector job) — Phase 4, next up.
-- **`new_work_package` proposal**: work-package create currently returns `{ work_package }` only —
-  the spec's pending-proposal-on-confirmed-days behavior is a deliberate TODO (see `src/domain/workPackages.ts`).
+- **Notifications & jobs (Phase 5, next up)**: the **slippage detector** (per-user
+  local-midnight job that calls `createProposal(db, ctx, {trigger:'slippage'})` — the
+  machinery is built and trigger-agnostic, only the cron/scheduling is missing), morning-brief
+  push, contextual nudges, stale-token prune.
 - **Remaining reads/writes**: `/me*`, devices, notif prefs, milestones CRUD, goal/project edit+delete,
   progress roll-ups, `/roadmap` (GET projection), `/days/{date}` GET, plan-item edits,
   `/tasks/{id}/reopen` + `/pull-forward`, points/history reads, morning-brief.

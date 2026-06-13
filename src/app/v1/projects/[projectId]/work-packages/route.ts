@@ -2,8 +2,8 @@
  * GET  /v1/projects/{projectId}/work-packages  — list (filters: milestone_id, open)
  * POST /v1/projects/{projectId}/work-packages  — create a work package
  *
- * Note: the spec's `new_work_package` replan proposal on create is part of the
- * replanning pipeline, which is out of this first slice (returns `{ work_package }`).
+ * When a confirmed roadmap exists, create returns `{ work_package, replan_proposal }`
+ * (a pending `new_work_package` proposal); otherwise just `{ work_package }`.
  */
 import { handler, json, readJson } from "@/lib/http";
 import { requireAuth } from "@/auth/context";
@@ -34,6 +34,6 @@ export const POST = handler(async (req: Request, context: Ctx) => {
   const ctx = await requireAuth(req);
   const { projectId } = await context.params;
   const body = await readJson<CreateWorkPackageInput>(req);
-  const workPackage = await createWorkPackage(getDb(), ctx, projectId, body);
-  return json({ work_package: workPackage }, 201);
+  const result = await createWorkPackage(getDb(), ctx, projectId, body);
+  return json(result, 201);
 });

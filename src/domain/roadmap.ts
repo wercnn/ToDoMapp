@@ -18,6 +18,7 @@ import { planner } from "../planner/index";
 import { resolveHours } from "../planner/constants";
 import { getBlockedTaskIds } from "./blocked";
 import { recordEngagement, refreshStats } from "./engagement";
+import { confirmedDayValues } from "./planDays";
 
 const DEFAULT_HORIZON_DAYS = 7;
 
@@ -177,7 +178,7 @@ export async function confirmDay(
 
     const updated = await trx
       .updateTable("daily_plan_day")
-      .set({ status: "confirmed", confirmed_at: now, updated_at: now })
+      .set(confirmedDayValues(now))
       .where("id", "=", day.id)
       .returningAll()
       .executeTakeFirstOrThrow();

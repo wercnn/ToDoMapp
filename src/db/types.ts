@@ -281,6 +281,7 @@ export type TaskDependency = Selectable<TaskDependencyTable>;
 export type WorkPackageDependency = Selectable<WorkPackageDependencyTable>;
 export type DailyPlanDay = Selectable<DailyPlanDayTable>;
 export type DailyPlanItem = Selectable<DailyPlanItemTable>;
+export type ReplanProposal = Selectable<ReplanProposalTable>;
 export type PointEvent = Selectable<PointEventTable>;
 export type AppUser = Selectable<AppUserTable>;
 export type Workspace = Selectable<WorkspaceTable>;
