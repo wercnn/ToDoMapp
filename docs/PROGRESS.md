@@ -3,7 +3,7 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-13 — initial vertical slice landed and verified against Supabase; auth moved to JWKS (signing keys)._
+_Last updated: 2026-06-13 — Phase 2 (dependencies + acyclicity) landed and verified against Supabase._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -26,11 +26,18 @@ _Last updated: 2026-06-13 — initial vertical slice landed and verified against
 - **Tests**: `tests/completion.test.ts` — 5 tests, **all pass against Supabase**, incl.
   reopen→re-complete awards 0 and the DB partial-unique backstop.
 - **Seed + fixtures**: `scripts/seed.ts` + `src/testing/fixtures.ts` (wipe & re-run).
+- **Dependencies (Phase 2)**: `src/domain/dependencies.ts` + 4 routes
+  (`POST`/`DELETE` `/task-dependencies` and `/work-package-dependencies`). API-layer
+  acyclicity = BFS reachability over workspace+level edges (catches transitive cycles,
+  not just back-edges); transaction-scoped advisory lock keyed on (workspace, level)
+  closes the concurrent-insert window. Self-dep → 422, duplicate → 409 (PK authoritative,
+  no pre-check), cycle → 409, cross-ws node → 404, non-UUID → 400. `getBlockedTaskIds`
+  now lights up at both levels. **9 tests pass against Supabase** (`tests/dependencies.test.ts`).
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
 - **Phase 1 — Vertical spine** ✅ — 8-endpoint slice + completion cascade, live-verified.
-- **Phase 2 — Dependencies + acyclicity** — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
+- **Phase 2 — Dependencies + acyclicity** ✅ — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
 - **Phase 3 — Project Flow Diagram** — `/projects/{id}/flow`: derived node states + critical path to next milestone.
 - **Phase 4 — Replanning pipeline** — `replan_proposal` create/list/approve/reject, JSONB diff + apply, time-fixed conflicts (invariants #4/#5), `new_work_package` proposal.
 - **Phase 5 — Notifications & jobs** — slippage detector, morning-brief push, contextual nudges, stale-token prune; per-user local-midnight scheduling.
@@ -39,9 +46,7 @@ _Last updated: 2026-06-13 — initial vertical slice landed and verified against
 - **Phase 8 — WBS edits/deletes + roll-ups** — goal/project/WP/task PATCH+DELETE, goal/project progress endpoints.
 
 ## Not built yet (next up, post-review)
-- **Dependencies** endpoints (`/task-dependencies`, `/work-package-dependencies`) + the
-  acyclicity reachability check. `getBlockedTaskIds` already consumes edges once they exist.
-- **Project Flow Diagram** (`/projects/{id}/flow`) + critical-path computation.
+- **Project Flow Diagram** (`/projects/{id}/flow`) + critical-path computation (Phase 3, next up).
 - **Replanning pipeline** (`replan_proposal` create/list/approve/reject; slippage detector job).
 - **`new_work_package` proposal**: work-package create currently returns `{ work_package }` only —
   the spec's pending-proposal-on-confirmed-days behavior is a deliberate TODO (see `src/domain/workPackages.ts`).
