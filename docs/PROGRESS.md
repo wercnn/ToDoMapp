@@ -3,7 +3,7 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-13 — initial vertical slice landed and verified against Supabase; real JWT secret confirmed._
+_Last updated: 2026-06-13 — initial vertical slice landed and verified against Supabase; auth moved to JWKS (signing keys)._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -37,7 +37,10 @@ _Last updated: 2026-06-13 — initial vertical slice landed and verified against
   `/tasks/{id}/reopen` + `/pull-forward`, points/history reads, morning-brief.
 
 ## Open items / risks
-- `SUPABASE_JWT_SECRET` — ✅ resolved 2026-06-13. The real 88-char HS256 secret is in `.env`;
-  proven correct by verifying the anon key's signature against it. Auth middleware can now
-  validate live bearer tokens. (Migrate/test never use it.)
+- Auth — ✅ resolved 2026-06-13 via **JWKS**. This project is on Supabase "JWT Signing Keys";
+  user access tokens are ES256, public key published at `…/auth/v1/.well-known/jwks.json`.
+  `src/auth/verifier.ts` verifies against JWKS (selects by `kid`, caches, asymmetric-only),
+  derived from `SUPABASE_URL` — no secret needed, survives legacy-HS256 revocation + rotation.
+  The legacy `SUPABASE_JWT_SECRET` is verify-only/deprecated and unused by the verifier.
+  _To confirm end-to-end: log in, decode the access_token header → expect `alg: ES256`._
 - Two intentional deviations from the docs are recorded in `CLAUDE.md` → "Known deviations".

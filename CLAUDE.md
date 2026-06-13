@@ -27,7 +27,8 @@ API-first; clients hold zero business logic.
 - **Scoring is idempotent**: each source scores once ever (app check + partial unique indexes).
 
 ## Project map
-- `src/auth/` — `verifier.ts` (swappable JWT verify), `context.ts` (requireAuth → workspace ctx).
+- `src/auth/` — `verifier.ts` (swappable token verify; JWKS/ES256 via Supabase signing keys,
+  derived from `SUPABASE_URL` — no shared secret), `context.ts` (requireAuth → workspace ctx).
 - `src/db/` — `kysely.ts` (pooled handle + pg type parsers), `types.ts` (hand-written DB types),
   `transaction.ts` (the one tx helper).
 - `src/lib/` — `errors.ts` (ApiError + pg-error mapping), `http.ts` (route wrapper), `dates.ts` (midnight-local).
