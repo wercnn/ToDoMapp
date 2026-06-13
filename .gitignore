@@ -1,2 +1,16 @@
 .env
-/docs
+.env.local
+
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+next-env.d.ts
+
+# typescript
+*.tsbuildinfo
+
+# test / coverage
+/coverage
