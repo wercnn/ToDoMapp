@@ -28,6 +28,16 @@ _Last updated: 2026-06-13 — initial vertical slice landed and verified against
 - **Seed + fixtures**: `scripts/seed.ts` + `src/testing/fixtures.ts` (wipe & re-run).
 - **Persistent context**: `CLAUDE.md`, this file.
 
+## Roadmap (one line per phase)
+- **Phase 1 — Vertical spine** ✅ — 8-endpoint slice + completion cascade, live-verified.
+- **Phase 2 — Dependencies + acyclicity** — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
+- **Phase 3 — Project Flow Diagram** — `/projects/{id}/flow`: derived node states + critical path to next milestone.
+- **Phase 4 — Replanning pipeline** — `replan_proposal` create/list/approve/reject, JSONB diff + apply, time-fixed conflicts (invariants #4/#5), `new_work_package` proposal.
+- **Phase 5 — Notifications & jobs** — slippage detector, morning-brief push, contextual nudges, stale-token prune; per-user local-midnight scheduling.
+- **Phase 6 — Roadmap projection & daily-planning reads** — `GET /roadmap` (persisted ∪ projected), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen.
+- **Phase 7 — Companion & motivation reads** — `/me*`, stats, engagement, morning-brief, points/history, milestones CRUD, devices, notif-prefs.
+- **Phase 8 — WBS edits/deletes + roll-ups** — goal/project/WP/task PATCH+DELETE, goal/project progress endpoints.
+
 ## Not built yet (next up, post-review)
 - **Dependencies** endpoints (`/task-dependencies`, `/work-package-dependencies`) + the
   acyclicity reachability check. `getBlockedTaskIds` already consumes edges once they exist.
