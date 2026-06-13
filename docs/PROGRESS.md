@@ -17,7 +17,10 @@ _Last updated: 2026-06-13 — initial vertical slice landed and verified against
   capacity as a parameter). Pure-logic sanity-checked.
 - **Endpoints (the 8, in order)**: `/auth/bootstrap`, `/goals` (+`/goals/{id}/projects`),
   `/projects/{id}/work-packages`, `/work-packages/{id}/tasks`, `/roadmap/propose`,
-  `/days/{date}/confirm`, `/tasks/{id}/complete`. Plus `/health`.
+  `/days/{date}/confirm`, `/tasks/{id}/complete`. Plus `/health`. Served at base path
+  `/v1` (handlers under `src/app/v1/`). **Verified live over HTTP** with a real ES256
+  bearer token: full bootstrap→goal→project→wp→task→complete chain, idempotent
+  re-complete (0 pts), plus 401 / 404 (tenancy) / 422 / 400 error paths.
 - **Cascade (test-first)**: `completeTask` — done → plan item → points(once) → WP cache →
   milestone achieve → daily-goal → engagement/stats. `reopenTask` (domain only, no route yet).
 - **Tests**: `tests/completion.test.ts` — 5 tests, **all pass against Supabase**, incl.

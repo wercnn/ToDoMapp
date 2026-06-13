@@ -35,7 +35,8 @@ API-first; clients hold zero business logic.
 - `src/planner/` — `types.ts` (interface), `index.ts` (v1 fill-to-capacity), `constants.ts` (difficulty→hours).
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
   `completion` (the cascade) + `scoring`, `engagement`, `roadmap`, `blocked`, `validation`.
-- `src/app/api/v1/` — route handlers (one folder per endpoint).
+- `src/app/v1/` — route handlers (one folder per endpoint). URL base path is `/v1`
+  (in App Router the URL mirrors the folder, so routes live under `app/v1`, not `app/api`).
 - `src/testing/fixtures.ts` — `provisionWorkspace` / `seedScenario` / `teardownWorkspace` (shared by tests + seed).
 - `supabase/migrations/` — numbered SQL migrations (initial schema + point_rule seed).
 - `scripts/` — `migrate.ts`, `seed.ts`, `env.ts` (dotenv loader for scripts/tests).
