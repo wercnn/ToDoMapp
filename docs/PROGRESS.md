@@ -3,7 +3,7 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-13 — Phase 4 (Replanning pipeline) landed and verified against Supabase._
+_Last updated: 2026-06-14 — Phase 5 (Notifications & background jobs) landed; 8 new tests pass (44 total) against Supabase._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -68,6 +68,35 @@ _Last updated: 2026-06-13 — Phase 4 (Replanning pipeline) landed and verified 
   status/confirmed_at, so the API is the guarantee).
   _Descope trace:_ `deferred` is read nowhere yet; a descoped item is `deferred` with no
   `replanned` successor, and its authoritative record is `applied_changes.time_fixed_resolutions`.
+- **Notifications & jobs (Phase 5)**: `src/domain/jobs/` + a single cron-driven tick.
+  - **Scheduling**: one Vercel Cron (`*/15 * * * *`, `vercel.json`) → `GET/POST /v1/jobs/tick`
+    → `runner.ts` sweeps every user (`resolveJobUsers` = the SAME `app_user ⋈ workspace_member`
+    join as `resolveContext`, so a job can't fabricate a workspace). Per-user jobs decide due-ness
+    in the user's LOCAL time (invariant #3) — a single global-midnight job would be wrong. Jobs are
+    **state-scans, not edge-triggers**, so a late/skipped/double tick self-heals; `now` injectable.
+  - **Cron auth** (`src/auth/cron.ts`): the one non-JWT surface. Constant-time `CRON_SECRET` check,
+    **fails CLOSED** (missing env / missing / wrong → 401), takes NO user/workspace id from the
+    caller — acts only on its own scan.
+  - **Slippage detector** (`jobs/slippage.ts`): marks past **confirmed** days with a still-`planned`
+    item → `slipped`, then calls the existing trigger-agnostic `createProposalInTx({trigger:'slippage'})`.
+    **Invariant #5**: writes ONLY `daily_plan_day.status` + a proposal row — never a `daily_plan_item`,
+    never `applyChanges` (it imports neither). Mark+propose commit in one tx (no slipped-day-without-proposal).
+    Empty diff → no no-op proposal. **Cross-trigger product rule**: backs off (no proposal) when a pending
+    `user_request`/`new_work_package` proposal exists — won't clobber user intent; a pending `slippage` may refresh.
+  - **Morning brief** (`jobs/morningBrief.ts`): pref-gated; **catch-up via ledger**, not window-crossing —
+    "local time ≥ `morning_brief_time` today AND no `notification_dispatch` row for the day" → sends once,
+    so a skipped tick just sends late.
+  - **Nudges** (`jobs/nudges.ts`): each pref-gated; dedupe key carries the triggering entity.
+    `replan_needs_review` (key=proposal_id) + `streak_at_risk` (key=local date, after `STREAK_RISK_HOUR`)
+    are **FULLY WIRED**; `milestone_approaching` (key=milestone_id) is **STUBBED** — "approaching" needs the
+    milestone `projected_date` projection, which is Phase 6 (gate + key wired, predicate returns nothing).
+  - **Stale-token prune** (`jobs/prune.ts`): deletes `device` rows with `last_seen_at` past `STALE_DEVICE_DAYS`.
+  - **Push delivery**: built behind a swappable `Notifier` (`jobs/notifier.ts`); v1 binds `LogNotifier`
+    (logs the send). Real APNs is a later drop-in — not blocking. Idempotency ledger = `notification_dispatch`
+    (`(user, kind, dedupe_key)` unique; claim-then-send via `INSERT … ON CONFLICT DO NOTHING`).
+  - **8 tests pass** (`tests/jobs.test.ts`): slipped-marking + exactly-one-proposal + idempotent re-run;
+    invariant #5 (items byte-identical before/after); the **per-user timezone boundary** (UTC vs UTC-12,
+    same instant); cross-trigger backoff; morning-brief due/flag/dedupe; replan-nudge gate+dedupe; stale prune.
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
@@ -75,7 +104,7 @@ _Last updated: 2026-06-13 — Phase 4 (Replanning pipeline) landed and verified 
 - **Phase 2 — Dependencies + acyclicity** ✅ — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
 - **Phase 3 — Project Flow Diagram** ✅ — `/projects/{id}/flow`: derived node states + critical path to next milestone.
 - **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, `new_work_package` proposal. `user_request` + `new_work_package` wired; `slippage` shares the machinery (detector job is Phase 5).
-- **Phase 5 — Notifications & jobs** — slippage detector, morning-brief push, contextual nudges, stale-token prune; per-user local-midnight scheduling.
+- **Phase 5 — Notifications & jobs** ✅ — slippage detector, morning-brief push, contextual nudges, stale-token prune; one Vercel-Cron tick + per-user local-time scan, `CRON_SECRET`-guarded. Milestone-nudge predicate stubbed pending Phase 6 projection; real APNs stubbed behind `Notifier`.
 - **Phase 6 — Roadmap projection & daily-planning reads** — `GET /roadmap` (persisted ∪ projected), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen.
 - **Phase 7 — Companion & motivation reads** — `/me*`, stats, engagement, morning-brief, points/history, milestones CRUD, devices, notif-prefs.
 - **Phase 8 — WBS edits/deletes + roll-ups** — goal/project/WP/task PATCH+DELETE, goal/project progress endpoints.
@@ -105,10 +134,10 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 **Open question for the Phase 4 plan (record, don't resolve):** does the analyze/propose logic (the JSONB-diff producer) live behind the existing planner interface (`proposeDays`) or in a sibling module (e.g. `src/domain/replan` calling the planner)? Decide at plan time to keep it modular/replaceable per Decision #19.
 
 ## Not built yet (next up, post-review)
-- **Notifications & jobs (Phase 5, next up)**: the **slippage detector** (per-user
-  local-midnight job that calls `createProposal(db, ctx, {trigger:'slippage'})` — the
-  machinery is built and trigger-agnostic, only the cron/scheduling is missing), morning-brief
-  push, contextual nudges, stale-token prune.
+- **Milestone-approaching nudge predicate** — wired-but-stubbed; unblocks once Phase 6 lands the
+  milestone `projected_date` projection (then `nudgeMilestoneApproaching` is a one-liner).
+- **Real APNs send** — `LogNotifier` stub today; the `ApnsNotifier` drop-in needs push certs +
+  Phase 7 `POST /me/devices` so there are real `device` rows to ship to.
 - **Remaining reads/writes**: `/me*`, devices, notif prefs, milestones CRUD, goal/project edit+delete,
   progress roll-ups, `/roadmap` (GET projection), `/days/{date}` GET, plan-item edits,
   `/tasks/{id}/reopen` + `/pull-forward`, points/history reads, morning-brief.

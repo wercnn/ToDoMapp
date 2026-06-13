@@ -28,7 +28,9 @@ API-first; clients hold zero business logic.
 
 ## Project map
 - `src/auth/` — `verifier.ts` (swappable token verify; JWKS/ES256 via Supabase signing keys,
-  derived from `SUPABASE_URL` — no shared secret), `context.ts` (requireAuth → workspace ctx).
+  derived from `SUPABASE_URL` — no shared secret), `context.ts` (requireAuth → workspace ctx;
+  also `WorkspaceContext` = the `{userId,workspaceId,timezone}` subset background jobs synthesise),
+  `cron.ts` (constant-time `CRON_SECRET` guard for the jobs tick — fail-closed, the one non-JWT surface).
 - `src/db/` — `kysely.ts` (pooled handle + pg type parsers), `types.ts` (hand-written DB types),
   `transaction.ts` (the one tx helper).
 - `src/lib/` — `errors.ts` (ApiError + pg-error mapping), `http.ts` (route wrapper), `dates.ts` (midnight-local).
@@ -36,11 +38,15 @@ API-first; clients hold zero business logic.
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
   `completion` (the cascade) + `scoring`, `engagement`, `roadmap`, `blocked`, `validation`,
   `replan/` (proposal pipeline: `analyze` diff producer, `apply` transactional apply + #4/#5
-  guards, `proposals` service, `types`; consumes the pure planner, never lives inside it).
+  guards, `proposals` service, `types`; consumes the pure planner, never lives inside it),
+  `jobs/` (Phase 5 background work: `runner` per-tick sweep, `context` user scan, `slippage`
+  detector, `morningBrief`, `nudges`, `prune`, `dispatch` idempotency ledger, swappable `notifier`).
 - `src/app/v1/` — route handlers (one folder per endpoint). URL base path is `/v1`
   (in App Router the URL mirrors the folder, so routes live under `app/v1`, not `app/api`).
+  `jobs/tick` is the cron-only endpoint — `CRON_SECRET`-guarded, no JWT, acts only on its own scan.
 - `src/testing/fixtures.ts` — `provisionWorkspace` / `seedScenario` / `teardownWorkspace` (shared by tests + seed).
-- `supabase/migrations/` — numbered SQL migrations (initial schema + point_rule seed).
+- `supabase/migrations/` — numbered SQL migrations (initial schema + point_rule seed + `notification_dispatch`).
+- `vercel.json` — Vercel Cron: `*/15 * * * *` → `/v1/jobs/tick` (the only scheduled trigger).
 - `scripts/` — `migrate.ts`, `seed.ts`, `env.ts` (dotenv loader for scripts/tests).
 - `tests/` — `completion.test.ts` (DB-backed; runs against the configured Supabase DB).
 
@@ -61,5 +67,7 @@ API-first; clients hold zero business logic.
 ## Build state
 See `docs/PROGRESS.md` for the live checklist. In short: the 8-endpoint vertical spine +
 the task-completion cascade are built and pass against Supabase. Dependencies, the flow
-diagram, and the replanning pipeline (Phase 4) are now built too. The slippage detector
-job (Phase 5), notifications, and most read endpoints are NOT built yet.
+diagram, the replanning pipeline (Phase 4), and notifications & background jobs (Phase 5 —
+slippage detector, morning brief, nudges, stale-token prune, all behind one cron-driven tick)
+are now built too. The milestone-approaching nudge predicate (needs Phase 6 projection) and
+real APNs send (stubbed behind `Notifier`) plus most read endpoints are NOT built yet.

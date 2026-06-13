@@ -11,7 +11,7 @@
  */
 import type { Kysely, Transaction } from "kysely";
 import type { Database, ProposalStatus, ProposalTrigger, ReplanProposal } from "../../db/types";
-import type { AuthContext } from "../../auth/context";
+import type { AuthContext, WorkspaceContext } from "../../auth/context";
 import { withTransaction } from "../../db/transaction";
 import { conflict, notFound } from "../../lib/errors";
 import { localDate } from "../../lib/dates";
@@ -40,7 +40,7 @@ async function expireOlderPending(
  */
 export async function createProposalInTx(
   trx: Transaction<Database>,
-  ctx: AuthContext,
+  ctx: WorkspaceContext,
   args: { trigger: ProposalTrigger; summary: string; changes: Changes; now: Date },
 ): Promise<ReplanProposal> {
   await expireOlderPending(trx, ctx.workspaceId, args.now);
@@ -57,10 +57,32 @@ export async function createProposalInTx(
     .executeTakeFirstOrThrow();
 }
 
+/**
+ * Does this workspace have a pending proposal the USER initiated (`user_request`)
+ * or that resulted from their own edit (`new_work_package`)? The automatic slippage
+ * detector backs off when one exists rather than superseding it — overwriting a
+ * proposal the user is about to approve would erase their intent (Phase 5 product
+ * decision). A pending `slippage` proposal carries no such intent, so it may be
+ * refreshed/superseded normally.
+ */
+export async function hasPendingUserIntentProposal(
+  trx: Transaction<Database>,
+  workspaceId: string,
+): Promise<boolean> {
+  const row = await trx
+    .selectFrom("replan_proposal")
+    .select("id")
+    .where("workspace_id", "=", workspaceId)
+    .where("status", "=", "pending")
+    .where("trigger", "in", ["user_request", "new_work_package"])
+    .executeTakeFirst();
+  return row !== undefined;
+}
+
 /** Analyze current state and persist a pending proposal. Any trigger. */
 export async function createProposal(
   db: Kysely<Database>,
-  ctx: AuthContext,
+  ctx: WorkspaceContext,
   opts: { trigger: ProposalTrigger; scope?: ReplanScope; horizonDays?: number; now?: Date },
 ): Promise<ReplanProposal> {
   const now = opts.now ?? new Date();

@@ -20,6 +20,16 @@ export interface AuthContext {
 }
 
 /**
+ * The minimal tenant identity domain logic needs to act "as" a user: who, in
+ * which workspace, in what timezone. `AuthContext` satisfies it structurally, so
+ * request handlers pass their full context unchanged. Background jobs — which
+ * have no JWT — synthesise one of these straight from `app_user ⋈ workspace_member`
+ * (the SAME resolution path as `resolveContext`), so a job can never fabricate a
+ * workspace_id the membership table doesn't grant.
+ */
+export type WorkspaceContext = Pick<AuthContext, "userId" | "workspaceId" | "timezone">;
+
+/**
  * Resolve the caller's user + workspace from a verified subject. Throws 401 if
  * the subject has no provisioned app_user (caller must hit /auth/bootstrap first)
  * or no workspace membership.

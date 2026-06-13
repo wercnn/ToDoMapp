@@ -16,6 +16,20 @@ export function localDate(timezone: string, at: Date = new Date()): string {
   return fmt.format(at);
 }
 
+/** The local wall-clock time ('HH:MM', 24h) for `at` in the given IANA timezone. */
+export function localTime(timezone: string, at: Date = new Date()): string {
+  // en-GB + hour12:false yields a zero-padded 00–23 'HH:MM' that string-compares
+  // correctly against `notification_preference.morning_brief_time` ('HH:MM:SS').
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  // Some runtimes emit '24:00' for midnight; normalise to '00:00'.
+  return fmt.format(at).replace(/^24:/, "00:");
+}
+
 /** Add `n` days to a 'YYYY-MM-DD' date string (calendar arithmetic, UTC-anchored). */
 export function addDays(dateStr: string, n: number): string {
   const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];

@@ -9,12 +9,12 @@
  * dependency endpoints land, and the planner already consumes it.
  */
 import type { Executor } from "../db/transaction";
-import type { AuthContext } from "../auth/context";
+import type { WorkspaceContext } from "../auth/context";
 
 /** Ids of all currently-blocked tasks in the caller's workspace. */
 export async function getBlockedTaskIds(
   db: Executor,
-  ctx: AuthContext,
+  ctx: WorkspaceContext,
 ): Promise<Set<string>> {
   const taskLevel = await db
     .selectFrom("task_dependency as td")

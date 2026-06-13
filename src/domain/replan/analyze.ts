@@ -12,7 +12,7 @@
  * capacity collision is surfaced separately in `time_fixed_conflicts`.
  */
 import type { Executor } from "../../db/transaction";
-import type { AuthContext } from "../../auth/context";
+import type { WorkspaceContext } from "../../auth/context";
 import { addDays, localDate } from "../../lib/dates";
 import { planner } from "../../planner/index";
 import type { DraftDay } from "../../planner/types";
@@ -94,7 +94,7 @@ function summarize(changes: Changes): string {
  */
 export async function analyzeReplan(
   db: Executor,
-  ctx: AuthContext,
+  ctx: WorkspaceContext,
   opts: AnalyzeOptions = {},
 ): Promise<{ summary: string; changes: Changes }> {
   const now = opts.now ?? new Date();

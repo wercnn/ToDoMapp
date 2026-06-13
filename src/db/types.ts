@@ -243,6 +243,23 @@ export interface NotificationPreferenceTable {
   updated_at: GeneratedTimestamp;
 }
 
+// The kinds of outbound notification the background jobs may send (§13).
+export type NotificationKind =
+  | "morning_brief"
+  | "milestone_approaching"
+  | "replan_needs_review"
+  | "streak_at_risk";
+
+// Idempotency ledger for notifications — one row per (user, kind, dedupe_key);
+// claimed via INSERT … ON CONFLICT DO NOTHING so a re-run never double-fires.
+export interface NotificationDispatchTable {
+  id: Generated<string>;
+  user_id: string;
+  kind: NotificationKind;
+  dedupe_key: string;
+  created_at: GeneratedTimestamp;
+}
+
 // ---- The database interface Kysely is parameterised on --------------------
 export interface Database {
   workspace: WorkspaceTable;
@@ -264,6 +281,7 @@ export interface Database {
   engagement_day: EngagementDayTable;
   user_stats: UserStatsTable;
   notification_preference: NotificationPreferenceTable;
+  notification_dispatch: NotificationDispatchTable;
 }
 
 // Convenience row types.
@@ -285,3 +303,5 @@ export type ReplanProposal = Selectable<ReplanProposalTable>;
 export type PointEvent = Selectable<PointEventTable>;
 export type AppUser = Selectable<AppUserTable>;
 export type Workspace = Selectable<WorkspaceTable>;
+export type Device = Selectable<DeviceTable>;
+export type NotificationPreference = Selectable<NotificationPreferenceTable>;
