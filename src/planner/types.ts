@@ -29,12 +29,30 @@ export interface ProjectCapacity {
   hoursPerDay: number;
 }
 
+/**
+ * A task-level "must finish before" edge (predecessor → successor). The caller
+ * expands work-package dependencies to task level before passing them in (the m×n
+ * fan-out, same as flow.ts). Used for STAGED UNBLOCKING: a successor may only land
+ * on a day strictly after all its placed predecessors.
+ *
+ * This is what lets the roadmap projection see PAST a dependency wall (schedule A,
+ * then B the next day) instead of dropping B as "blocked" forever. The near-horizon
+ * `/propose` caller passes none (it deliberately schedules only already-unblocked
+ * work and re-proposes as tasks complete) — absent/empty `edges` ⇒ identical output.
+ */
+export interface TaskEdge {
+  predecessorTaskId: string;
+  successorTaskId: string;
+}
+
 export interface PlannerInput {
   /** Local 'today' ('YYYY-MM-DD') — the first day of the horizon. */
   startDate: string;
   horizonDays: number;
   candidates: PlannerCandidate[];
   capacities: ProjectCapacity[];
+  /** Optional dependency edges for staged unblocking. Absent/empty → no staging. */
+  edges?: TaskEdge[];
 }
 
 export interface DraftDayItem {

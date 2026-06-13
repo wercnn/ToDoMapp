@@ -3,7 +3,7 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-14 — Phase 5 (Notifications & background jobs) landed; 8 new tests pass (44 total) against Supabase._
+_Last updated: 2026-06-14 — Phase 6 (Roadmap projection & daily-planning reads) landed; 11 new tests pass (55 total) against Supabase._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -97,6 +97,33 @@ _Last updated: 2026-06-14 — Phase 5 (Notifications & background jobs) landed; 
   - **8 tests pass** (`tests/jobs.test.ts`): slipped-marking + exactly-one-proposal + idempotent re-run;
     invariant #5 (items byte-identical before/after); the **per-user timezone boundary** (UTC vs UTC-12,
     same instant); cross-trigger backoff; morning-brief due/flag/dedupe; replan-nudge gate+dedupe; stale prune.
+- **Roadmap projection & daily-planning reads (Phase 6)**: the roadmap is a PROJECTION,
+  never stored (data-model §6) — only proposed/confirmed days persist; the rest is recomputed.
+  - **Planner 2A** (`src/planner`): additive optional `edges: TaskEdge[]` → STAGED UNBLOCKING
+    (a successor lands the day after its placed predecessors). Empty/absent edges = byte-identical
+    to before, so `/propose` is untouched (proven by a test). This grows the ONE scheduler instead
+    of forking it (Decision #19 intent). `/propose` passes `blocked` on + no edges; the projection
+    passes `blocked:false` + real edges — same engine, two callers.
+  - **`src/domain/projection.ts`** (read-only consumer): re-projects all incomplete tasks from the
+    day after the last persisted day, expanding `work_package_dependency` → task edges (m×n, like
+    flow). `projectMilestoneDates` is the SINGLE source flow/replan/nudges/roadmap derive milestone
+    dates from — so they agree by construction. `projected_date` is ALWAYS derived, **never stored**
+    (no `milestone.projected_date` column — don't add one). projected_date = latest gating-task date,
+    or **null** if any gating task can't be placed.
+  - **`GET /roadmap`** (`roadmapRead.ts`): persisted days (tables) ∪ projected days (`projected:true`),
+    milestones as landmarks with `projected_date`, `position:{today,current_streak}`. Pure read —
+    a row-count test asserts it writes nothing (invariant #5). `GET /days/{date}` (⚡eng today, 404 absent).
+  - **Edits** (`planItems.ts`): `POST /days/{date}/items` (user_added; unblocked 422 / dup 409 /
+    planned-elsewhere 409; create-day-if-absent via the shared `createConfirmedDay`), `PATCH /plan-items/{id}`
+    (reorder / defer), `DELETE /plan-items/{id}` (⚡eng), `POST /tasks/{id}/pull-forward` (origin
+    pulled_forward, frees the old planned row → deferred), `PATCH /days/{date}` lock, `POST /tasks/{id}/reopen`.
+    All are direct USER actions — allowed under #5.
+  - **Deferred items ACTIVATED**: flow `next_milestone.projected_date` (was null), replan
+    `milestone_impacts.to_projected_date` (now the canonical projection, not a window heuristic —
+    a test asserts it EQUALS what /roadmap shows), and the `milestone_approaching` nudge (was dormant).
+  - **11 tests pass** (`tests/roadmap.test.ts`): planner empty-edges-identical + cross-project A→B
+    (proves edge-awareness was necessary), projection staging + projected_date + null + time-fixed pin,
+    #5 read-only row-count, persisted∪projected merge, the replan↔roadmap unification, and the edit endpoints.
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
@@ -105,7 +132,7 @@ _Last updated: 2026-06-14 — Phase 5 (Notifications & background jobs) landed; 
 - **Phase 3 — Project Flow Diagram** ✅ — `/projects/{id}/flow`: derived node states + critical path to next milestone.
 - **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, `new_work_package` proposal. `user_request` + `new_work_package` wired; `slippage` shares the machinery (detector job is Phase 5).
 - **Phase 5 — Notifications & jobs** ✅ — slippage detector, morning-brief push, contextual nudges, stale-token prune; one Vercel-Cron tick + per-user local-time scan, `CRON_SECRET`-guarded. Milestone-nudge predicate stubbed pending Phase 6 projection; real APNs stubbed behind `Notifier`.
-- **Phase 6 — Roadmap projection & daily-planning reads** — `GET /roadmap` (persisted ∪ projected), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen.
+- **Phase 6 — Roadmap projection & daily-planning reads** ✅ — `GET /roadmap` (persisted ∪ projected via staged-unblocking planner edges), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen, day lock. Activated the three deferred `projected_date` consumers (flow/replan/nudge).
 - **Phase 7 — Companion & motivation reads** — `/me*`, stats, engagement, morning-brief, points/history, milestones CRUD, devices, notif-prefs.
 - **Phase 8 — WBS edits/deletes + roll-ups** — goal/project/WP/task PATCH+DELETE, goal/project progress endpoints.
 
@@ -134,13 +161,10 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 **Open question for the Phase 4 plan (record, don't resolve):** does the analyze/propose logic (the JSONB-diff producer) live behind the existing planner interface (`proposeDays`) or in a sibling module (e.g. `src/domain/replan` calling the planner)? Decide at plan time to keep it modular/replaceable per Decision #19.
 
 ## Not built yet (next up, post-review)
-- **Milestone-approaching nudge predicate** — wired-but-stubbed; unblocks once Phase 6 lands the
-  milestone `projected_date` projection (then `nudgeMilestoneApproaching` is a one-liner).
 - **Real APNs send** — `LogNotifier` stub today; the `ApnsNotifier` drop-in needs push certs +
   Phase 7 `POST /me/devices` so there are real `device` rows to ship to.
-- **Remaining reads/writes**: `/me*`, devices, notif prefs, milestones CRUD, goal/project edit+delete,
-  progress roll-ups, `/roadmap` (GET projection), `/days/{date}` GET, plan-item edits,
-  `/tasks/{id}/reopen` + `/pull-forward`, points/history reads, morning-brief.
+- **Remaining reads/writes** (Phase 7+): `/me*`, devices, notif prefs, milestones CRUD,
+  goal/project edit+delete, progress roll-ups, points/history reads, `/morning-brief` composite read.
 
 ## Open items / risks
 - Auth — ✅ resolved 2026-06-13 via **JWKS**. This project is on Supabase "JWT Signing Keys";

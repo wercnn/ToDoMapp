@@ -22,6 +22,7 @@ import { notFound } from "../lib/errors";
 import { localDate } from "../lib/dates";
 import { resolveHours } from "../planner/constants";
 import { getBlockedTaskIds } from "./blocked";
+import { projectMilestoneDates } from "./projection";
 
 export type DerivedStatus = "done" | "blocked" | "in_progress" | "open";
 
@@ -45,7 +46,7 @@ export interface ProjectFlow {
   nodes: FlowNode[];
   edges: FlowEdges;
   critical_path: string[];
-  next_milestone: { id: string; title: string } | null;
+  next_milestone: { id: string; title: string; projected_date: string | null } | null;
 }
 
 /** Longest path by summed node weight, ending at any node in `endSet`. Pure. */
@@ -261,10 +262,20 @@ export async function getProjectFlow(
     }
   }
 
+  // Phase 6 activation: projected_date for the next milestone is now derived from
+  // the shared projection (data-model §6 — computed live, never stored).
+  let nextMsDate: string | null = null;
+  if (nextMs) {
+    const milestoneDates = await projectMilestoneDates(db, ctx, { now });
+    nextMsDate = milestoneDates.get(nextMs.id) ?? null;
+  }
+
   return {
     nodes,
     edges: { task: taskEdges, work_package: wpEdges },
     critical_path: criticalPath,
-    next_milestone: nextMs ? { id: nextMs.id, title: nextMs.title } : null,
+    next_milestone: nextMs
+      ? { id: nextMs.id, title: nextMs.title, projected_date: nextMsDate }
+      : null,
   };
 }

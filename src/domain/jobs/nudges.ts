@@ -18,12 +18,16 @@
 import type { Kysely } from "kysely";
 import type { Database, NotificationPreference } from "../../db/types";
 import type { WorkspaceContext } from "../../auth/context";
-import { localDate, localTime } from "../../lib/dates";
+import { addDays, localDate, localTime } from "../../lib/dates";
+import { projectMilestoneDates } from "../projection";
 import { claimDispatch, deliverToUser } from "./dispatch";
 import type { Notifier } from "./notifier";
 
 /** Local hour (24h) at/after which an unengaged day is "at risk" for the streak. */
 export const STREAK_RISK_HOUR = 20;
+
+/** A milestone whose projected_date is within this many days is "approaching". */
+export const MILESTONE_APPROACHING_DAYS = 7;
 
 /**
  * "Plan needs review": there's a pending recovery proposal awaiting the user. Fires
@@ -112,20 +116,43 @@ export async function nudgeStreakAtRisk(
 }
 
 /**
- * "Milestone approaching." STUB — the "approaching" predicate needs the milestone
- * `projected_date` projection, which is Phase 6 (flow.ts defers it). The gate and
- * the `milestone_id` dedupe key are wired so enabling this is a one-liner once
- * projection exists; today it selects nothing.
+ * "Milestone approaching": a milestone whose derived projected_date falls within
+ * MILESTONE_APPROACHING_DAYS of local today. Fires once per milestone (keyed on its
+ * id), gated by `milestone_nudges_enabled`. ACTIVATED in Phase 6 — `projected_date`
+ * now comes from the shared projection (data-model §6, computed live).
  */
 export async function nudgeMilestoneApproaching(
-  _db: Kysely<Database>,
-  _ctx: WorkspaceContext,
+  db: Kysely<Database>,
+  ctx: WorkspaceContext,
   pref: NotificationPreference,
-  _now: Date,
-  _notifier: Notifier,
+  now: Date,
+  notifier: Notifier,
 ): Promise<boolean> {
   if (!pref.milestone_nudges_enabled) return false;
-  // TODO(Phase 6): select milestones whose projected_date is within the threshold,
-  // then `claimDispatch({ kind: 'milestone_approaching', dedupeKey: milestone.id })`.
+
+  const today = localDate(ctx.timezone, now);
+  const cutoff = addDays(today, MILESTONE_APPROACHING_DAYS);
+  const projectedDates = await projectMilestoneDates(db, ctx, { now });
+
+  // Earliest approaching milestone first (deterministic when several qualify).
+  const approaching = [...projectedDates.entries()]
+    .filter(([, date]) => date != null && date >= today && date <= cutoff)
+    .sort((a, b) => (a[1]! < b[1]! ? -1 : a[1]! > b[1]! ? 1 : 0));
+
+  for (const [milestoneId, date] of approaching) {
+    const claimed = await claimDispatch(db, {
+      userId: ctx.userId,
+      kind: "milestone_approaching",
+      dedupeKey: milestoneId,
+    });
+    if (!claimed) continue;
+    await deliverToUser(db, notifier, ctx.userId, {
+      kind: "milestone_approaching",
+      title: "A milestone is coming up",
+      body: `You're on track to reach a milestone around ${date}.`,
+      deepLink: "/roadmap",
+    });
+    return true;
+  }
   return false;
 }

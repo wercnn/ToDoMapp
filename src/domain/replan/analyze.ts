@@ -18,6 +18,7 @@ import { planner } from "../../planner/index";
 import type { DraftDay } from "../../planner/types";
 import { resolveHours } from "../../planner/constants";
 import { getBlockedTaskIds } from "../blocked";
+import { projectMilestoneDates } from "../projection";
 import type { Changes, MilestoneImpact, Move, TimeFixedConflict } from "./types";
 import { emptyChanges } from "./types";
 
@@ -214,20 +215,22 @@ export async function analyzeReplan(
     }
   }
 
-  // --- Milestone impacts (DESCRIPTIVE ONLY: projected = latest planned date). ---
+  // --- Milestone impacts. `from` = the milestone's latest currently-PLANNED date
+  // (the present plan); `to` = its projected_date from the SHARED projection helper
+  // (data-model §6, computed live, never stored). Using the canonical projection —
+  // not a window-local heuristic — means the date a replan shows for a milestone is
+  // the SAME one GET /roadmap and the flow diagram show (they all call this helper).
   const milestoneByTask = new Map(rows.map((r) => [r.taskId, r.milestoneId]));
   const fromMs = new Map<string, string>();
-  const toMs = new Map<string, string>();
   const bump = (m: Map<string, string>, ms: string | null, date: string) => {
     if (!ms) return;
     const cur = m.get(ms);
     if (!cur || date > cur) m.set(ms, date);
   };
   for (const b of baseline) bump(fromMs, milestoneByTask.get(b.taskId) ?? null, b.planDate);
-  for (const day of target) {
-    for (const it of day.items) bump(toMs, milestoneByTask.get(it.taskId) ?? null, day.planDate);
-  }
-  const impactedMs = new Set<string>([...fromMs.keys(), ...toMs.keys()]);
+
+  const projectedDates = await projectMilestoneDates(db, ctx, { now });
+  const impactedMs = new Set<string>([...fromMs.keys(), ...projectedDates.keys()]);
   const milestone_impacts: MilestoneImpact[] = [];
   if (impactedMs.size > 0) {
     const titles = await db
@@ -239,7 +242,7 @@ export async function analyzeReplan(
     const titleById = new Map(titles.map((t) => [t.id, t.title]));
     for (const ms of impactedMs) {
       const from = fromMs.get(ms) ?? null;
-      const to = toMs.get(ms) ?? null;
+      const to = projectedDates.get(ms) ?? null;
       if (from === to) continue;
       milestone_impacts.push({
         milestone_id: ms,

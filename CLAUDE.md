@@ -34,9 +34,13 @@ API-first; clients hold zero business logic.
 - `src/db/` — `kysely.ts` (pooled handle + pg type parsers), `types.ts` (hand-written DB types),
   `transaction.ts` (the one tx helper).
 - `src/lib/` — `errors.ts` (ApiError + pg-error mapping), `http.ts` (route wrapper), `dates.ts` (midnight-local).
-- `src/planner/` — `types.ts` (interface), `index.ts` (v1 fill-to-capacity), `constants.ts` (difficulty→hours).
+- `src/planner/` — `types.ts` (interface incl. optional `TaskEdge[]`), `index.ts` (v1 fill-to-capacity
+  + staged unblocking when edges supplied; empty edges = inert), `constants.ts` (difficulty→hours).
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
-  `completion` (the cascade) + `scoring`, `engagement`, `roadmap`, `blocked`, `validation`,
+  `completion` (the cascade) + `scoring`, `engagement`, `roadmap` (propose + confirmDay),
+  `roadmapRead` (GET /roadmap + getDay), `projection` (read-only roadmap projection +
+  `projectMilestoneDates` — the one source of milestone dates; projected_date is derived, NEVER a
+  column), `planItems` (add/defer/reorder/delete/pull-forward/lock), `flow`, `blocked`, `validation`,
   `replan/` (proposal pipeline: `analyze` diff producer, `apply` transactional apply + #4/#5
   guards, `proposals` service, `types`; consumes the pure planner, never lives inside it),
   `jobs/` (Phase 5 background work: `runner` per-tick sweep, `context` user scan, `slippage`
@@ -67,7 +71,9 @@ API-first; clients hold zero business logic.
 ## Build state
 See `docs/PROGRESS.md` for the live checklist. In short: the 8-endpoint vertical spine +
 the task-completion cascade are built and pass against Supabase. Dependencies, the flow
-diagram, the replanning pipeline (Phase 4), and notifications & background jobs (Phase 5 —
-slippage detector, morning brief, nudges, stale-token prune, all behind one cron-driven tick)
-are now built too. The milestone-approaching nudge predicate (needs Phase 6 projection) and
-real APNs send (stubbed behind `Notifier`) plus most read endpoints are NOT built yet.
+diagram, the replanning pipeline (Phase 4), notifications & background jobs (Phase 5), and the
+roadmap projection + daily-planning reads/edits (Phase 6 — `GET /roadmap` persisted∪projected
+via staged-unblocking planner edges, day/plan-item reads & edits, pull-forward, reopen; the
+three `projected_date` consumers are now live) are all built. Real APNs send (stubbed behind
+`Notifier`) and the companion/motivation read endpoints (`/me*`, devices, prefs, points,
+`/morning-brief`) plus WBS edit/delete + roll-ups are NOT built yet.

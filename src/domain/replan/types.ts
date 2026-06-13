@@ -21,10 +21,14 @@ export interface Move {
 }
 
 /**
- * Milestone projection shift. DESCRIPTIVE ONLY in Phase 4 — there is no persisted
- * `projected_date` column yet (deferred to Phase 6), so apply writes nothing to
- * `milestone` from this. These are display projections for the review UI, not
- * committed state.
+ * Milestone projection shift, for the review UI. `to_projected_date` is computed by
+ * the shared projection helper (`projectMilestoneDates`) — the SAME source GET
+ * /roadmap and the flow diagram use, so a milestone's date is consistent everywhere.
+ *
+ * projected_date is ALWAYS derived (data-model §6), NEVER stored: there is no
+ * `milestone.projected_date` column and apply writes nothing here. Do not cache it
+ * into a column later — that reintroduces exactly the two-sources-of-truth drift §6
+ * exists to avoid.
  */
 export interface MilestoneImpact {
   milestone_id: string;
