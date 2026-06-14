@@ -194,7 +194,7 @@ describe("roadmap projection", () => {
     expect(second.taskDate.get(c)).toBe(fixed);
   });
 
-  it("milestone projected_date is null when a gating task can't be placed in the horizon", async () => {
+  it("milestone projected_date is null (but the milestone still appears) when a gating task can't be placed", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
     const now = new Date("2026-06-14T12:00:00Z");
     const today = localDate("UTC", now);
@@ -205,7 +205,39 @@ describe("roadmap projection", () => {
     await addTask(workspaceId, wp, { estimate: 2, timeFixed: true, fixedDate: addDays(today, 30) });
 
     const { milestoneDate } = await projectSchedule(db, ctx, { now, horizonDays: 5 });
-    expect(milestoneDate.get(ms)).toBeNull();
+    expect(milestoneDate.has(ms)).toBe(true); // present, NOT omitted
+    expect(milestoneDate.get(ms)).toBeNull(); // with an explicit "can't schedule" null
+  });
+
+  it("re-projects work from a SLIPPED day forward instead of letting it vanish", async () => {
+    const { ctx, workspaceId } = await provision({ timezone: "UTC" });
+    const now = new Date("2026-06-14T12:00:00Z");
+    const today = localDate("UTC", now);
+    const { projectId } = await addGoalProject(workspaceId, 8);
+    const ms = await addMilestone(workspaceId, projectId, 0);
+    const wp = await addWp(workspaceId, projectId, ms, 0);
+    const t = await addTask(workspaceId, wp, { estimate: 2 });
+
+    // A past day the slippage detector marked 'slipped' — the day status flips but the
+    // item stays 'planned' (invariant #5). The work didn't happen and still needs doing.
+    const day = await db.insertInto("daily_plan_day")
+      .values({ workspace_id: workspaceId, plan_date: "2026-06-10", status: "slipped", confirmed_at: now })
+      .returning("id").executeTakeFirstOrThrow();
+    await db.insertInto("daily_plan_item").values({
+      workspace_id: workspaceId, daily_plan_day_id: day.id, item_type: "task",
+      task_id: t, status: "planned", origin: "proposed", position: 0,
+    }).execute();
+
+    const { taskDate, milestoneDate } = await projectSchedule(db, ctx, { now });
+    expect(taskDate.get(t)).toBe(today); // re-projected forward, NOT stuck on 2026-06-10
+    expect(milestoneDate.get(ms)).toBe(today);
+
+    // And it surfaces in GET /roadmap's projected region (the path ahead).
+    const roadmap = await getRoadmap(db, ctx, { now });
+    const projectedTaskIds = roadmap.days
+      .filter((d) => d.projected)
+      .flatMap((d) => d.items.map((i) => i.task_id));
+    expect(projectedTaskIds).toContain(t);
   });
 });
 

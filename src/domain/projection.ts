@@ -63,16 +63,22 @@ export async function projectSchedule(
   const today = localDate(ctx.timezone, now);
   const horizonDays = opts.horizonDays ?? PROJECTION_HORIZON_DAYS;
 
-  // Persisted planned items are FIXED commitments: their date is the day they sit
-  // on, not something we re-derive. They're excluded from the candidate pool and the
-  // projection of remaining work starts the day AFTER the last persisted day, so it
-  // fills the path BEYOND the confirmed horizon instead of piling onto today.
+  // Planned items on a STILL-VALID day are FIXED commitments: their date is the day
+  // they sit on, not something we re-derive. They're excluded from the candidate pool
+  // and projection of the remaining work starts the day AFTER the last persisted day.
+  //
+  // A SLIPPED day is the exception: its items are still `planned` (the detector only
+  // flips the DAY status, never the item — invariant #5), but that work DIDN'T happen
+  // and still needs doing. So we exclude `d.status = 'slipped'` here, leaving slipped
+  // tasks in the candidate pool to be RE-PROJECTED forward instead of vanishing on a
+  // past day. (They still appear historically on the slipped day in GET /roadmap.)
   const plannedRows = await db
     .selectFrom("daily_plan_item as i")
     .innerJoin("daily_plan_day as d", "d.id", "i.daily_plan_day_id")
     .select(["i.task_id as taskId", "d.plan_date as planDate"])
     .where("i.workspace_id", "=", ctx.workspaceId)
     .where("i.status", "=", "planned")
+    .where("d.status", "<>", "slipped")
     .where("i.task_id", "is not", null)
     .execute();
   const persistedTaskDate = new Map<string, string>();

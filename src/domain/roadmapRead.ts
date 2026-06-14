@@ -83,6 +83,11 @@ export async function getRoadmap(
         .execute()
     : [];
 
+  // Slipped days don't "hold" their work — the same task is re-projected forward, so
+  // it must NOT be deduped out of the projected region (it shows both historically on
+  // the slipped day and ahead on its new projected day). Mirrors projection.ts.
+  const slippedDayIds = new Set(persistedDays.filter((d) => d.status === "slipped").map((d) => d.id));
+
   const itemsByDay = new Map<string, RoadmapItem[]>();
   const persistedPlannedTasks = new Set<string>();
   for (const r of itemRows) {
@@ -94,7 +99,9 @@ export async function getRoadmap(
       origin: r.origin,
       position: r.position,
     });
-    if (r.taskId && r.status === "planned") persistedPlannedTasks.add(r.taskId);
+    if (r.taskId && r.status === "planned" && !slippedDayIds.has(r.dayId)) {
+      persistedPlannedTasks.add(r.taskId);
+    }
   }
 
   const days: RoadmapDay[] = persistedDays.map((d) => ({
