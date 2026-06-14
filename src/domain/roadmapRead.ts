@@ -195,20 +195,24 @@ export interface DayView {
   items: { item: DailyPlanItem; task: RoadmapTaskRef | null }[];
 }
 
-/** A persisted day + its Daily Goals. Viewing TODAY records ⚡eng (Decision #8). */
-export async function getDay(
+/**
+ * A persisted day + its Daily Goals — the pure read core, NO engagement side
+ * effect. Returns null when no day is persisted for that date, so composite
+ * callers (e.g. the morning brief) can decide their own empty-day behaviour.
+ * The standalone `getDay` endpoint layers ⚡eng on top of this.
+ */
+export async function readDay(
   db: Kysely<Database>,
   ctx: AuthContext,
   date: string,
-  now: Date = new Date(),
-): Promise<DayView> {
+): Promise<DayView | null> {
   const day = await db
     .selectFrom("daily_plan_day")
     .selectAll()
     .where("workspace_id", "=", ctx.workspaceId)
     .where("plan_date", "=", date)
     .executeTakeFirst();
-  if (!day) throw notFound("No plan day for that date");
+  if (!day) return null;
 
   const rows = await db
     .selectFrom("daily_plan_item as i")
@@ -228,6 +232,19 @@ export async function getDay(
     };
   });
 
+  return { day, items };
+}
+
+/** A persisted day + its Daily Goals. Viewing TODAY records ⚡eng (Decision #8). */
+export async function getDay(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  date: string,
+  now: Date = new Date(),
+): Promise<DayView> {
+  const view = await readDay(db, ctx, date);
+  if (!view) throw notFound("No plan day for that date");
+
   // ⚡eng: viewing today's plan is a qualifying engagement.
   const today = localDate(ctx.timezone, now);
   if (date === today) {
@@ -237,5 +254,5 @@ export async function getDay(
     });
   }
 
-  return { day, items };
+  return view;
 }

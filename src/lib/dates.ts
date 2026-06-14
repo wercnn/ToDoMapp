@@ -30,6 +30,40 @@ export function localTime(timezone: string, at: Date = new Date()): string {
   return fmt.format(at).replace(/^24:/, "00:");
 }
 
+/**
+ * The UTC instant of LOCAL midnight that opens `dateStr` in `timezone`. The
+ * inverse of `localDate`: `localDate(tz, zonedDayStart(tz, d)) === d`. Used to
+ * turn a 'YYYY-MM-DD' query bound into a `timestamptz` comparison point so a date
+ * range means end-of-day LOCAL (invariant #3), not a UTC instant. One offset pass
+ * is exact except in the rare hour straddling a DST transition, which is fine for
+ * inclusive history bounds.
+ */
+export function zonedDayStart(timezone: string, dateStr: string): Date {
+  const utcGuess = new Date(`${dateStr}T00:00:00Z`);
+  // What wall-clock does that instant show in `timezone`? The gap is the offset.
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const p = Object.fromEntries(dtf.formatToParts(utcGuess).map((x) => [x.type, x.value]));
+  const asUTC = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+    Number(p.second),
+  );
+  const offset = asUTC - utcGuess.getTime();
+  return new Date(utcGuess.getTime() - offset);
+}
+
 /** Add `n` days to a 'YYYY-MM-DD' date string (calendar arithmetic, UTC-anchored). */
 export function addDays(dateStr: string, n: number): string {
   const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
