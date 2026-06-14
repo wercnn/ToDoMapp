@@ -8,12 +8,13 @@
  *   - streak_at_risk       → local date              (at most once per local day)
  *   - milestone_approaching→ the milestone's id       (once per milestone)
  *
- * Wired vs stubbed in Phase 5:
- *   - replan_needs_review  — FULLY WIRED (reads `replan_proposal`).
- *   - streak_at_risk       — FULLY WIRED (reads `user_stats` + `engagement_day`).
- *   - milestone_approaching— STUBBED: "approaching" is a date predicate and the
- *     milestone `projected_date` projection is Phase 6 (see flow.ts). The gate and
- *     dedupe-key wiring exist; the predicate returns nothing until projection lands.
+ * All three are FULLY WIRED:
+ *   - replan_needs_review  — reads `replan_proposal`.
+ *   - streak_at_risk       — reads `user_stats` + `engagement_day`.
+ *   - milestone_approaching— uses the shared `projectMilestoneDates` projection
+ *     (activated in Phase 6); fires when a milestone's derived projected_date falls
+ *     within MILESTONE_APPROACHING_DAYS of local today. (Was stubbed in Phase 5 only
+ *     because the projection it depends on didn't exist yet.)
  */
 import type { Kysely } from "kysely";
 import type { Database, NotificationPreference } from "../../db/types";

@@ -25,6 +25,10 @@ API-first; clients hold zero business logic.
   via `workspace_member`. `workspace_id` is injected server-side, NEVER from the client.
   Cross-workspace access → 404.
 - **Scoring is idempotent**: each source scores once ever (app check + partial unique indexes).
+- **Invariant #2 (one member per workspace) is ASSUMED, not constrained**: the `workspace_member`
+  PK is `(workspace_id, user_id)`, which permits N members — nothing in the DB or app forbids a
+  second member. It holds in v1 only because `bootstrap` is the sole writer (one owner per personal
+  workspace) and no endpoint adds members. Revisit when collaboration ships.
 
 ## Project map
 - `src/auth/` — `verifier.ts` (swappable token verify; JWKS/ES256 via Supabase signing keys,
@@ -38,9 +42,13 @@ API-first; clients hold zero business logic.
   + staged unblocking when edges supplied; empty edges = inert), `constants.ts` (difficulty→hours).
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
   `completion` (the cascade) + `scoring`, `engagement`, `roadmap` (propose + confirmDay),
-  `roadmapRead` (GET /roadmap + getDay), `projection` (read-only roadmap projection +
+  `roadmapRead` (GET /roadmap + `readDay` pure core + `getDay` = readDay + today-⚡eng),
+  `projection` (read-only roadmap projection +
   `projectMilestoneDates` — the one source of milestone dates; projected_date is derived, NEVER a
   column), `planItems` (add/defer/reorder/delete/pull-forward/lock), `flow`, `blocked`, `validation`,
+  `me` (GET/PATCH profile, stats, ⚡eng action), `devices` (register/list/delete; upsert by push_token),
+  `notificationPrefs` (get/replace), `points` (point-events/rules reads — no writes),
+  `morningBriefRead` (the composite; composes `readDay` so it records ⚡eng exactly once),
   `replan/` (proposal pipeline: `analyze` diff producer, `apply` transactional apply + #4/#5
   guards, `proposals` service, `types`; consumes the pure planner, never lives inside it),
   `jobs/` (Phase 5 background work: `runner` per-tick sweep, `context` user scan, `slippage`
@@ -52,12 +60,14 @@ API-first; clients hold zero business logic.
 - `supabase/migrations/` — numbered SQL migrations (initial schema + point_rule seed + `notification_dispatch`).
 - `vercel.json` — Vercel Cron: `*/15 * * * *` → `/v1/jobs/tick` (the only scheduled trigger).
 - `scripts/` — `migrate.ts`, `seed.ts`, `env.ts` (dotenv loader for scripts/tests).
-- `tests/` — `completion.test.ts` (DB-backed; runs against the configured Supabase DB).
+- `tests/` — DB-backed suites (run against the configured Supabase DB): `spine` (propose→confirm
+  gate + create-path 422s + bootstrap idempotency), `completion`, `dependencies`, `flow`,
+  `replan` (+ pure `replan-diff`), `jobs`, `roadmap`, `companion`.
 
 ## Commands
 - `npm run migrate` — apply pending SQL migrations (uses `DIRECT_URL`). `-- --status` to list.
 - `npm run seed` — (re)create the seed workspace + scenario. `-- --reset` to only delete it.
-- `npm test` — run the completion-cascade tests (DB-backed; needs `DIRECT_URL`).
+- `npm test` — run all DB-backed suites via vitest (needs `DIRECT_URL`).
 - `npm run dev` — Next dev server. `npm run build` / `npm run typecheck` — verify.
 
 ## Known deviations from the docs
@@ -71,9 +81,12 @@ API-first; clients hold zero business logic.
 ## Build state
 See `docs/PROGRESS.md` for the live checklist. In short: the 8-endpoint vertical spine +
 the task-completion cascade are built and pass against Supabase. Dependencies, the flow
-diagram, the replanning pipeline (Phase 4), notifications & background jobs (Phase 5), and the
+diagram, the replanning pipeline (Phase 4), notifications & background jobs (Phase 5), the
 roadmap projection + daily-planning reads/edits (Phase 6 — `GET /roadmap` persisted∪projected
 via staged-unblocking planner edges, day/plan-item reads & edits, pull-forward, reopen; the
-three `projected_date` consumers are now live) are all built. Real APNs send (stubbed behind
-`Notifier`) and the companion/motivation read endpoints (`/me*`, devices, prefs, points,
-`/morning-brief`) plus WBS edit/delete + roll-ups are NOT built yet.
+three `projected_date` consumers are live), and the companion/motivation reads (Phase 7 —
+`/me*`, stats, ⚡eng, devices, notif-prefs, points/rules, `/morning-brief` composite) are all
+built. `POST /me/devices` now provides real `device` rows, so only push certs are missing for
+real APNs (still stubbed behind `Notifier`). NOT built yet (all Phase 8): the WBS GET-one reads
+(`GET /goals|projects|work-packages|tasks/{id}`), WBS edit/delete (goal/project/WP/task PATCH+DELETE),
+milestones CRUD, and the goal/project progress roll-ups.

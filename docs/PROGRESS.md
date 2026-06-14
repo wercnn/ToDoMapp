@@ -3,7 +3,8 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-14 — Phase 6 (Roadmap projection & daily-planning reads) landed; 11 new tests pass (55 total) against Supabase._
+_Last updated: 2026-06-14 — Phase 7 landed + a pre-Phase-8 consolidation/audit pass: spine
+guards added (8 new tests; 76 total) and audit findings actioned. All pass against Supabase._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -124,6 +125,47 @@ _Last updated: 2026-06-14 — Phase 6 (Roadmap projection & daily-planning reads
   - **11 tests pass** (`tests/roadmap.test.ts`): planner empty-edges-identical + cross-project A→B
     (proves edge-awareness was necessary), projection staging + projected_date + null + time-fixed pin,
     #5 read-only row-count, persisted∪projected merge, the replan↔roadmap unification, and the edit endpoints.
+- **Companion & motivation reads (Phase 7)**: the identity/stats/devices/prefs/points
+  surface + the morning-brief composite (api §2/§3/§10/§12). Mostly reads over already-stored data.
+  - **`/me`** (`src/domain/me.ts`): `GET` profile+workspace+role; `PATCH` display_name/timezone — the
+    timezone change shifts the midnight-local boundary **forward only** by construction (nothing
+    derived is stored, so past `activity_date`/`plan_date` rows are never rewritten — future
+    `localDate` calls just read the new zone; no backfill). `GET /me/stats` = the single denormalized
+    `user_stats` row. `POST /me/engagement` ⚡eng reuses the shared `recordEngagement`+`refreshStats`
+    (idempotent upsert — second call same local day is a no-op on the row).
+  - **Devices** (`src/domain/devices.ts`): `GET/POST/DELETE /me/devices`. Upsert by the globally-unique
+    `push_token` (`ON CONFLICT (push_token)` refreshes `last_seen_at`, never dups) — the one write NOT
+    scoped by workspace tenancy: a re-register by a different user **reassigns** the row (last-login-wins,
+    pushes follow the current device owner). Delete is caller-scoped (other user's device → 404).
+    **This closes the Phase-5 gap**: real `device` rows now exist for the morning-brief/nudge jobs to
+    target (live APNs still stubbed behind `LogNotifier` until push certs).
+  - **Notif prefs** (`src/domain/notificationPrefs.ts`): `GET/PUT /me/notification-preferences` — full
+    replace of the 1:1 row (`morning_brief_time` is local wall-clock; scheduler resolves via timezone).
+  - **Points** (`src/domain/points.ts`): `GET /point-events` (append-only READ; `from`/`to` resolved in
+    the USER's timezone via new `dates.zonedDayStart` so a range means whole LOCAL days, not a UTC
+    instant; `event_type` filter) + `GET /point-rules` (seed read). **No mutation endpoint** — scoring
+    only happens in the completion cascade (Principle 3, no penalty events).
+  - **Morning brief** (`src/domain/morningBriefRead.ts`): `GET /morning-brief` ⚡eng — the composite.
+    Returns today's day+items, the **FULL stats row (points AND streak — both, per api §4.6)**, the
+    pending recovery proposal headline, position, and `next_milestone` (nearest by **earliest
+    projected_date**, with `days_away`). Composes the new read-only `roadmapRead.readDay` core (factored
+    out of `getDay`) so engagement is recorded **exactly once** at the brief level; an empty morning
+    returns `today: null` (never 404). `getDay` keeps its own ⚡eng for the standalone endpoint.
+  - **12 tests pass** (`tests/companion.test.ts`): device upsert/refresh/reassign + caller-scoped delete;
+    prefs full-replace; engagement idempotency (double call → one row); morning-brief points+streak+pending
+    +next_milestone + records-eng-once + empty→today:null; point-events event_type + local-day from/to
+    bounds, incl. a **UTC-12 timezone boundary** proving bounds are local end-of-day not a UTC instant.
+- **Pre-Phase-8 consolidation/audit** (2026-06-14): a no-feature pass over 7 phases.
+  - **Spine guards** (`tests/spine.test.ts`, 8 tests): the load-bearing Phase-1 paths that were
+    only ever live-verified over HTTP now have CI coverage — `proposeRoadmap → confirmDay` incl. the
+    **409-on-wrong-status** path-rendering gate (invariant #5) + 404; create-path **422s asserted at
+    the API layer** (estimation either/or + time-fixed pairing throw an `ApiError` BEFORE the insert,
+    not just the DB CHECK backstop); and **bootstrap idempotency** (repeat `auth_subject` → `created:false`).
+  - **Audit actions**: api §10 `/morning-brief` spec updated to the built shape (full `stats`, nullable
+    `today`, `next_milestone.{id,projected_date}`); CLAUDE.md records invariant #2 is assumed-not-constrained;
+    stale "STUBBED" header in `jobs/nudges.ts` corrected (milestone nudge is wired since Phase 6).
+  - **Findings left as-is**: the 4 GET-one reads folded into the Phase-8 line (named so they can't slip);
+    post-v1 seams (live APNs/`ApnsNotifier`, planner difficulty constants, multi-member) untouched.
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
@@ -133,8 +175,14 @@ _Last updated: 2026-06-14 — Phase 6 (Roadmap projection & daily-planning reads
 - **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, `new_work_package` proposal. `user_request` + `new_work_package` wired; `slippage` shares the machinery (detector job is Phase 5).
 - **Phase 5 — Notifications & jobs** ✅ — slippage detector, morning-brief push, contextual nudges, stale-token prune; one Vercel-Cron tick + per-user local-time scan, `CRON_SECRET`-guarded. Milestone-nudge predicate stubbed pending Phase 6 projection; real APNs stubbed behind `Notifier`.
 - **Phase 6 — Roadmap projection & daily-planning reads** ✅ — `GET /roadmap` (persisted ∪ projected via staged-unblocking planner edges), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen, day lock. Activated the three deferred `projected_date` consumers (flow/replan/nudge).
-- **Phase 7 — Companion & motivation reads** — `/me*`, stats, engagement, morning-brief, points/history, milestones CRUD, devices, notif-prefs.
-- **Phase 8 — WBS edits/deletes + roll-ups** — goal/project/WP/task PATCH+DELETE, goal/project progress endpoints.
+- **Phase 7 — Companion & motivation reads** ✅ — `/me*`, stats, engagement, devices, notif-prefs, points/history, `/morning-brief` composite. Closed the Phase-5 device gap. (Milestones CRUD deferred to Phase 8 WBS edits.)
+- **Phase 8 — WBS reads/edits/deletes + roll-ups** — the remaining WBS surface:
+  **GET-one reads** `GET /goals/{id}` (+`?include=progress`), `GET /projects/{id}` (+`?include=progress`),
+  `GET /work-packages/{id}` (+`?include=tasks`), `GET /tasks/{id}` (+`blocked`); **PATCH+DELETE** for
+  goal/project/work-package/task; **milestones CRUD** (`GET`/`POST /projects/{id}/milestones`,
+  `PATCH`/`DELETE /milestones/{id}`); and the **progress roll-ups** `GET /goals/{id}/progress` +
+  `GET /projects/{id}/progress`. (The GET-ones were surfaced by the Phase-7→8 audit as having no
+  named home — naming them here so they can't slip.)
 
 ## Phase 4 — starting brief
 The replanning pipeline (api §11, foundation §4.4): detect → analyze → **propose** → approve.
@@ -161,10 +209,11 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 **Open question for the Phase 4 plan (record, don't resolve):** does the analyze/propose logic (the JSONB-diff producer) live behind the existing planner interface (`proposeDays`) or in a sibling module (e.g. `src/domain/replan` calling the planner)? Decide at plan time to keep it modular/replaceable per Decision #19.
 
 ## Not built yet (next up, post-review)
-- **Real APNs send** — `LogNotifier` stub today; the `ApnsNotifier` drop-in needs push certs +
-  Phase 7 `POST /me/devices` so there are real `device` rows to ship to.
-- **Remaining reads/writes** (Phase 7+): `/me*`, devices, notif prefs, milestones CRUD,
-  goal/project edit+delete, progress roll-ups, points/history reads, `/morning-brief` composite read.
+- **Real APNs send** — `LogNotifier` stub today; the `ApnsNotifier` drop-in now only needs push certs
+  (the `device` rows it ships to exist as of Phase 7 `POST /me/devices`).
+- **Phase 8 — WBS edits/deletes + roll-ups**: `GET`-one + `PATCH`/`DELETE` for goal/project/WP/task,
+  milestones CRUD (`/projects/{id}/milestones`, `PATCH`/`DELETE /milestones/{id}`), and the
+  goal/project `progress` roll-up endpoints.
 
 ## Open items / risks
 - Auth — ✅ resolved 2026-06-13 via **JWKS**. This project is on Supabase "JWT Signing Keys";
