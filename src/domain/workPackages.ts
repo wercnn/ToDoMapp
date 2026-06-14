@@ -9,9 +9,9 @@
  * appear once tasks are added and the user re-runs a replan.
  */
 import type { Kysely } from "kysely";
-import type { Database, DifficultyLevel, ReplanProposal, WorkPackage } from "../db/types";
+import type { Database, DifficultyLevel, ReplanProposal, Task, WorkPackage } from "../db/types";
 import type { AuthContext } from "../auth/context";
-import { notFound } from "../lib/errors";
+import { badRequest, notFound } from "../lib/errors";
 import { withTransaction } from "../db/transaction";
 import { validateTitle, validateEstimate, validateTimeFixed } from "./validation";
 import { getBlockedTaskIds } from "./blocked";
@@ -188,4 +188,117 @@ export async function listWorkPackages(
     }
     return { ...wp, derived_status: status };
   });
+}
+
+async function findWorkPackage(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  wpId: string,
+): Promise<WorkPackage> {
+  const wp = await db
+    .selectFrom("work_package")
+    .selectAll()
+    .where("id", "=", wpId)
+    .where("workspace_id", "=", ctx.workspaceId)
+    .executeTakeFirst();
+  if (!wp) throw notFound("Work package not found");
+  return wp;
+}
+
+export interface WorkPackageWithTasks extends WorkPackage {
+  tasks: Task[];
+}
+
+export async function getWorkPackage(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  wpId: string,
+  opts: { includeTasks?: boolean } = {},
+): Promise<WorkPackage | WorkPackageWithTasks> {
+  const wp = await findWorkPackage(db, ctx, wpId);
+  if (!opts.includeTasks) return wp;
+  const tasks = await db
+    .selectFrom("task")
+    .selectAll()
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("work_package_id", "=", wpId)
+    .orderBy("position")
+    .orderBy("created_at")
+    .execute();
+  return { ...wp, tasks };
+}
+
+export interface UpdateWorkPackageInput {
+  title?: unknown;
+  description?: string | null;
+  milestone_id?: string | null;
+  estimate_hours?: number | null;
+  difficulty?: DifficultyLevel | null;
+  is_time_fixed?: boolean;
+  fixed_date?: string | null;
+  position?: number;
+}
+
+export async function updateWorkPackage(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  wpId: string,
+  input: UpdateWorkPackageInput,
+): Promise<WorkPackage> {
+  const existing = await findWorkPackage(db, ctx, wpId);
+
+  // Validate the MERGED estimate / time-fixed state (same rules as create) so the
+  // either/or + pairing invariants hold across a partial patch. DB CHECKs backstop.
+  const effEstimate =
+    input.estimate_hours !== undefined
+      ? input.estimate_hours
+      : existing.estimate_hours != null
+        ? Number(existing.estimate_hours)
+        : null;
+  const effDifficulty = input.difficulty !== undefined ? input.difficulty : existing.difficulty;
+  validateEstimate({ estimate_hours: effEstimate, difficulty: effDifficulty });
+
+  const effIsFixed = input.is_time_fixed !== undefined ? input.is_time_fixed : existing.is_time_fixed;
+  const effFixedDate = input.fixed_date !== undefined ? input.fixed_date : existing.fixed_date;
+  validateTimeFixed({ is_time_fixed: effIsFixed, fixed_date: effFixedDate });
+
+  if (input.milestone_id) {
+    await assertMilestoneInProject(db, ctx, existing.project_id, input.milestone_id);
+  }
+
+  const patch: Record<string, unknown> = { updated_at: new Date() };
+  if (input.title !== undefined) patch.title = validateTitle(input.title);
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.milestone_id !== undefined) patch.milestone_id = input.milestone_id;
+  if (input.estimate_hours !== undefined) patch.estimate_hours = input.estimate_hours;
+  if (input.difficulty !== undefined) patch.difficulty = input.difficulty;
+  if (input.is_time_fixed !== undefined) patch.is_time_fixed = input.is_time_fixed;
+  if (input.fixed_date !== undefined) patch.fixed_date = input.fixed_date;
+  if (input.position !== undefined) {
+    if (!Number.isInteger(input.position)) throw badRequest("position must be an integer");
+    patch.position = input.position;
+  }
+
+  return db
+    .updateTable("work_package")
+    .set(patch)
+    .where("id", "=", wpId)
+    .where("workspace_id", "=", ctx.workspaceId)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+}
+
+/** Delete a WP and its tasks/dep edges/plan items via FK ON DELETE CASCADE.
+ *  Ledger rows survive (sources ON DELETE SET NULL). No manual cascade. */
+export async function deleteWorkPackage(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  wpId: string,
+): Promise<void> {
+  const result = await db
+    .deleteFrom("work_package")
+    .where("id", "=", wpId)
+    .where("workspace_id", "=", ctx.workspaceId)
+    .executeTakeFirst();
+  if (Number(result.numDeletedRows) === 0) throw notFound("Work package not found");
 }

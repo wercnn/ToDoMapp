@@ -166,6 +166,36 @@ guards added (8 new tests; 76 total) and audit findings actioned. All pass again
     stale "STUBBED" header in `jobs/nudges.ts` corrected (milestone nudge is wired since Phase 6).
   - **Findings left as-is**: the 4 GET-one reads folded into the Phase-8 line (named so they can't slip);
     post-v1 seams (live APNs/`ApnsNotifier`, planner difficulty constants, multi-member) untouched.
+- **WBS edits/deletes + roll-ups (Phase 8 — the final phase)**: the remaining WBS surface, all
+  reads/edits over already-stored data + two pure derivations.
+  - **GET-ones** (all NEW — none existed before): `GET /goals/{id}` (+`?include=progress`),
+    `GET /projects/{id}` (+`?include=progress`), `GET /work-packages/{id}` (+`?include=tasks`),
+    `GET /tasks/{id}` (returns derived `blocked`). Added as `get*` fns in the existing domain modules.
+  - **PATCH/DELETE** for goal/project/work-package/task. PATCH reuses the create-time validators on the
+    **MERGED** state (estimate either/or + time-fixed pairing computed against the existing row, so a
+    partial patch can't violate the invariant; DB CHECKs still backstop). `goal status→achieved` stamps
+    `achieved_at`, `project status→completed` stamps `completed_at` (server-side, never client-written).
+    **task PATCH refuses `status`/`completed_at` → 422** (those go through complete/reopen so the cascade
+    can't be bypassed). Every DELETE is a single workspace-scoped `deleteFrom` that **RELIES on the FK
+    cascade** (goal→project→{milestone,work_package}→task→{deps,plan_items}); the point ledger survives
+    because its sources are `ON DELETE SET NULL` — no manual subtree deletion in the app.
+  - **Milestones CRUD** (`src/domain/milestones.ts` — NEW; only the achievement cascade + reads pre-existed,
+    POST did NOT): `GET /projects/{id}/milestones` (with `achieved`, `wp_done/wp_total`, and `projected_date`
+    from the shared `projectMilestoneDates` — same source as flow/roadmap), `POST` (plain insert), `PATCH`
+    (title/desc/position — `achieved_at` is NEVER in the input shape, set once by the cascade), `DELETE`
+    (**ungroups, never deletes work**: composite FK `ON DELETE SET NULL (milestone_id)` nulls member WPs).
+  - **Progress roll-ups** (`src/domain/progress.ts` — NEW, the SINGLE source): `GET /goals/{id}/progress`
+    + `GET /projects/{id}/progress` + the `?include=progress` expansions all call `computeGoalProgress`/
+    `computeProjectProgress`. Estimate sums use the SAME `resolveHours` the flow diagram uses (agree by
+    construction). **`percent_done` is task-count based** (`tasks_done/tasks_total`), NOT estimate-weighted:
+    estimates are nullable so a weighted % would skew/break on partial data. Known tradeoff — a 5-min and a
+    3-day task weigh equally — accepted because `estimate_*_hours` ship in the same payload for a client that
+    wants a weighted view.
+  - **11 tests pass** (`tests/wbs.test.ts`): GET-one extras; PATCH happy paths + status-stamps; task-PATCH
+    status→422; milestone-PATCH can't set achieved_at; cross-workspace 404 across all verbs; milestone
+    create/list membership counts; **DELETE-milestone-ungroups (WPs survive, milestone_id null)**;
+    **DELETE-goal cascades subtree but point ledger survives with task_id nulled**; DELETE happy/re-delete-404;
+    progress roll-up correctness (2×2h tasks → 50% after one done, goal == project).
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
@@ -176,13 +206,10 @@ guards added (8 new tests; 76 total) and audit findings actioned. All pass again
 - **Phase 5 — Notifications & jobs** ✅ — slippage detector, morning-brief push, contextual nudges, stale-token prune; one Vercel-Cron tick + per-user local-time scan, `CRON_SECRET`-guarded. Milestone-nudge predicate stubbed pending Phase 6 projection; real APNs stubbed behind `Notifier`.
 - **Phase 6 — Roadmap projection & daily-planning reads** ✅ — `GET /roadmap` (persisted ∪ projected via staged-unblocking planner edges), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen, day lock. Activated the three deferred `projected_date` consumers (flow/replan/nudge).
 - **Phase 7 — Companion & motivation reads** ✅ — `/me*`, stats, engagement, devices, notif-prefs, points/history, `/morning-brief` composite. Closed the Phase-5 device gap. (Milestones CRUD deferred to Phase 8 WBS edits.)
-- **Phase 8 — WBS reads/edits/deletes + roll-ups** — the remaining WBS surface:
-  **GET-one reads** `GET /goals/{id}` (+`?include=progress`), `GET /projects/{id}` (+`?include=progress`),
-  `GET /work-packages/{id}` (+`?include=tasks`), `GET /tasks/{id}` (+`blocked`); **PATCH+DELETE** for
-  goal/project/work-package/task; **milestones CRUD** (`GET`/`POST /projects/{id}/milestones`,
-  `PATCH`/`DELETE /milestones/{id}`); and the **progress roll-ups** `GET /goals/{id}/progress` +
-  `GET /projects/{id}/progress`. (The GET-ones were surfaced by the Phase-7→8 audit as having no
-  named home — naming them here so they can't slip.)
+- **Phase 8 — WBS reads/edits/deletes + roll-ups** ✅ — the GET-ones (+`?include=progress`/`tasks`/`blocked`),
+  PATCH+DELETE for goal/project/work-package/task (deletes rely on the FK cascade; ledger survives via SET NULL),
+  milestones CRUD (POST was NEW — only the achievement cascade pre-existed; DELETE ungroups WPs, never deletes work),
+  and the shared progress roll-up (`src/domain/progress.ts`, task-count `percent_done`). 11 tests in `tests/wbs.test.ts`.
 
 ## Phase 4 — starting brief
 The replanning pipeline (api §11, foundation §4.4): detect → analyze → **propose** → approve.
