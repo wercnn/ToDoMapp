@@ -260,3 +260,14 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
   real-user launch, not needed now):** (a) **Vercel Pro** → restore `*/15 * * * *`, design works as-built;
   (b) stay on **Hobby + an external scheduler** (e.g. GitHub Actions / cron-job.org) hitting `/v1/jobs/tick`
   every 15 min with the secret. Either restores the cadence without touching the runner.
+- **Pre-launch: wipe test workspaces (both stores) (2026-06-15).** Prod-deploy verification left test
+  artifacts in production: the `walk@example.com` workspace (Journey-A live walk) and an older "Eren"
+  workspace. Inert until real users exist — clean them as a **pre-launch step**, not now.
+  **Two INDEPENDENT stores, no FK between them** (`app_user.auth_subject` is a plain unique `text` column,
+  NO FK into `auth.users` — auth stays swappable per §9.2 rule 5), so a full cleanup is TWO operations:
+  (1) **domain DB** — `DELETE FROM workspace …` cascades all that workspace's goals/projects/…/points via
+  `workspace_id ON DELETE CASCADE`, then `DELETE FROM app_user …` mops up user-scoped rows (`device`,
+  `notification_preference`); `point_rule` seed survives (no workspace FK). (2) **Supabase Auth** — delete
+  each login via `DELETE {SUPABASE_URL}/auth/v1/admin/users/{auth_subject}` (service-role key). Deleting
+  one store does NOT touch the other. Pre-launch full wipe = `DELETE FROM workspace; DELETE FROM app_user;`
+  (keeps the `point_rule` seed) + delete all auth users. Do BOTH workspaces, BOTH stores.
