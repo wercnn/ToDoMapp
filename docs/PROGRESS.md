@@ -250,3 +250,13 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
   The legacy `SUPABASE_JWT_SECRET` is verify-only/deprecated and unused by the verifier.
   _To confirm end-to-end: log in, decode the access_token header → expect `alg: ES256`._
 - Two intentional deviations from the docs are recorded in `CLAUDE.md` → "Known deviations".
+- **Cron cadence — Hobby-plan limitation (2026-06-15).** Phase 5 was designed around a **15-min tick**
+  (`*/15 * * * *`) so per-user jobs fire near each user's LOCAL boundary (morning brief at
+  `morning_brief_time`, slippage at local midnight). **Vercel Hobby allows cron at most ONCE PER DAY**, so
+  `vercel.json` is set to `0 0 * * *` purely to let the deploy succeed — coarser than the design intends.
+  The jobs themselves are unchanged (they're state-scans that self-heal on a late/skipped tick), so a daily
+  tick still works, just with up-to-24h latency on local-time-sensitive sends. **Verification doesn't depend
+  on the schedule**: trigger `/v1/jobs/tick` manually with `CRON_SECRET`. **Production options (decide at
+  real-user launch, not needed now):** (a) **Vercel Pro** → restore `*/15 * * * *`, design works as-built;
+  (b) stay on **Hobby + an external scheduler** (e.g. GitHub Actions / cron-job.org) hitting `/v1/jobs/tick`
+  every 15 min with the secret. Either restores the cadence without touching the runner.
