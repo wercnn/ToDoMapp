@@ -42,7 +42,7 @@ export function Login() {
   return (
     <div
       className="flex min-h-full items-center justify-center px-6 py-12"
-      style={{ background: "radial-gradient(1200px 600px at 50% -10%, #171520, var(--bg))" }}
+      style={{ background: "radial-gradient(1200px 600px at 50% -10%, var(--backdrop-glow), var(--bg))" }}
     >
       <div className="w-full max-w-[400px] rounded-[18px] border border-border bg-surface-1 p-8">
         <div className="mb-7 flex items-center gap-2.5">

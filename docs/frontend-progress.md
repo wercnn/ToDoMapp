@@ -193,13 +193,31 @@ user's final confirm._
   create-then-add, cycle-409 = calm inline, no phantom edge) · Timeline/Gantt (hand-rolled; cross-day drag →
   REPLAN PROPOSAL, never silent PATCH; time-fixed drag-disabled) · WP right-side sheet. Code-split proven
   (React Flow only in the lazy chunk). 2nd backend gap (per-task pin proposal) logged with both options.
-- **F5 — Celebration + polish** — milestone dialog/animation, light-theme pass, empty states,
-  reduced-motion.
+- **F5 — Celebration + polish** 🚧 BUILT (on-screen pass pending) — milestone celebration dialog
+  (keys off the `milestone_achieved` field of the `/tasks/{id}/complete` response, via a root
+  `CelebrationProvider`; fires once because it's set from the POST mutation's `onSuccess`, never a
+  query/re-render — both Home + WP-sheet completion sites wire in); roadmap landmark now lights up
+  green + shows its title (needed an additive widen of `GET /roadmap` milestones →
+  `{ id, title, achieved, achieved_date, projected_date }`, the one backend touch); motion pass (check-off pop,
+  green path-fill, progress-bar fill, proposal pulse — all CSS keyframes so the global
+  reduced-motion rule catches them); light theme reachable (OS default + persisted toggle in TopBar,
+  `--backdrop-glow` token replaces the hardcoded login/onboarding gradient); reusable `EmptyState`
+  (Home no-goals, empty Flow, empty replan diff) + `Skeleton` loaders; Sheet focus-trap +
+  return-focus + initial autofocus; lazy-Flow `ErrorBoundary`.
+  - **Gap-fix (post-review):** fixed the bug where an achieved milestone *dropped off* the roadmap
+    (projection can't date completed work → `projected_date` null). Added `achieved_date` (from
+    `achieved_at`) to the `GET /roadmap` milestone entry; the landmark is now dated by
+    `achieved_date ?? projected_date` so it stays visible and lit. `buildTimeline` extracted to a
+    pure `timeline.ts` (+5 unit tests) and a backend roadmap regression added. Also: `bg-surface`
+    (undefined utility → transparent) → `bg-surface-1` at 3 sites; reduced-motion now sets
+    `animation-iteration-count:1` so infinite loops actually stop; time-fixed pill keeps its readable
+    label; completion/reopen invalidate morning-brief+roadmap+goal at both sites; Home read error via
+    `calmMessage`; celebration provider dedupes by `milestone_id` (belt-and-suspenders).
 
 ## Not built yet / deferred
 - Full shadcn sidebar/sheet/dialog primitives (hand-built shell for F1; pull shadcn per-screen at F3/F4).
 - Today-strip hover-expand popover (web-screens §0.2) — TopBar shows the summary; popover deferred.
-- Light/dark theme toggle UI (tokens support both; no switcher control yet).
+- ~~Light/dark theme toggle UI~~ ✅ F5 — OS default + persisted manual toggle in the TopBar.
 - Bundle code-splitting (526 kB at F1; split at F4 when React Flow lands).
 - Onboarding for additional goals after first run (web-screens open Q #3).
 - **F2 scope cuts (intentional):** A4 dependencies are WP-level only and the drawn-edge list is

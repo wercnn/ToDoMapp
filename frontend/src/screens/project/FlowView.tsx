@@ -33,6 +33,7 @@ import "@xyflow/react/dist/style.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dependenciesApi, projectsApi } from "@/api";
 import { StatusPill } from "@/components/StatusPill";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { calmMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
@@ -162,6 +163,14 @@ export default function FlowView({
     return <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>;
   if (flow.isError || !flow.data)
     return <p className="p-6 text-sm font-bold text-warning">Couldn’t load the flow.</p>;
+  if (flow.data.nodes.length === 0)
+    return (
+      <EmptyState
+        title="Nothing to map yet"
+        hint="Add work packages and tasks, then draw dependencies between them here to see the flow."
+        className="mt-4"
+      />
+    );
 
   return (
     <div className="flex flex-col gap-2">

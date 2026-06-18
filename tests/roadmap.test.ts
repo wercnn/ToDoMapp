@@ -279,6 +279,31 @@ describe("GET /roadmap", () => {
     expect(projectedTaskIds).not.toContain(planned);
     expect(roadmap.position.today).toBe(today);
   });
+
+  it("keeps an ACHIEVED milestone in the list (achieved + achieved_date), not dropped when projection can't date it", async () => {
+    // Regression (F5 gap-fix): once every WP completes there's no incomplete work to
+    // project, so projected_date goes null. Without achieved_date the landmark would
+    // disappear from the roadmap instead of lighting up green.
+    const { ctx, workspaceId } = await provision({ timezone: "UTC" });
+    const now = new Date("2026-06-14T12:00:00Z");
+    const { projectId } = await addGoalProject(workspaceId, 8);
+    const ms = await addMilestone(workspaceId, projectId, 0);
+    const wp = await addWp(workspaceId, projectId, ms, 0);
+    const t = await addTask(workspaceId, wp, { estimate: 2 });
+
+    // Achieve it the way the completion cascade does: task done, WP cache set, milestone achieved.
+    const achievedAt = new Date("2026-06-13T09:00:00Z");
+    await db.updateTable("task").set({ status: "done", completed_at: now }).where("id", "=", t).execute();
+    await db.updateTable("work_package").set({ completed_at: now }).where("id", "=", wp).execute();
+    await db.updateTable("milestone").set({ achieved_at: achievedAt }).where("id", "=", ms).execute();
+
+    const roadmap = await getRoadmap(db, ctx, { now });
+    const entry = roadmap.milestones.find((m) => m.id === ms);
+    expect(entry).toBeTruthy(); // still present, NOT dropped
+    expect(entry!.achieved).toBe(true);
+    expect(entry!.achieved_date).toBe(localDate("UTC", achievedAt)); // anchored at achievement
+    expect(entry!.projected_date).toBeNull(); // no incomplete work left to project
+  });
 });
 
 // ---- Activation: the deferred-item payoff ----------------------------------

@@ -141,7 +141,7 @@ export function DayDrawer({
               <li
                 key={entry.item.id}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5",
+                  "flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-3 py-2.5",
                   entry.item.status === "deferred" && "opacity-50",
                 )}
               >

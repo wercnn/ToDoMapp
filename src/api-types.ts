@@ -377,7 +377,13 @@ export interface RoadmapDay {
 /** GET /roadmap */
 export interface Roadmap {
   days: RoadmapDay[];
-  milestones: { id: string; projected_date: DateString | null }[];
+  milestones: {
+    id: string;
+    title: string;
+    achieved: boolean;
+    achieved_date: DateString | null;
+    projected_date: DateString | null;
+  }[];
   position: { today: DateString; current_streak: number };
 }
 

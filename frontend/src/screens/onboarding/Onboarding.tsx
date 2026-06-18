@@ -77,7 +77,7 @@ function Wizard({ initial }: { initial: OnboardingResume }) {
   return (
     <div
       className="min-h-full px-6 py-10"
-      style={{ background: "radial-gradient(1200px 600px at 50% -10%, #171520, var(--bg))" }}
+      style={{ background: "radial-gradient(1200px 600px at 50% -10%, var(--backdrop-glow), var(--bg))" }}
     >
       <div className="mx-auto flex w-full max-w-[680px] flex-col gap-7">
         <div className="flex items-center gap-2.5">

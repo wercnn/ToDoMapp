@@ -7,9 +7,12 @@
  * column with a sticky header and a scrollable body so long diffs/day lists scroll
  * without losing the title or footer actions.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
 export function Sheet({
   open,
@@ -29,16 +32,45 @@ export function Sheet({
   width?: string;
   children: React.ReactNode;
 }) {
+  const panelRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const visibleFocusables = () =>
+      Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(
+        (el) => el.offsetParent !== null,
+      );
+
+    // Initial focus: first focusable inside the panel, else the panel itself.
+    (visibleFocusables()[0] ?? panelRef.current)?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      // Trap focus within the panel.
+      const els = visibleFocusables();
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.();
     };
   }, [open, onClose]);
 
@@ -47,15 +79,17 @@ export function Sheet({
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-[var(--scrim)] backdrop-blur-[1px]"
         onClick={onClose}
         aria-hidden
       />
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         className={cn(
-          "relative flex h-full w-full flex-col border-l border-border bg-bg shadow-xl",
+          "relative flex h-full w-full flex-col border-l border-border bg-bg shadow-xl outline-none",
           width,
         )}
       >

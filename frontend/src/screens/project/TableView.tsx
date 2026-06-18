@@ -94,7 +94,7 @@ function WpRow({
             >
               {wp.title}
             </button>
-            {wp.is_time_fixed && <StatusPill status="time_fixed" label="◆" className="px-2" />}
+            {wp.is_time_fixed && <StatusPill status="time_fixed" />}
           </div>
         </td>
         <td className="px-3 py-2.5 text-xs font-semibold text-text-secondary">

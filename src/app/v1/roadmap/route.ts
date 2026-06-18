@@ -1,7 +1,7 @@
 /**
  * GET /v1/roadmap — the Duolingo-style path (api §10): persisted past/confirmed
- * days ∪ the live projection beyond, milestones as landmarks with derived
- * projected_date, and "you are here". Pure read — writes nothing.
+ * days ∪ the live projection beyond, milestones as landmarks dated by
+ * achieved_date ?? projected_date, and "you are here". Pure read — writes nothing.
  */
 import { handler, json } from "@/lib/http";
 import { badRequest } from "@/lib/errors";

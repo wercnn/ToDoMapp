@@ -37,6 +37,13 @@
 
   /* On-accent foreground (text on a filled accent) */
   --on-accent: #0e0e10;
+
+  /* Modal/sheet scrims */
+  --scrim: rgb(0 0 0 / 0.4);
+  --scrim-strong: rgb(0 0 0 / 0.55);
+
+  /* Ambient "magic moment" backdrop glow (login / onboarding entry) */
+  --backdrop-glow: #171520;
 }
 
 .light {
@@ -65,4 +72,10 @@
   --focus-ring: #7c5cfc;
 
   --on-accent: #ffffff;
+
+  --scrim: rgb(14 14 16 / 0.28);
+  --scrim-strong: rgb(14 14 16 / 0.42);
+
+  /* Soft lilac tint instead of the dark glow, so the entry reads in light too. */
+  --backdrop-glow: #efeafe;
 }

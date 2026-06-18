@@ -11,7 +11,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { goalsApi, morningBriefApi, tasksApi } from "@/api";
 import type { GoalWithProgress, MorningBrief, RoadmapTaskRef } from "@api-types";
+import { useNavigate } from "react-router-dom";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
+import { useCelebration } from "@/components/Celebration";
+import { EmptyState } from "@/components/EmptyState";
+import { Skeleton } from "@/components/Skeleton";
+import { Button } from "@/components/ui/button";
+import { calmMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 
 function taskStatusToPill(task: RoadmapTaskRef | null): StatusKind {
@@ -21,27 +27,54 @@ function taskStatusToPill(task: RoadmapTaskRef | null): StatusKind {
 
 export function Home() {
   const qc = useQueryClient();
+  const { celebrate } = useCelebration();
   const brief = useQuery({ queryKey: ["morning-brief"], queryFn: morningBriefApi.get });
 
   const toggle = useMutation({
     mutationFn: async ({ taskId, completed }: { taskId: string; completed: boolean }) => {
-      if (completed) await tasksApi.reopen(taskId);
-      else await tasksApi.complete(taskId);
+      if (completed) {
+        await tasksApi.reopen(taskId);
+        return null;
+      }
+      return tasksApi.complete(taskId);
     },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["morning-brief"] });
+    onSuccess: (result) => {
+      // A completion/reopen touches today's plan, the path, and goal progress.
+      for (const key of [["morning-brief"], ["roadmap"], ["goal"]]) {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+      // Fires once: `milestone_achieved` is present only on the completion that
+      // crosses the milestone (backend sets achieved_at once). See Celebration.tsx.
+      if (result?.milestone_achieved) {
+        celebrate({
+          milestoneId: result.milestone_achieved.milestone_id,
+          title: result.milestone_achieved.title,
+          bonusPoints: result.milestone_achieved.points_awarded,
+        });
+      }
     },
   });
 
   if (brief.isLoading) {
-    return <p className="p-6 text-sm font-bold text-text-tertiary">Loading your day…</p>;
+    return (
+      <div className="grid grid-cols-1 items-start gap-5 p-6 lg:grid-cols-[1.15fr_1fr]">
+        <section className="flex flex-col gap-4 rounded-[18px] border border-border bg-surface-1 p-5">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </section>
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </div>
+    );
   }
   if (brief.isError || !brief.data) {
-    return (
-      <p className="p-6 text-sm font-bold text-warning">
-        Couldn’t load your morning brief. {brief.error instanceof Error ? brief.error.message : ""}
-      </p>
-    );
+    return <p className="p-6 text-sm font-bold text-warning">{calmMessage(brief.error)}</p>;
   }
 
   const data: MorningBrief = brief.data;
@@ -93,7 +126,7 @@ export function Home() {
                   className={cn(
                     "flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] text-[13px] font-extrabold",
                     completed
-                      ? "bg-progress text-on-accent"
+                      ? "bg-progress text-on-accent [animation:pop_200ms_ease-out]"
                       : "border-2 border-border-strong",
                   )}
                 >
@@ -157,14 +190,27 @@ function Metric({ value, label, accent }: { value: string; label: string; accent
 }
 
 function GoalsOverview() {
+  const navigate = useNavigate();
   const goals = useQuery({ queryKey: ["goals"], queryFn: goalsApi.list });
-  if (!goals.data?.length) return null;
   return (
     <section className="flex flex-col gap-3">
       <span className="text-sm font-black">Goals &amp; progress</span>
-      {goals.data.map((g) => (
-        <GoalCard key={g.id} goalId={g.id} title={g.title} horizon={g.horizon} />
-      ))}
+      {!goals.data?.length ? (
+        <EmptyState
+          icon={<span className="text-2xl">◎</span>}
+          title="No goals yet"
+          hint="Set your first goal to start building a roadmap toward it."
+          action={
+            <Button size="sm" onClick={() => navigate("/onboarding")}>
+              Set a goal
+            </Button>
+          }
+        />
+      ) : (
+        goals.data.map((g) => (
+          <GoalCard key={g.id} goalId={g.id} title={g.title} horizon={g.horizon} />
+        ))
+      )}
     </section>
   );
 }
@@ -194,7 +240,10 @@ function GoalCard({
         <span className="ml-auto font-mono text-[13px] font-bold text-progress">{pct}%</span>
       </div>
       <span className="h-2 overflow-hidden rounded-full bg-surface-2">
-        <span className="block h-full rounded-full bg-progress" style={{ width: `${pct}%` }} />
+        <span
+          className="block h-full rounded-full bg-progress transition-[width] duration-500 ease-out"
+          style={{ width: `${pct}%` }}
+        />
       </span>
     </div>
   );

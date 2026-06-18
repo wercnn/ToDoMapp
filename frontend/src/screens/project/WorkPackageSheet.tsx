@@ -25,6 +25,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field } from "@/components/ui/input";
 import { StatusPill } from "@/components/StatusPill";
+import { useCelebration } from "@/components/Celebration";
 import { calmMessage } from "@/lib/apiError";
 import {
   EstimateControl,
@@ -250,19 +251,57 @@ function TaskRow({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const done = task.status === "done";
+  const { celebrate } = useCelebration();
+  const qc = useQueryClient();
 
   function run(p: Promise<unknown>) {
     p.then(onChanged).catch((e) => onError(calmMessage(e)));
+  }
+
+  // A completion/reopen here also moves today's plan, the path, and goal progress —
+  // reads this sheet doesn't own. Keep them fresh (the project/WP lists go via onChanged).
+  function crossInvalidate() {
+    for (const key of [["morning-brief"], ["roadmap"], ["goal"]]) {
+      void qc.invalidateQueries({ queryKey: key });
+    }
+  }
+
+  function toggleComplete() {
+    if (done) {
+      tasksApi
+        .reopen(task.id)
+        .then(() => {
+          onChanged();
+          crossInvalidate();
+        })
+        .catch((e) => onError(calmMessage(e)));
+      return;
+    }
+    // Same once-only contract as Home: celebrate iff the response carries the win.
+    tasksApi
+      .complete(task.id)
+      .then((result) => {
+        onChanged();
+        crossInvalidate();
+        if (result.milestone_achieved) {
+          celebrate({
+            milestoneId: result.milestone_achieved.milestone_id,
+            title: result.milestone_achieved.title,
+            bonusPoints: result.milestone_achieved.points_awarded,
+          });
+        }
+      })
+      .catch((e) => onError(calmMessage(e)));
   }
 
   return (
     <li className="flex items-center gap-2 rounded-[10px] border border-border bg-surface-1 px-2.5 py-2">
       <button
         aria-label={done ? "Reopen" : "Complete"}
-        onClick={() => run(done ? tasksApi.reopen(task.id) : tasksApi.complete(task.id))}
+        onClick={toggleComplete}
         className={
           done
-            ? "flex h-5 w-5 flex-none items-center justify-center rounded-md bg-progress text-on-accent"
+            ? "flex h-5 w-5 flex-none items-center justify-center rounded-md bg-progress text-on-accent [animation:pop_200ms_ease-out]"
             : "flex h-5 w-5 flex-none items-center justify-center rounded-md border border-border-strong text-transparent hover:text-text-tertiary"
         }
       >
@@ -297,7 +336,7 @@ function TaskRow({
       <span className="flex-none text-[11px] font-bold text-text-tertiary">
         {formatEstimate(task.estimate_hours, task.difficulty)}
       </span>
-      {task.is_time_fixed && <StatusPill status="time_fixed" label="◆" className="px-2" />}
+      {task.is_time_fixed && <StatusPill status="time_fixed" />}
       {!done && <StatusPill status={taskStatusKind(task)} />}
 
       <div className="flex flex-none items-center">

@@ -18,6 +18,7 @@ import { allConflictsResolved, buildApproveEdits } from "@/lib/buildApproveEdits
 import { replanApi } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
+import { EmptyState } from "@/components/EmptyState";
 import { calmMessage } from "@/lib/apiError";
 import { TimeFixedConflictControl } from "./TimeFixedConflictControl";
 
@@ -41,6 +42,11 @@ export function ReplanReview({
 
   const changes = detail.data?.changes;
   const conflicts = changes?.time_fixed_conflicts ?? [];
+  const nothingToChange =
+    changes != null &&
+    changes.moves.length === 0 &&
+    changes.milestone_impacts.length === 0 &&
+    conflicts.length === 0;
 
   // Only fully-decided conflicts count toward the gate (undefined = unresolved).
   const definedDecisions = useMemo(() => {
@@ -132,7 +138,14 @@ export function ReplanReview({
       {detail.isLoading && <p className="text-sm font-bold text-text-tertiary">Loading proposal…</p>}
       {detail.isError && <p className="text-sm font-bold text-warning">{calmMessage(detail.error)}</p>}
 
-      {changes && (
+      {nothingToChange && (
+        <EmptyState
+          title="Nothing to change"
+          hint="Your plan already lines up — there are no reschedules or conflicts to review. You can reject this proposal to dismiss it."
+        />
+      )}
+
+      {changes && !nothingToChange && (
         <div className="space-y-6">
           {/* 1. Moves */}
           <Section title="Reschedules" count={changes.moves.length}>
@@ -143,7 +156,7 @@ export function ReplanReview({
                 {changes.moves.map((m) => (
                   <li
                     key={m.task_id}
-                    className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2"
+                    className="flex items-center gap-2 rounded-md border border-border bg-surface-1 px-3 py-2"
                   >
                     <input
                       type="checkbox"

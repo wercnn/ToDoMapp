@@ -19,6 +19,7 @@ import { Plus } from "lucide-react";
 import { projectsApi } from "@/api";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/StatusPill";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReplanReview } from "@/screens/roadmap/ReplanReview";
 import { calmMessage } from "@/lib/apiError";
 import { TableView } from "./TableView";
@@ -153,13 +154,21 @@ export function ProjectDetail() {
       <div className="min-h-0 flex-1 overflow-auto p-6">
         {view === "table" && <TableView projectId={projectId} onSelectWp={setSelectedWpId} />}
         {view === "flow" && (
-          <Suspense
+          <ErrorBoundary
             fallback={
-              <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>
+              <p className="p-6 text-sm font-bold text-warning">
+                Couldn’t load the flow canvas. Check your connection and try the Table view.
+              </p>
             }
           >
-            <FlowView projectId={projectId} onSelectWp={setSelectedWpId} />
-          </Suspense>
+            <Suspense
+              fallback={
+                <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>
+              }
+            >
+              <FlowView projectId={projectId} onSelectWp={setSelectedWpId} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         {view === "timeline" && (
           <TimelineView

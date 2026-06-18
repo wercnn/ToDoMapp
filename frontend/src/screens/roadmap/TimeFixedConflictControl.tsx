@@ -63,7 +63,7 @@ export function TimeFixedConflictControl({
             onClick={() => select(opt)}
             className={cn(
               "flex items-start gap-2 rounded-md border px-3 py-2 text-left",
-              choice === opt ? "border-system bg-system-soft" : "border-border bg-surface hover:bg-surface-2",
+              choice === opt ? "border-system bg-system-soft" : "border-border bg-surface-1 hover:bg-surface-2",
             )}
           >
             <span

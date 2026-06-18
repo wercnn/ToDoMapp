@@ -1,7 +1,8 @@
 /**
  * Roadmap — the day-granular path (web-screens §D). Renders GET /roadmap: the
  * persisted ∪ projected days in date order as a vertical step path, milestones as
- * landmark rows at their projected_date, and a "you are here" marker at today.
+ * landmark rows dated by achieved_date ?? projected_date, and a "you are here"
+ * marker at today.
  *
  * Principle 1: this screen is PURE DISPLAY. It never fabricates or auto-confirms a
  * day — a day becomes confirmed only via the deliberate confirm click in the day
@@ -10,35 +11,17 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Flag, MapPin, RefreshCw } from "lucide-react";
-import type { Roadmap as RoadmapDto, RoadmapDay } from "@api-types";
+import type { RoadmapDay } from "@api-types";
 import { replanApi, roadmapApi } from "@/api";
 import { Button } from "@/components/ui/button";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
+import { Skeleton } from "@/components/Skeleton";
 import { cn } from "@/lib/utils";
 import { calmMessage } from "@/lib/apiError";
 import { DayDrawer } from "./DayDrawer";
 import { ReplanReview } from "./ReplanReview";
+import { buildTimeline } from "./timeline";
 import { formatDay } from "./dates";
-
-/** A chronological entry: a day-step or a milestone landmark. */
-type Entry =
-  | { kind: "day"; date: string; day: RoadmapDay }
-  | { kind: "milestone"; date: string; id: string };
-
-function buildTimeline(data: RoadmapDto): { entries: Entry[]; undated: string[] } {
-  const entries: Entry[] = data.days.map((day) => ({ kind: "day", date: day.date, day }));
-  const undated: string[] = [];
-  for (const ms of data.milestones) {
-    if (ms.projected_date) entries.push({ kind: "milestone", date: ms.projected_date, id: ms.id });
-    else undated.push(ms.id);
-  }
-  // Chronological; a milestone sorts AFTER the day it lands on (landmark closes the day).
-  entries.sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-    return a.kind === "milestone" && b.kind === "day" ? 1 : a.kind === "day" && b.kind === "milestone" ? -1 : 0;
-  });
-  return { entries, undated };
-}
 
 const DAY_PILL: Record<RoadmapDay["status"], StatusKind> = {
   proposed: "proposed",
@@ -61,6 +44,13 @@ export function Roadmap() {
   const today = roadmap.data?.position.today ?? null;
   const pendingProposal = pending.data?.[0] ?? null;
 
+  // The green path-fill: how far along the path "today" sits (the trail behind you).
+  const pathFrac = useMemo(() => {
+    if (!timeline || timeline.entries.length === 0) return 0;
+    const reached = timeline.entries.filter((e) => e.date <= (today ?? "")).length;
+    return Math.min(1, reached / timeline.entries.length);
+  }, [timeline, today]);
+
   async function requestReplan() {
     setReplanError(null);
     setReplanning(true);
@@ -76,7 +66,17 @@ export function Roadmap() {
   }
 
   if (roadmap.isLoading) {
-    return <div className="p-6 text-sm font-bold text-text-tertiary">Loading your roadmap…</div>;
+    return (
+      <div className="mx-auto max-w-2xl space-y-3 p-6">
+        <Skeleton className="h-7 w-40" />
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8 flex-none rounded-full" />
+            <Skeleton className="h-14 flex-1" />
+          </div>
+        ))}
+      </div>
+    );
   }
   if (roadmap.isError || !timeline) {
     return <div className="p-6 text-sm font-bold text-warning">{calmMessage(roadmap.error)}</div>;
@@ -117,8 +117,13 @@ export function Roadmap() {
       </div>
 
       <ol className="relative">
-        {/* the connector rail */}
+        {/* the connector rail — grey track + green trail filled up to "today" */}
         <span className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-border" aria-hidden />
+        <span
+          className="absolute left-[15px] top-2 w-0.5 rounded-full bg-progress transition-[height] duration-500 ease-out"
+          style={{ height: `calc(${pathFrac} * (100% - 1rem))` }}
+          aria-hidden
+        />
         {timeline.entries.map((entry) =>
           entry.kind === "day" ? (
             <DayNode
@@ -128,7 +133,12 @@ export function Roadmap() {
               onOpen={() => setOpenDate(entry.date)}
             />
           ) : (
-            <MilestoneNode key={`ms-${entry.id}-${entry.date}`} date={entry.date} />
+            <MilestoneNode
+              key={`ms-${entry.id}-${entry.date}`}
+              date={entry.date}
+              title={entry.title}
+              achieved={entry.achieved}
+            />
           ),
         )}
       </ol>
@@ -171,7 +181,7 @@ function DayNode({ day, isToday, onOpen }: { day: RoadmapDay; isToday: boolean; 
         onClick={onOpen}
         className={cn(
           "flex flex-1 items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:bg-surface-2",
-          isToday ? "border-progress bg-progress-soft/40" : "border-border bg-surface",
+          isToday ? "border-progress bg-progress-soft/40" : "border-border bg-surface-1",
           projected && "border-dashed opacity-80",
         )}
       >
@@ -200,20 +210,40 @@ function DayNode({ day, isToday, onOpen }: { day: RoadmapDay; isToday: boolean; 
   );
 }
 
-function MilestoneNode({ date }: { date: string }) {
+function MilestoneNode({ date, title, achieved }: { date: string; title: string; achieved: boolean }) {
   const { rest } = formatDay(date);
   return (
     <li className="relative flex items-center gap-3 pb-3">
+      {/* Achieved → green & lit; upcoming → lilac landmark. Glyph + colour, never colour alone. */}
       <span
-        className="relative z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border-2 border-system bg-system-soft text-system"
+        className={cn(
+          "relative z-10 flex h-8 w-8 flex-none items-center justify-center rounded-full border-2",
+          achieved
+            ? "border-progress bg-progress text-on-accent"
+            : "border-system bg-system-soft text-system",
+        )}
         aria-hidden
       >
         <Flag size={14} />
       </span>
-      <div className="flex flex-1 items-center gap-2 rounded-xl border border-system/40 bg-system-soft/40 px-4 py-2.5">
-        <span className="text-xs font-black uppercase tracking-wide text-system">Milestone</span>
-        <span className="ml-auto text-xs font-bold text-text-secondary">~{rest}</span>
-        <span className="text-[10px] font-semibold text-text-tertiary">projection</span>
+      <div
+        className={cn(
+          "flex flex-1 items-center gap-2 rounded-xl border px-4 py-2.5",
+          achieved ? "border-progress/40 bg-progress-soft/50" : "border-system/40 bg-system-soft/40",
+        )}
+      >
+        <span
+          className={cn(
+            "text-[10px] font-black uppercase tracking-wide",
+            achieved ? "text-progress" : "text-system",
+          )}
+        >
+          {achieved ? "✓ Reached" : "Milestone"}
+        </span>
+        <span className="truncate text-sm font-extrabold text-text-primary">{title}</span>
+        <span className="ml-auto flex-none text-xs font-bold text-text-secondary">
+          {achieved ? rest : `~${rest}`}
+        </span>
       </div>
     </li>
   );

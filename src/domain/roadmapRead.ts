@@ -41,7 +41,15 @@ export interface RoadmapDay {
 
 export interface Roadmap {
   days: RoadmapDay[];
-  milestones: { id: string; projected_date: string | null }[];
+  milestones: {
+    id: string;
+    title: string;
+    achieved: boolean;
+    /** Local date the milestone was achieved (from achieved_at); null until achieved. */
+    achieved_date: string | null;
+    /** Derived projection of the finish date; null once achieved (no future work to date). */
+    projected_date: string | null;
+  }[];
   position: { today: string; current_streak: number };
 }
 
@@ -165,13 +173,18 @@ export async function getRoadmap(
   let msQ = db
     .selectFrom("milestone as m")
     .innerJoin("project as p", "p.id", "m.project_id")
-    .select(["m.id as id"])
+    .select(["m.id as id", "m.title as title", "m.achieved_at as achieved_at"])
     .where("m.workspace_id", "=", ctx.workspaceId)
     .where("p.status", "=", "active");
   if (opts.goalId) msQ = msQ.where("p.goal_id", "=", opts.goalId);
   const msRows = await msQ.execute();
   const milestones = msRows.map((m) => ({
     id: m.id,
+    title: m.title,
+    achieved: m.achieved_at != null,
+    // Achieved milestones have no incomplete tasks left, so the projection can't date
+    // them — they'd vanish from the path. Anchor them at their achievement date instead.
+    achieved_date: m.achieved_at ? localDate(ctx.timezone, new Date(m.achieved_at)) : null,
     projected_date: milestoneDate.get(m.id) ?? null,
   }));
 
