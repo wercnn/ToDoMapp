@@ -21,6 +21,8 @@ import type {
   MilestoneWithState,
   MorningBrief,
   Project,
+  ProjectFlow,
+  ProjectWithProgress,
   ProposalStatus,
   ProposedDay,
   ReplanChanges,
@@ -107,7 +109,13 @@ export const goalsApi = {
 };
 
 export const projectsApi = {
-  get: (id: string) => apiRequest<Project>(`/projects/${id}`),
+  get: (id: string, includeProgress = false) =>
+    apiRequest<Project | ProjectWithProgress>(
+      `/projects/${id}`,
+      includeProgress ? { query: { include: "progress" } } : {},
+    ),
+  /** GET /projects/{id}/flow — fully-derived graph for the Flow diagram (F4). */
+  getFlow: (id: string) => apiRequest<ProjectFlow>(`/projects/${id}/flow`),
   /** PATCH /projects/{id} — A5 sets the real capacity; also A2 edit on back. */
   update: (
     id: string,
@@ -135,9 +143,21 @@ export const projectsApi = {
 
 export const workPackagesApi = {
   listTasks: (wpId: string) => apiRequest<TaskWithBlocked[]>(`/work-packages/${wpId}/tasks`),
-  /** PATCH /work-packages/{id} — A4 (re)assigns a WP to a milestone. */
-  update: (id: string, body: { milestone_id?: string | null }) =>
-    apiRequest<WorkPackage>(`/work-packages/${id}`, { method: "PATCH", body }),
+  /**
+   * PATCH /work-packages/{id} — A4 milestone (re)assign + F4 sheet edits
+   * (title/description/estimate/time-fixed). `status`/`completed_at` are server-maintained,
+   * never sent. Estimate/time-fixed are the discriminated unions so a body can't carry both
+   * estimates or an unpaired time-fixed flag (422 prevented structurally).
+   */
+  update: (
+    id: string,
+    body: {
+      title?: string;
+      description?: string | null;
+      milestone_id?: string | null;
+    } & Partial<Estimation> &
+      Partial<TimeFixed>,
+  ) => apiRequest<WorkPackage>(`/work-packages/${id}`, { method: "PATCH", body }),
   /** DELETE /work-packages/{id} — A3 inline delete (cascades its tasks). */
   remove: (id: string) => apiRequest<void>(`/work-packages/${id}`, { method: "DELETE" }),
   /** POST /work-packages/{id}/tasks — A3. */
@@ -152,6 +172,11 @@ export const dependenciesApi = {
   /** POST /work-package-dependencies — A4 (409 on cycle). */
   createWpEdge: (body: { predecessor_wp_id: string; successor_wp_id: string }) =>
     apiRequest<WorkPackageDependency>("/work-package-dependencies", { method: "POST", body }),
+  /** DELETE /task-dependencies/{pred}/{succ} — remove a task edge (F4 Flow edge delete). */
+  removeTaskEdge: (predecessorTaskId: string, successorTaskId: string) =>
+    apiRequest<void>(`/task-dependencies/${predecessorTaskId}/${successorTaskId}`, {
+      method: "DELETE",
+    }),
   /** DELETE /work-package-dependencies/{pred}/{succ} — undo a drawn edge. */
   removeWpEdge: (predecessorWpId: string, successorWpId: string) =>
     apiRequest<void>(`/work-package-dependencies/${predecessorWpId}/${successorWpId}`, {
@@ -223,6 +248,22 @@ export const tasksApi = {
   complete: (id: string) =>
     apiRequest<CompleteTaskResult>(`/tasks/${id}/complete`, { method: "POST" }),
   reopen: (id: string) => apiRequest<Task>(`/tasks/${id}/reopen`, { method: "POST" }),
+  /**
+   * PATCH /tasks/{id} — F4 sheet inline edit (title/notes/estimate/time-fixed/position).
+   * `status`/`completed_at` are NOT editable here (use complete/reopen). Estimate/time-fixed
+   * are the discriminated unions (422 prevented structurally). NOTE: this is a DIRECT write —
+   * it does NOT generate a replan proposal even on scheduling-relevant fields. See the tracked
+   * backend gap in PROGRESS ("no targeted pin-proposal primitive").
+   */
+  update: (
+    id: string,
+    body: {
+      title?: string;
+      notes?: string | null;
+      position?: number;
+    } & Partial<Estimation> &
+      Partial<TimeFixed>,
+  ) => apiRequest<Task>(`/tasks/${id}`, { method: "PATCH", body }),
   /** DELETE /tasks/{id} — A3 inline delete. */
   remove: (id: string) => apiRequest<void>(`/tasks/${id}`, { method: "DELETE" }),
 };

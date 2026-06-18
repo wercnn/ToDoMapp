@@ -184,6 +184,37 @@ export interface MilestoneWithState extends Milestone {
   wp_total: number;
 }
 
+// ---- Project flow diagram (GET /projects/{id}/flow, api §5 / data-model §6) --
+/** Derived (never stored) status of a flow node. Mirrors `src/domain/flow.ts`. */
+export type DerivedStatus = "done" | "blocked" | "in_progress" | "open";
+
+/** One node in the flow graph — a work package or a task. */
+export interface FlowNode {
+  id: string;
+  kind: "work_package" | "task";
+  title: string;
+  /** Set for task nodes — the owning work package. */
+  work_package_id?: string;
+  /** Nominal planning hours (difficulty already mapped; unestimated → default). */
+  hours: number;
+  derived_status: DerivedStatus;
+}
+
+/** The two edge families: task→task and WP→WP finish-before edges. */
+export interface FlowEdges {
+  task: { predecessor_task_id: string; successor_task_id: string }[];
+  work_package: { predecessor_wp_id: string; successor_wp_id: string }[];
+}
+
+/** GET /projects/{id}/flow — fully-derived graph for the Flow diagram (Principle 5). */
+export interface ProjectFlow {
+  nodes: FlowNode[];
+  edges: FlowEdges;
+  /** Ordered task-id sequence of the critical path to the next milestone (may be empty). */
+  critical_path: string[];
+  next_milestone: { id: string; title: string; projected_date: DateString | null } | null;
+}
+
 /** A task→task or WP→WP finish-before edge (POST /task-dependencies, /work-package-dependencies). */
 export interface TaskDependency {
   predecessor_task_id: string;

@@ -12,6 +12,7 @@ import { Shell } from "@/screens/shell/Shell";
 import { Login } from "@/screens/Login";
 import { Home } from "@/screens/Home";
 import { Roadmap } from "@/screens/roadmap/Roadmap";
+import { ProjectDetail } from "@/screens/project/ProjectDetail";
 import { Onboarding } from "@/screens/onboarding/Onboarding";
 import { useOnboardingResume } from "@/screens/onboarding/useOnboardingResume";
 
@@ -51,6 +52,7 @@ export function App() {
       >
         <Route path="/home" element={<Home />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/projects/:projectId" element={<ProjectDetail />} />
       </Route>
       <Route
         path="/"

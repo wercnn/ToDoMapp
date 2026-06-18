@@ -264,6 +264,37 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
     reproduces defer-on-day-X → replan-back-onto-X → approve and asserts a clean apply (no 409), plus the
     locked-day and time-fixed guards still holding. Do this as a **deliberate backend fix**, not folded
     into an F-phase commit.
+- **🐛 GAP (tracked, NOT a bug) — no targeted "pin task to an exact date" REPLAN PROPOSAL primitive
+  (found 2026-06-18 during F4 frontend planning). This is the 2nd backend gap the frontend has
+  surfaced (after the apply.ts deferred-row collision above); both are legitimate findings, correctly
+  deferred.** The F4 Timeline (web-screens §C.2) wants "drag a flexible bar to a new date → propose a
+  change (Principle 1, never a silent rewrite)." But the backend offers NO way to express "propose
+  putting THIS task on THAT specific day":
+  - `POST /replan-proposals` scope is only `{ project_id?, from_date? }` — the planner re-derives the
+    whole schedule from scratch and takes no per-task target date.
+  - `PATCH /tasks/{taskId}` (incl. `fixed_date`/`is_time_fixed`) is a **silent direct write** — it does
+    NOT generate a proposal the way WP/task *create* does (`new_work_package` trigger, see
+    `src/domain/workPackages.ts`). So pinning a task via PATCH would bypass the review step entirely.
+  - **F4's honest interim (shipped):** a cross-day Timeline drag fires
+    `POST /replan-proposals {trigger:'user_request', scope:{project_id, from_date}}` (from_date = the
+    earlier of the bar's current date and the drop date) → ReplanReview → approve/reject. The drop day
+    is a **re-plan ANCHOR, not a guaranteed landing slot**; the gesture is labelled "re-plan from here,"
+    never "pin to this day." A drag that PRETENDED to pin to the drop date would be a UI that lies about
+    what the backend can do — so we don't build that. Time-fixed bars are drag-DISABLED (pinned,
+    Decision #7), with a pin affordance so it reads as intentional.
+  - **Proposed fix (two options, decide when targeted placement is actually needed — NOT now):**
+    1. **`PATCH /tasks` auto-proposes** when confirmed roadmap days exist — mirror `createWorkPackage`'s
+       `new_work_package` path: a scheduling-relevant edit (`fixed_date`, estimate, time-fixed) on a task
+       whose work flows into confirmed days returns `{ task, replan_proposal? }` instead of silently
+       writing. Keeps the existing PATCH surface; adds the Principle-1 review hop for in-place edits.
+       Same concern applies to WP-sheet estimate/time-fixed edits on already-scheduled tasks.
+    2. **A replan scope carrying a per-task PIN** — extend `POST /replan-proposals` scope with something
+       like `{ pins: [{ task_id, fixed_date }] }` that the planner treats as a soft/hard placement
+       constraint for that analysis only (not a stored `task.fixed_date`). The planner produces a
+       proposal that actually honors the drop date; the user reviews real placement, and approving it
+       commits — without permanently making the task time-fixed. This is the faithful version of the
+       Timeline drag, but it touches the planner interface (`proposeDays` input) + analyze, so it's the
+       heavier change. Mind the locked-day + time-fixed (invariant #4) guards either way.
 - Auth — ✅ resolved 2026-06-13 via **JWKS**. This project is on Supabase "JWT Signing Keys";
   user access tokens are ES256, public key published at `…/auth/v1/.well-known/jwks.json`.
   `src/auth/verifier.ts` verifies against JWKS (selects by `kid`, caches, asymmetric-only),

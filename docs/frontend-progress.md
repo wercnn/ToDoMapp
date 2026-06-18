@@ -5,7 +5,8 @@ Mirrors `docs/PROGRESS.md` (backend). Terse; **update at the end of each work se
 Design source of truth: `docs/design/project/` (TodoMapp Prototype = interactive prototype,
 Earned Momentum = design system, `uploads/web-screens.md` = screen-by-screen spec).
 
-_Last updated: 2026-06-18 — F0 + F1 + F2 + **F3 (Roadmap + replan review/approve)** built. F3's
+_Last updated: 2026-06-18 — F0–F3 + **F4 (Project Detail: Table · Flow · Timeline · WP sheet)** built
+(typecheck + vite build green both sides; live cross-origin walk pending). F0 + F1 + F2 + **F3 (Roadmap + replan review/approve)** built. F3's
 keystone (`buildApproveEdits`) is unit-tested (7/7) AND the full flow is **verified live** cross-origin
 against the running /v1: both approve branches (plain + edited/time-fixed renegotiate), the 422
 backstop + rollback, reject-leaves-untouched, and the cross-origin plan-item DELETE — 29/29 checks
@@ -141,6 +142,44 @@ user's final confirm._
     Also verified `walk@example.com` via password grant: ES256 token, `/v1/me` + `/v1/goals` resolve
     its workspace (1 goal "Ship v1").
 
+- **F4 — Project Detail** 🚧 BUILT (typecheck + build green both sides; live cross-origin walk pending)
+  (web-screens §C — the workbench). New `screens/project/`: `ProjectDetail` (shell — header w/ inline
+  capacity edit + progress roll-up + `[Table|Flow|Timeline]` switcher, URL `?view=`, **Table-default for
+  F4**, flip to Flow-default once Flow is verified), `TableView` (WBS rows expandable to tasks, lazy
+  per-WP task load on expand — no fan-out), `WorkPackageSheet` (reuses F3 `sheet.tsx` + F2 discriminated-
+  union `EstimateControl`/`TimeFixedControl`; WP field edits + task CRUD + complete/reopen + position
+  reorder), `AddWorkPackageSheet` (mid-flight add → surfaces `replan_proposal` → ReplanReview), `FlowView`
+  (lazy), `TimelineView`, `flowGraph.ts` (pure ProjectFlow→React Flow mapping + dagre layout), `status.ts`.
+  Sidebar now nests projects under goals (→ `/projects/:id`); route added to `App.tsx`.
+  - **Backend (additive only):** Flow DTOs (`ProjectFlow`/`FlowNode`/`FlowEdges`/`DerivedStatus`) added to
+    the pure `src/api-types.ts` barrel (they lived only in `src/domain/flow.ts`). API client: `projectsApi.getFlow`
+    + `?include=progress`, `dependenciesApi.removeTaskEdge`, richer `workPackagesApi.update`, `tasksApi.update`.
+  - **Sharp edge (a) — Flow cycle-409, no phantom edge:** `FlowView` (React Flow + dagre, lazy chunk) uses
+    **create-then-add** — `onConnect` validates locally (self / kind-mismatch → calm inline reject, no API),
+    POSTs the dep, and only on 201 invalidates→**refetches** the flow (so derived_status/critical_path can't go
+    stale). A 409 (cycle/dup) / 422 (self) simply never adds the edge — no window for a phantom edge. Edge
+    delete via select→DELETE→refetch. Critical-path nodes/edges emphasized; show-tasks toggle.
+  - **Sharp edge (b) — Timeline drag = proposal, never silent PATCH (Principle 1):** a cross-day drag of a
+    FLEXIBLE bar fires `POST /replan-proposals {trigger:'user_request', scope:{project_id, from_date}}`
+    (from_date = earlier of source/drop day = re-plan ANCHOR) → shared `ReplanReview`. Honest framing
+    "re-plan from here," NOT "pin to this day" (backend has no per-task target — logged gap, see below).
+    Time-fixed bars are **drag-DISABLED** with a pin affordance/tooltip. Within-list reorder is NOT here
+    (that's the sheet's position PATCH) — every axis drag is a day change ⇒ always a proposal.
+  - **Code-split proven:** React Flow + dagre (228 kB JS + 16 kB CSS) land entirely in the lazy `FlowView`
+    chunk; the main bundle stayed ~unchanged (596→605 kB, the +9 kB is the F4 non-Flow code).
+  - **2nd backend gap logged** (`docs/PROGRESS.md` Open items): no targeted "pin task to exact date"
+    proposal primitive — BOTH solution options recorded (PATCH /tasks auto-proposes like `new_work_package`,
+    OR a replan scope carrying a per-task pin). Correctly deferred, like the apply.ts deferred-row bug.
+  - **Build-time refinements (honest deviations from the plan, found during build):** (1) the flow payload
+    OMITS milestone/estimate/time-fixed/position, so the Table is fed by `listWorkPackages`+lazy `listTasks`,
+    NOT the flow payload (confirm #1). (2) The Timeline needs `is_time_fixed`/`fixed_date`, which flow+roadmap
+    omit, so it fetches tasks per-WP (bounded fan-out, Timeline-only; a bulk project-tasks read would remove
+    it). (3) In-sheet dependency editing deferred — it needs the full edge set (only the flow payload carries
+    it); dependency CRUD lives on the Flow canvas. (4) Sheet/timeline reorder uses up/down + drag-to-day
+    rather than pulling a DnD lib into the sheet.
+  - **Not yet done:** the live cross-origin walk (Table status, sheet edit 422/time-fixed guards, Flow
+    drag-connect + cycle-409 no-phantom-edge, Timeline drag→proposal→ReplanReview, time-fixed drag-disabled).
+
 ## Roadmap (one line per phase)
 - **F0 — Foundations** ✅ — tokens, API client, auth, CORS, type-sharing, scaffold.
 - **F1 — Vertical slice** ✅ — login + app shell + Home on live `/v1`; cross-origin proven.
@@ -150,9 +189,10 @@ user's final confirm._
   keystone (`buildApproveEdits`) unit-tested + the full flow verified live cross-origin (29/29).
   Force-resolve-all on time-fixed conflicts; no cross-day drag (deferred to F4, but the proposal-not-PATCH
   rule is flagged in the day drawer).
-- **F4 — Project Detail** ⏳ NEXT — Table → Flow (React Flow, drag-to-connect, cycle 409 as calm message)
-  → Timeline/Gantt + WP right-side sheet. Heaviest screen; code-split here. Timeline cross-day
-  drag→reschedule MUST emit a REPLAN PROPOSAL (never a silent PATCH, Principle 1).
+- **F4 — Project Detail** 🚧 BUILT (verify pending) — Table · Flow (React Flow + dagre, lazy; drag-to-connect
+  create-then-add, cycle-409 = calm inline, no phantom edge) · Timeline/Gantt (hand-rolled; cross-day drag →
+  REPLAN PROPOSAL, never silent PATCH; time-fixed drag-disabled) · WP right-side sheet. Code-split proven
+  (React Flow only in the lazy chunk). 2nd backend gap (per-task pin proposal) logged with both options.
 - **F5 — Celebration + polish** — milestone dialog/animation, light-theme pass, empty states,
   reduced-motion.
 

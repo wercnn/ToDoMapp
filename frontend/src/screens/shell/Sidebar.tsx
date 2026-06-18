@@ -6,6 +6,7 @@
  */
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import type { Goal } from "@api-types";
 import { goalsApi } from "@/api";
 import { cn } from "@/lib/utils";
 
@@ -49,23 +50,49 @@ export function Sidebar() {
       {goals.isError && (
         <p className="px-2 text-xs font-semibold text-warning">Couldn’t load goals</p>
       )}
-      {goals.data?.map((g) => (
-        <div
-          key={g.id}
-          className="flex items-center gap-2 rounded-[9px] px-2 py-1.5 text-[13px] font-extrabold text-text-primary"
-        >
-          <span className="text-progress">◎</span>
-          <span className="flex-1 truncate">{g.title}</span>
-          <span className="rounded-[5px] bg-surface-2 px-1.5 py-0.5 text-[9px] font-extrabold text-text-secondary">
-            {HORIZON_LABEL[g.horizon] ?? g.horizon.toUpperCase()}
-          </span>
-        </div>
-      ))}
+      {goals.data?.map((g) => <GoalNode key={g.id} goal={g} />)}
       {goals.data?.length === 0 && (
         <p className="px-2 text-xs font-semibold text-text-tertiary">No goals yet.</p>
       )}
 
       <div className="mt-auto" />
     </aside>
+  );
+}
+
+/** A goal row with its projects nested beneath (each linking to Project Detail). */
+function GoalNode({ goal }: { goal: Goal }) {
+  const projects = useQuery({
+    queryKey: ["goal", goal.id, "projects"],
+    queryFn: () => goalsApi.listProjects(goal.id),
+  });
+
+  return (
+    <div className="mb-0.5">
+      <div className="flex items-center gap-2 rounded-[9px] px-2 py-1.5 text-[13px] font-extrabold text-text-primary">
+        <span className="text-progress">◎</span>
+        <span className="flex-1 truncate">{goal.title}</span>
+        <span className="rounded-[5px] bg-surface-2 px-1.5 py-0.5 text-[9px] font-extrabold text-text-secondary">
+          {HORIZON_LABEL[goal.horizon] ?? goal.horizon.toUpperCase()}
+        </span>
+      </div>
+      {projects.data?.map((proj) => (
+        <NavLink
+          key={proj.id}
+          to={`/projects/${proj.id}`}
+          className={({ isActive }) =>
+            cn(
+              "ml-4 flex items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-[12px] font-bold transition-colors",
+              isActive
+                ? "bg-surface-2 text-text-primary"
+                : "text-text-secondary hover:bg-surface-1",
+            )
+          }
+        >
+          <span className="text-text-tertiary">▸</span>
+          <span className="truncate">{proj.title}</span>
+        </NavLink>
+      ))}
+    </div>
   );
 }
