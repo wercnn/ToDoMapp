@@ -5,10 +5,12 @@ Mirrors `docs/PROGRESS.md` (backend). Terse; **update at the end of each work se
 Design source of truth: `docs/design/project/` (TodoMapp Prototype = interactive prototype,
 Earned Momentum = design system, `uploads/web-screens.md` = screen-by-screen spec).
 
-_Last updated: 2026-06-18 — F0 + F1 + **F2 (Onboarding A1–A7)** built. F2's create-path AND
-the resume ladder are **verified live** cross-origin against the running /v1 (full HTTP walk +
-all-branch resume on a fresh user). typecheck + build green both sides; every onboarding module
-transforms clean through Vite. The visual browser click-through is the user's final confirm._
+_Last updated: 2026-06-18 — F0 + F1 + F2 + **F3 (Roadmap + replan review/approve)** built. F3's
+keystone (`buildApproveEdits`) is unit-tested (7/7) AND the full flow is **verified live** cross-origin
+against the running /v1: both approve branches (plain + edited/time-fixed renegotiate), the 422
+backstop + rollback, reject-leaves-untouched, and the cross-origin plan-item DELETE — 29/29 checks
+on a throwaway user. typecheck + vite build green both sides. The visual browser click-through is the
+user's final confirm._
 
 ## Architecture (locked)
 - **Separate frontend project** (Option B), sibling folder `frontend/` in the same repo. Chosen
@@ -89,6 +91,46 @@ transforms clean through Vite. The visual browser click-through is the user's fi
   - typecheck + `vite build` green both sides; all 15 onboarding modules transform clean via Vite dev.
   - **Not yet done:** the visual browser click-through (no browser-drive tool here) — the data flow +
     resume logic are proven at the HTTP level; the user runs the on-screen walk as final confirmation.
+- **F3 — Roadmap + replan review/approve** ✅ (web-screens §D — the human-in-the-loop core)
+  - **Backend (additive only):** extended the pure `src/api-types.ts` barrel with the replan-diff DTOs —
+    `ReplanMove`, `ReplanMilestoneImpact`, `TimeFixedConflict`, `TimeFixedResolution`, `TimeFixedOption`,
+    `ReplanChanges`, `ReplanProposalDetail` (`{proposal, changes}`), `ApproveProposalResult`
+    (`{proposal, applied:{days,items}}`). No `/v1` logic touched.
+  - **API client (`api/index.ts`):** `daysApi.setLock/addItem`, `planItemsApi.patch/remove`,
+    `replanApi.list/get/create/approve/reject`. `replanApi.approve(id, edits?)` — omit `edits` for a
+    plain approve, pass the full edited diff for edited_approved.
+  - **The keystone — `lib/buildApproveEdits.ts` (+ `.test.ts`, 7/7):** the pure builder that turns the
+    review UI's state into the EXACT `edits` body apply.ts consumes. `TimeFixedDecision` is a
+    discriminated union (renegotiate cannot be built without `new_fixed_date`). Critical correctness:
+    `edits` REPLACES the stored `changes` (not merge), so the builder re-carries the original moves;
+    each time-fixed move is built inseparably from its resolution, so apply's guard #4 (422) can't trip
+    from a UI body. Mapping: descope→`to_date:null`+res, renegotiate→`to_date:new_fixed_date`+res,
+    prioritize→no move, res only. `from_date = conflict.fixed_date` (apply's defer is a no-op-safe UPDATE
+    if no item is materialized there).
+  - **Screens (`screens/roadmap/`):** `Roadmap` (vertical day-step path — persisted ∪ projected days,
+    projected flagged dashed/ghost, milestones as landmark rows at projected_date, "you are here" at
+    today, a Replan/Review-proposal entry), `DayDrawer` (items + confirm/lock/add/reorder/defer/remove;
+    add uses `useAddableTasks` — a lazy WBS walk for unscheduled unblocked tasks), `ReplanReview` (the
+    3-section diff: Reschedules w/ include toggles · Milestone impact "projection, not committed" ·
+    Time-fixed conflicts), `TimeFixedConflictControl`, `dates.ts`. New primitive: `components/ui/sheet.tsx`
+    (hand-built right-side drawer). Route `/roadmap` live; TopBar proposal-dot navigates there.
+  - **Principle 1, structural:** Roadmap is pure display (never auto-confirms); force-resolve-all
+    (Approve disabled until every time-fixed conflict has a decision); NO cross-day drag in F3 — a
+    cross-day move is F4's Timeline and MUST emit a proposal, flagged in `DayDrawer` so it can't be
+    violated by day-level reordering (which is in-day position PATCH only).
+- **F3 verification (2026-06-18) — live HTTP against running `/v1`, cross-origin (29/29):**
+  - Throwaway Supabase user (admin-created), real ES256 token, `Origin` header on every call.
+  - DELETE preflight 204 + Origin echo + `Allow: DELETE`; first real-flow cross-origin **plan-item DELETE → 204**.
+  - Roadmap read (position.today + confirmed day); day drawer lock/unlock/reorder/defer.
+  - **Plain approve** (empty body) → `approved`; **edited approve** (renegotiate, exact builder shape) →
+    `edited_approved`, `task.fixed_date` updated, a replanned item placed; **422** when a time-fixed move
+    lacks a resolution, proposal **still pending after rollback**; **reject** → `rejected`, roadmap byte-identical.
+  - **Backend BUG discovered (not an F3 bug; tracked, not fixed here):** apply's defer-before-insert
+    frees the PLANNED row but a leftover `deferred` row on the target day collides on
+    `UNIQUE(daily_plan_day_id, task_id)` (409) when a task is deferred on a day and a later replan
+    re-plans it onto that same day. Logged as a tracked backend bug + test gap in
+    `docs/PROGRESS.md` → "Open items / risks" (with reproduction + proposed fix). The walk only
+    **avoids** it by ordering destructive day-edits last — it is NOT worked around in F3 code.
 - **Verification (2026-06-18):**
   - Frontend `tsc --noEmit` clean; `vite build` → static `dist/` (145 modules; `@api-types` resolved
     type-only, no server code in bundle). Backend `tsc --noEmit` clean with the two new files.
@@ -104,10 +146,13 @@ transforms clean through Vite. The visual browser click-through is the user's fi
 - **F1 — Vertical slice** ✅ — login + app shell + Home on live `/v1`; cross-origin proven.
 - **F2 — Onboarding (A1–A7)** ✅ — the WBS create-path (goal→project→breakdown→milestones&deps
   →capacity→first roadmap), save-per-step + resumable. Create-path + resume proven live cross-origin.
-- **F3 — Roadmap + replan** ⏳ NEXT — path timeline + day drawer + replan proposal review/approve.
-  Timeline drag→reschedule emits a REPLAN PROPOSAL (never silent PATCH, Principle 1).
-- **F4 — Project Detail** — Table → Flow (React Flow, drag-to-connect, cycle 409 as calm message) →
-  Timeline/Gantt + WP right-side sheet. Heaviest screen; code-split here.
+- **F3 — Roadmap + replan** ✅ — path timeline + day drawer + replan proposal review/approve. The
+  keystone (`buildApproveEdits`) unit-tested + the full flow verified live cross-origin (29/29).
+  Force-resolve-all on time-fixed conflicts; no cross-day drag (deferred to F4, but the proposal-not-PATCH
+  rule is flagged in the day drawer).
+- **F4 — Project Detail** ⏳ NEXT — Table → Flow (React Flow, drag-to-connect, cycle 409 as calm message)
+  → Timeline/Gantt + WP right-side sheet. Heaviest screen; code-split here. Timeline cross-day
+  drag→reschedule MUST emit a REPLAN PROPOSAL (never a silent PATCH, Principle 1).
 - **F5 — Celebration + polish** — milestone dialog/animation, light-theme pass, empty states,
   reduced-motion.
 
@@ -127,6 +172,8 @@ transforms clean through Vite. The visual browser click-through is the user's fi
   On the pre-launch cleanup list. For manual F2 testing use a FRESH signup (first-run is the onboarding path).
 
 ## Dev loop / ops notes
+- **Frontend tests:** `cd frontend && npm test` (vitest, added at F3) — pure unit tests, no DB. The
+  replan-approve contract (`buildApproveEdits`) lives here; run it before touching the approve shape.
 - **Local loop:** run backend (`npm run dev` :3000) + `cd frontend && npm run dev` (:5173);
   `frontend/.env.local` points `VITE_API_BASE_URL` at `http://localhost:3000/v1`. Exercises real
   cross-origin CORS daily. Alt: point at deployed Vercel `/v1` (needs middleware deployed + `WEB_ORIGIN`).

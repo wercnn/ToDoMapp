@@ -208,6 +208,61 @@ export interface ReplanProposal {
   created_at: IsoTimestamp;
 }
 
+// ---- Replan diff (the `changes` JSONB; review UI contract, api §11) ---------
+/** One per-item move. `from_date=null` ⇒ newly scheduled; `to_date=null` ⇒ descheduled. */
+export interface ReplanMove {
+  task_id: string;
+  from_date: DateString | null;
+  to_date: DateString | null;
+}
+
+/** A milestone projection shift — DESCRIPTIVE ONLY (projection, never committed). */
+export interface ReplanMilestoneImpact {
+  milestone_id: string;
+  title: string;
+  from_projected_date: DateString | null;
+  to_projected_date: DateString | null;
+}
+
+export type TimeFixedOption = "prioritize" | "descope" | "renegotiate";
+
+/** A time-fixed commitment at risk — surfaced separately, never auto-moved (Decision #7). */
+export interface TimeFixedConflict {
+  task_id: string;
+  fixed_date: DateString | null;
+  reason: string;
+  options: TimeFixedOption[];
+}
+
+/** The user's explicit choice for a conflict, supplied on edited approval. */
+export interface TimeFixedResolution {
+  task_id: string;
+  choice: TimeFixedOption;
+  /** Required iff `choice='renegotiate'` — the new committed date. */
+  new_fixed_date?: DateString | null;
+}
+
+/** The structured diff stored in `replan_proposal.changes` (and the `edits` shape on approve). */
+export interface ReplanChanges {
+  moves: ReplanMove[];
+  milestone_impacts: ReplanMilestoneImpact[];
+  time_fixed_conflicts: TimeFixedConflict[];
+  /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
+  time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+/** GET /replan-proposals/{id} — full proposal + its structured diff for the review UI. */
+export interface ReplanProposalDetail {
+  proposal: ReplanProposal;
+  changes: ReplanChanges;
+}
+
+/** POST /replan-proposals/{id}/approve — the resolved proposal + what the apply step wrote. */
+export interface ApproveProposalResult {
+  proposal: ReplanProposal;
+  applied: { days: DailyPlanDay[]; items: DailyPlanItem[] };
+}
+
 /**
  * POST /projects/{id}/work-packages. `replan_proposal` is present only when
  * confirmed roadmap days already exist (mid-flight add) — never during onboarding,

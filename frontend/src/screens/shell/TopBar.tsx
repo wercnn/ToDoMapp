@@ -4,12 +4,14 @@
  * is pending). Live from GET /morning-brief (stats + today + pending_proposal).
  */
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { morningBriefApi } from "@/api";
 import { useSession } from "@/auth/session";
 import { Button } from "@/components/ui/button";
 
 export function TopBar() {
   const { signOut } = useSession();
+  const navigate = useNavigate();
   const brief = useQuery({ queryKey: ["morning-brief"], queryFn: morningBriefApi.get });
 
   const items = brief.data?.today?.items ?? [];
@@ -43,10 +45,13 @@ export function TopBar() {
 
       <div className="ml-auto flex items-center gap-3">
         {pending && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-system-soft px-3 py-1.5 text-[11px] font-extrabold text-system">
+          <button
+            onClick={() => navigate("/roadmap")}
+            className="inline-flex items-center gap-1.5 rounded-full bg-system-soft px-3 py-1.5 text-[11px] font-extrabold text-system hover:brightness-110"
+          >
             <span className="h-[7px] w-[7px] rounded-full bg-system" />
             Proposal to review
-          </span>
+          </button>
         )}
         <Button variant="ghost" size="sm" onClick={() => void signOut()}>
           Sign out

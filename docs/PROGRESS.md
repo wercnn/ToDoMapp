@@ -243,6 +243,27 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
   goal/project `progress` roll-up endpoints.
 
 ## Open items / risks
+- **🐛 BUG (tracked, NOT fixed) — replan apply 409s on a stale `deferred` row on the target day
+  (found 2026-06-18 during F3 frontend verification).** `applyChanges` (`src/domain/replan/apply.ts`,
+  the Phase-4 keystone) does defer-before-insert: it frees the task's `status='planned'` row, then
+  inserts the new `origin='replanned'` item on `to_date`. But the free step only touches the PLANNED
+  row — if a **`deferred`** row for that same task already sits on the `to_date` day, the insert violates
+  `UNIQUE (daily_plan_day_id, task_id)` (`daily_plan_item_daily_plan_day_id_task_id_key`) → **409**, and
+  the whole approve transaction rolls back.
+  - **Reproduction (the sequence that trips it):** confirm a day X with task T on it → defer T on day X
+    (`PATCH /plan-items/{id}` `status:'deferred'`, or a drawer remove that leaves a deferred row) → run a
+    replan whose target re-plans T back onto day X → approve. Apply tries to insert T on X where the
+    deferred T row already exists → 409. (F3's live walk hit this exact 409 before it was reordered to do
+    destructive day-edits last — but that's **avoidance**, not a fix; the next caller won't know to.)
+  - **Proposed fix:** before inserting on `to_date`, free/ignore ANY existing row for that task on the
+    target day, not just the planned one — e.g. widen the defer/free step to the target day (delete or
+    no-op the stale deferred row), or make the insert an upsert that revives the existing row to
+    `planned`/`replanned`. Mind the partial unique `one_planned_per_task` and Principle 3 (deferred history
+    is never penalized — reviving/removing a deferred placeholder is fine; it carried no scoring).
+  - **Test gap:** the 87-test backend suite MISSED this. Add a Phase-4-style (`tests/replan`) case that
+    reproduces defer-on-day-X → replan-back-onto-X → approve and asserts a clean apply (no 409), plus the
+    locked-day and time-fixed guards still holding. Do this as a **deliberate backend fix**, not folded
+    into an F-phase commit.
 - Auth — ✅ resolved 2026-06-13 via **JWKS**. This project is on Supabase "JWT Signing Keys";
   user access tokens are ES256, public key published at `…/auth/v1/.well-known/jwks.json`.
   `src/auth/verifier.ts` verifies against JWKS (selects by `kid`, caches, asymmetric-only),

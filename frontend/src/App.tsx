@@ -11,17 +11,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Shell } from "@/screens/shell/Shell";
 import { Login } from "@/screens/Login";
 import { Home } from "@/screens/Home";
+import { Roadmap } from "@/screens/roadmap/Roadmap";
 import { Onboarding } from "@/screens/onboarding/Onboarding";
 import { useOnboardingResume } from "@/screens/onboarding/useOnboardingResume";
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-black">{title}</h2>
-      <p className="mt-2 text-sm font-semibold text-text-tertiary">Arrives in a later phase.</p>
-    </div>
-  );
-}
 
 /** Decide first destination: onboarding (incl. resume) vs the live shell. */
 function EntryGate() {
@@ -58,7 +50,7 @@ export function App() {
         }
       >
         <Route path="/home" element={<Home />} />
-        <Route path="/roadmap" element={<ComingSoon title="Roadmap" />} />
+        <Route path="/roadmap" element={<Roadmap />} />
       </Route>
       <Route
         path="/"

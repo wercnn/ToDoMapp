@@ -5,11 +5,13 @@
  */
 import { apiRequest } from "./client";
 import type {
+  ApproveProposalResult,
   BootstrapResult,
   CompleteTaskResult,
   CreateWorkPackageResult,
   DayView,
   DailyPlanDay,
+  DailyPlanItem,
   DifficultyLevel,
   Goal,
   GoalHorizon,
@@ -19,7 +21,11 @@ import type {
   MilestoneWithState,
   MorningBrief,
   Project,
+  ProposalStatus,
   ProposedDay,
+  ReplanChanges,
+  ReplanProposal,
+  ReplanProposalDetail,
   Roadmap,
   StatsView,
   Task,
@@ -163,9 +169,54 @@ export const roadmapApi = {
 
 export const daysApi = {
   get: (date: string) => apiRequest<DayView>(`/days/${date}`),
-  /** POST /days/{date}/confirm — A7. The date MUST come from the propose response. */
+  /** POST /days/{date}/confirm — A7 + roadmap confirm. The date MUST come from the propose response. */
   confirm: (date: string) =>
     apiRequest<DailyPlanDay>(`/days/${date}/confirm`, { method: "POST" }),
+  /** PATCH /days/{date} — lock/unlock the day (F3 day drawer). */
+  setLock: (date: string, isLocked: boolean) =>
+    apiRequest<DailyPlanDay>(`/days/${date}`, { method: "PATCH", body: { is_locked: isLocked } }),
+  /** POST /days/{date}/items — add a task to the day, origin 'user_added' (F3). */
+  addItem: (date: string, taskId: string, position?: number) =>
+    apiRequest<DailyPlanItem>(`/days/${date}/items`, {
+      method: "POST",
+      body: position != null ? { task_id: taskId, position } : { task_id: taskId },
+    }),
+};
+
+export const planItemsApi = {
+  /** PATCH /plan-items/{id} — reorder (position) or defer (status='deferred'). */
+  patch: (id: string, body: { position?: number; status?: string }) =>
+    apiRequest<DailyPlanItem>(`/plan-items/${id}`, { method: "PATCH", body }),
+  /** DELETE /plan-items/{id} — remove from the day (204). */
+  remove: (id: string) => apiRequest<void>(`/plan-items/${id}`, { method: "DELETE" }),
+};
+
+export const replanApi = {
+  /** GET /replan-proposals?status= — defaults to pending. */
+  list: (status: ProposalStatus = "pending") =>
+    apiRequest<ReplanProposal[]>("/replan-proposals", { query: { status } }),
+  /** GET /replan-proposals/{id} — the full structured diff for review. */
+  get: (id: string) => apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}`),
+  /** POST /replan-proposals — user-initiated replan (trigger fixed server-side). */
+  create: (scope?: { project_id?: string; from_date?: string }) =>
+    apiRequest<ReplanProposal>("/replan-proposals", {
+      method: "POST",
+      body: scope ? { trigger: "user_request", scope } : { trigger: "user_request" },
+    }),
+  /**
+   * POST /replan-proposals/{id}/approve. Omit `edits` for a plain approve (applies
+   * the stored diff). Pass the FULL edited diff (built by buildApproveEdits) when the
+   * user resolved a time-fixed conflict or unchecked a move — `edits` REPLACES the
+   * stored changes, so it must carry the original moves too (status → edited_approved).
+   */
+  approve: (id: string, edits?: ReplanChanges) =>
+    apiRequest<ApproveProposalResult>(`/replan-proposals/${id}/approve`, {
+      method: "POST",
+      body: edits ? { edits } : {},
+    }),
+  /** POST /replan-proposals/{id}/reject — plan untouched. */
+  reject: (id: string) =>
+    apiRequest<ReplanProposal>(`/replan-proposals/${id}/reject`, { method: "POST" }),
 };
 
 export const tasksApi = {
