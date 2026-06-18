@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:#141416; -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar{ width:9px;height:9px; }
+  ::-webkit-scrollbar-thumb{ background:#34343A;border-radius:9999px; }
+  @keyframes pop{ 0%{transform:scale(.94)} 55%{transform:scale(1.025)} 100%{transform:scale(1)} }
+  @keyframes toastIn{ from{opacity:0} to{opacity:1} }
+  @keyframes fall{ 0%{transform:translateY(-30px) rotate(0);opacity:0} 12%{opacity:1} 100%{transform:translateY(150px) rotate(220deg);opacity:0} }
+</style>
+</helmet>
+
+<div style="position:fixed;inset:0;background:#141416;font-family:'Nunito',sans-serif;color:#F4F4F2;overflow:hidden;display:flex;">
+
+  <!-- ============ ONBOARDING ============ -->
+  <sc-if value="{{ onboarding }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:radial-gradient(1200px 600px at 50% -10%,#171520,#0E0E10);">
+      <!-- top brand row -->
+      <div style="flex:none;display:flex;align-items:center;gap:10px;padding:20px 30px;">
+        <span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:16px;">▲</span>
+        <span style="font-size:15px;font-weight:900;letter-spacing:-.01em;">TodoMapp</span>
+        <span style="margin-left:14px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Set up your first goal</span>
+        <span onClick="{{ enterApp }}" style="margin-left:auto;font-size:12px;font-weight:800;color:#74747A;cursor:pointer;" style-hover="color:#A8A8A4">Skip intro →</span>
+      </div>
+
+      <!-- stepper -->
+      <div style="flex:none;display:flex;align-items:center;justify-content:center;gap:0;padding:4px 30px 8px;max-width:1000px;width:100%;margin:0 auto;overflow-x:auto;">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="7">
+          <span style="{{ s.connStyle }}"></span>
+          <div style="display:flex;align-items:center;gap:7px;flex:none;">
+            <span style="{{ s.circleStyle }}">{{ s.mark }}</span>
+            <span style="{{ s.labelStyle }}">{{ s.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- step body -->
+      <div style="flex:1;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:18px 24px 40px;">
+        <div style="width:100%;max-width:620px;display:flex;flex-direction:column;">
+
+          <!-- A1 goal -->
+          <sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:30px 28px;display:flex;flex-direction:column;gap:18px;animation:pop .3s ease;">
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:13px;font-weight:800;color:#A78BFA;">Let's start with the outcome.</span>
+                <span style="font-size:25px;font-weight:900;letter-spacing:-.01em;">What outcome are you pursuing?</span>
+              </div>
+              <input value="{{ goalName }}" onInput="{{ setGoal }}" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:13px;padding:15px 16px;font-size:17px;font-weight:800;color:#F4F4F2;outline:none;" />
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Horizon</span>
+                <div style="display:flex;gap:8px;">
+                  <span onClick="{{ setShort }}" style="{{ hzShort }}">Short</span>
+                  <span onClick="{{ setMid }}" style="{{ hzMid }}">Mid</span>
+                  <span onClick="{{ setLong }}" style="{{ hzLong }}">Long</span>
+                </div>
+              </div>
+              <textarea placeholder="Optional — a sentence of context" style="font-family:'Nunito',sans-serif;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600;color:#A8A8A4;resize:none;height:62px;outline:none;"></textarea>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:2px;">
+                <span onClick="{{ enterApp }}" style="font-size:12px;font-weight:800;color:#74747A;cursor:pointer;">Skip intro</span>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A2 project -->
+          <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:30px 28px;display:flex;flex-direction:column;gap:18px;animation:pop .3s ease;">
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:13px;font-weight:800;color:#A78BFA;">A concrete initiative toward it.</span>
+                <span style="font-size:25px;font-weight:900;letter-spacing:-.01em;">What's a concrete initiative toward this goal?</span>
+              </div>
+              <input value="{{ projectName }}" onInput="{{ setProject }}" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #2E2E33;border-radius:13px;padding:15px 16px;font-size:17px;font-weight:800;color:#F4F4F2;outline:none;" />
+              <textarea placeholder="Optional description" style="font-family:'Nunito',sans-serif;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600;color:#A8A8A4;resize:none;height:48px;outline:none;"></textarea>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Target end date · optional</span>
+                <div style="display:flex;align-items:center;gap:10px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;"><span style="font-size:15px;">📅</span><span style="font-size:13px;font-weight:700;color:#A8A8A4;">Aug 29, 2026</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:2px;">
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A3 milestone -->
+          <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:16px;animation:pop .3s ease;">
+              <div style="display:flex;flex-direction:column;gap:5px;">
+                <span style="font-size:13px;font-weight:800;color:#A78BFA;">A landmark worth reaching.</span>
+                <span style="font-size:25px;font-weight:900;letter-spacing:-.01em;">What's the first milestone for this project?</span>
+              </div>
+              <div style="background:#0E0E10;border:1.5px solid #A78BFA;border-radius:13px;padding:13px 16px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">🚩</span><input value="{{ milestoneName }}" onInput="{{ setMilestone }}" style="flex:1;font-family:'Nunito',sans-serif;background:transparent;border:none;font-size:17px;font-weight:800;color:#F4F4F2;outline:none;" /></div>
+              <sc-for list="{{ extraMsList }}" as="m" hint-placeholder-count="0">
+                <div style="background:#0E0E10;border:1px solid #3a2f63;border-radius:13px;padding:13px 16px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;opacity:.7;">🚩</span><input value="{{ m.name }}" onInput="{{ m.onInput }}" placeholder="Another milestone…" style="flex:1;font-family:'Nunito',sans-serif;background:transparent;border:none;font-size:16px;font-weight:800;color:#F4F4F2;outline:none;" /><span onClick="{{ m.remove }}" style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#74747A;cursor:pointer;flex:none;">✕</span></div>
+              </sc-for>
+              <span onClick="{{ addMilestone }}" style="align-self:flex-start;font-size:13px;font-weight:800;color:#A78BFA;cursor:pointer;">+ New milestone</span>
+              <div style="background:#0E0E10;border:1px solid #242428;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+                <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">The shape you're building</span>
+                <div style="border:1.5px solid #A78BFA;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px;background:#16121f;">
+                  <span style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;color:#A78BFA;">🚩 {{ milestoneName }} <span style="font-size:9px;font-weight:800;color:#cdbdfb;background:#272040;border-radius:5px;padding:2px 7px;">MILESTONE</span></span>
+                  <div style="margin-left:10px;display:flex;flex-direction:column;gap:7px;">
+                    <div style="border:1px dashed #34343A;border-radius:9px;padding:11px;font-size:12px;font-weight:700;color:#74747A;display:flex;align-items:center;gap:7px;"><span style="font-size:14px;opacity:.6;">📦</span>Work packages — you'll add these next</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;background:#272040;border:1px solid #3a2f63;border-radius:10px;padding:9px 11px;font-size:11px;font-weight:700;color:#cdbdfb;line-height:15px;"><span style="font-size:14px;">💡</span>Next, you'll break this milestone into work packages and tasks.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:2px;">
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A4 breakdown -->
+          <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:16px;animation:pop .3s ease;">
+              <div style="display:flex;align-items:center;gap:11px;background:#1c1830;border:1px solid #3a2f63;border-radius:12px;padding:11px 14px;">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A78BFA;">Adding to milestone</span>
+                <span style="font-size:14px;font-weight:800;color:#F4F4F2;">🚩 {{ milestoneName }}</span>
+              </div>
+              <span style="font-size:23px;font-weight:900;letter-spacing:-.01em;">Add work packages &amp; tasks</span>
+              <sc-for list="{{ wpList }}" as="wp" hint-placeholder-count="2">
+                <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="display:flex;align-items:center;gap:11px;"><span style="font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Work package</span><span style="font-size:16px;font-weight:800;">{{ wp.name }}</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:8px;padding:5px 10px;">{{ wp.estimate }}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:7px;padding-left:14px;border-left:2px solid #2E2E33;">
+                    <sc-for list="{{ wp.tasks }}" as="t" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#45454C;"></span><span style="flex:1;font-size:13px;font-weight:700;">{{ t.title }}</span><span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;background:#242428;border-radius:7px;padding:3px 9px;">{{ t.est }}</span></div>
+                    </sc-for>
+                    <sc-if value="{{ wp.adding }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#3DD68C;"></span><input value="{{ wp.draft }}" onInput="{{ wp.onInput }}" onKeyDown="{{ wp.onKey }}" autoFocus="{{ true }}" placeholder="Type a task name…" style="flex:1;font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:700;color:#F4F4F2;outline:none;" /></div>
+                      <div style="display:flex;align-items:center;gap:9px;padding-left:17px;">
+                        <button onClick="{{ wp.commit }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:9px;padding:8px 15px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Add task</button>
+                        <button onClick="{{ wp.cancel }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#74747A;background:transparent;border:none;cursor:pointer;">Cancel</button>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ wp.notAdding }}" hint-placeholder-val="{{ true }}">
+                      <span onClick="{{ wp.startAdd }}" style="font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;">+ Add task</span>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ addingWp }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#1A1A1D;border:1.5px solid #3DD68C;border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:11px;">
+                  <div style="display:flex;align-items:center;gap:11px;"><span style="font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">New work package</span><span style="font-size:14px;">📦</span></div>
+                  <input value="{{ newWpText }}" onInput="{{ setNewWp }}" onKeyDown="{{ onNewWpKey }}" autoFocus="{{ true }}" placeholder="Work package name…" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:11px;padding:11px 13px;font-size:15px;font-weight:800;color:#F4F4F2;outline:none;" />
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <button onClick="{{ commitWp }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Add work package</button>
+                    <button onClick="{{ cancelWp }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#74747A;background:transparent;border:none;cursor:pointer;">Cancel</button>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button onClick="{{ startAddWp }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:12px;padding:11px 16px;cursor:pointer;">+ Add work package</button>
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:11px 18px;cursor:pointer;">← Back</button>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:11px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A5 regroup -->
+          <sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:14px;animation:pop .3s ease;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <span style="font-size:22px;font-weight:900;letter-spacing:-.01em;">Re-group &amp; connect</span>
+                <span style="font-size:12px;font-weight:600;line-height:17px;color:#A8A8A4;">Add milestones and drag work packages between them — some may belong to none.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#A78BFA;">🚩 {{ milestoneName }}</span>
+                <div onDragOver="{{ onListDragOver }}" style="background:#1A1A1D;border:1px solid #3a2f63;border-radius:13px;padding:11px;display:flex;flex-direction:column;gap:7px;">
+                  <sc-for list="{{ wpDragList }}" as="wp" hint-placeholder-count="2">
+                    <span draggable="true" onDragStart="{{ wp.onDragStart }}" onDragEnter="{{ wp.onDragEnter }}" onDragEnd="{{ wp.onDragEnd }}" onDrop="{{ wp.onDrop }}" style="{{ wp.style }}"><span style="color:#74747A;">⠿</span>📦 {{ wp.name }}</span>
+                  </sc-for>
+                </div>
+                <span style="font-size:10px;font-weight:700;color:#52525a;">Drag the ⠿ handles to reorder work packages.</span>
+              </div>
+              <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:13px;padding:13px;display:flex;flex-direction:column;gap:10px;">
+                <span style="font-size:12px;font-weight:800;color:#A78BFA;">◇ Suggested ordering</span>
+                <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;flex-wrap:wrap;">
+                  <sc-for list="{{ suggestionList }}" as="s" hint-placeholder-count="2">
+                    <sc-if value="{{ s.notFirst }}" hint-placeholder-val="{{ false }}"><span style="color:#A78BFA;font-weight:900;">→</span></sc-if>
+                    <span style="{{ s.chipStyle }}">{{ s.name }}</span>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button onClick="{{ acceptOrder }}" style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:10px;padding:9px;cursor:pointer;box-shadow:0 3px 0 #7c5cfc;">{{ orderLabel }}</button>
+                  <button onClick="{{ toastDismiss }}" style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:10px;padding:9px;cursor:pointer;">Dismiss</button>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:10px 16px;cursor:pointer;">← Back</button>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:11px 22px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A6 capacity -->
+          <sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:30px 26px;display:flex;flex-direction:column;gap:18px;animation:pop .3s ease;">
+              <span style="font-size:23px;font-weight:900;letter-spacing:-.01em;">How many hours per day on this project?</span>
+              <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:14px 0;">
+                <span onClick="{{ capDown }}" style="width:46px;height:46px;border-radius:12px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#A8A8A4;cursor:pointer;">−</span>
+                <div style="display:flex;align-items:baseline;gap:7px;"><span style="font-size:64px;font-weight:900;letter-spacing:-.03em;color:#3DD68C;line-height:1;">{{ capacity }}</span><span style="font-size:20px;font-weight:800;color:#74747A;">hrs / day</span></div>
+                <span onClick="{{ capUp }}" style="width:46px;height:46px;border-radius:12px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#A8A8A4;cursor:pointer;">+</span>
+              </div>
+              <span style="font-size:13px;font-weight:600;line-height:19px;color:#74747A;text-align:center;">The planner fills each day up to this — never beyond. You can change it anytime.</span>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:2px;">
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+                <button onClick="{{ next }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 22px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Generate my roadmap →</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- A7 first roadmap -->
+          <sc-if value="{{ s7 }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:20px;width:100%;animation:pop .35s ease;">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;">Here's your path — starting tomorrow</span>
+                <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:6px 13px;">◇ All days proposed</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 0 10px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:112px;"><span style="font-size:11px;font-weight:800;color:#74747A;">Mon</span><span style="width:52px;height:52px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span><span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Reference<br>sites</span></div>
+                <span style="flex:none;width:26px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:112px;"><span style="font-size:11px;font-weight:800;color:#74747A;">Tue</span><span style="width:52px;height:52px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span><span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Structure<br>+ wireframe</span></div>
+                <span style="flex:none;width:26px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:122px;"><span style="font-size:11px;font-weight:800;color:#A78BFA;">Wed</span><span style="width:58px;height:58px;border-radius:16px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:22px;">🚩</span></span><span style="font-size:11px;font-weight:800;color:#A78BFA;text-align:center;line-height:14px;">{{ milestoneName }}</span></div>
+                <span style="flex:none;width:26px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:112px;"><span style="font-size:11px;font-weight:800;color:#74747A;">Thu</span><span style="width:52px;height:52px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span><span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Outreach<br>list</span></div>
+                <span style="flex:none;width:26px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:112px;"><span style="font-size:11px;font-weight:800;color:#74747A;">Fri</span><span style="width:52px;height:52px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span><span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Draft 5<br>emails</span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;border-top:1px solid #242428;padding-top:18px;">
+                <button onClick="{{ back }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:12px;padding:11px 17px;cursor:pointer;">← Back</button>
+                <button onClick="{{ toastRepropose }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#A8A8A4;background:#242428;border:1px solid #34343A;border-radius:12px;padding:11px 17px;cursor:pointer;">↻ Re-propose</button>
+                <button onClick="{{ enterApp }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 26px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Confirm &amp; enter Workspace →</button>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ APP SHELL ============ -->
+  <sc-if value="{{ inApp }}" hint-placeholder-val="{{ false }}">
+    <!-- sidebar -->
+    <aside style="width:248px;flex:none;background:#121214;border-right:1px solid #242428;display:flex;flex-direction:column;padding:15px 11px;">
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 7px 15px;">
+        <span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:16px;flex:none;">▲</span>
+        <span style="font-size:15px;font-weight:900;color:#F4F4F2;">TodoMapp</span>
+      </div>
+      <div onClick="{{ goHome }}" style="{{ navHome }}"><span>⌂</span>Home</div>
+      <div onClick="{{ goRoadmap }}" style="{{ navRoad }}"><span>🗺</span>Roadmap<sc-if value="{{ replanPending }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span></sc-if></div>
+      <div style="height:1px;background:#242428;margin:13px 5px;"></div>
+      <div style="display:flex;align-items:center;padding:2px 8px 7px;"><span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Goals</span><span onClick="{{ toastAddGoal }}" style="margin-left:auto;width:21px;height:21px;border-radius:6px;background:#1F2A24;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;">+</span></div>
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Build client base</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:1px 5px;">MID</span></div>
+      <div onClick="{{ openProject }}" style="{{ navProj }}"><span style="color:#74747A;">▸</span><span style="flex:1;">Portfolio site</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#3DD68C;">62%</span></div>
+      <div onClick="{{ openProject }}" style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2"><span style="color:#74747A;">▸</span><span style="flex:1;">Outreach</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">28%</span></div>
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:3px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Get fit</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:1px 5px;">LONG</span></div>
+      <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2"><span style="color:#74747A;">▸</span><span style="flex:1;">Training plan</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">11%</span></div>
+      <div onClick="{{ toastSettings }}" style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2"><span>⚙</span>Settings</div>
+    </aside>
+
+    <!-- main column -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;background:#0E0E10;">
+      <!-- top bar -->
+      <div onMouseEnter="{{ openToday }}" onMouseLeave="{{ closeToday }}" style="height:62px;flex:none;border-bottom:1px solid #242428;background:#0E0E10;display:flex;align-items:center;gap:16px;padding:0 22px;cursor:default;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="width:38px;height:38px;border-radius:9999px;flex:none;background:{{ ringBg }};display:flex;align-items:center;justify-content:center;"><div style="width:28px;height:28px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9px;font-weight:700;color:#3DD68C;white-space:nowrap;letter-spacing:-.02em;">{{ ringText }}</div></div>
+          <div style="display:flex;flex-direction:column;"><span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Now</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">{{ nowTask }}</span></div>
+        </div>
+        <span style="width:1px;height:28px;background:#242428;"></span>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🔥</span><span style="font-size:14px;font-weight:800;color:#F4F4F2;">{{ streak }}</span></div>
+        <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:9999px;background:#3DD68C;"></span><span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#3DD68C;">{{ pointsLabel }}</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:11px;">
+          <sc-if value="{{ replanPending }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:6px 12px;"><span style="width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span>{{ proposalLabel }}</span></sc-if>
+          <span style="font-size:11px;font-weight:700;color:#74747A;">{{ todayHint }}</span>
+          <span style="width:32px;height:32px;border-radius:9999px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#A8A8A4;">JD</span>
+        </div>
+      </div>
+
+      <!-- today expand strip — animated -->
+      <div style="{{ todayAnimStyle }}">
+        <div style="overflow:hidden;min-height:0;">
+          <div onMouseEnter="{{ openToday }}" onMouseLeave="{{ closeToday }}" style="border-bottom:1px solid #242428;background:#0c0c0e;padding:16px 24px 14px;display:flex;flex-direction:column;gap:11px;">
+            <!-- summary row -->
+            <div style="display:flex;align-items:center;gap:20px;">
+              <div style="display:flex;flex-direction:column;gap:2px;flex:none;">
+                <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Today's daily goal</span>
+                <span style="font-size:16px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Saturday, June 13</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px;">
+                <div style="height:4px;background:#1E1E22;border-radius:9999px;overflow:hidden;">
+                  <div style="{{ progressBarStyle }}"></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">{{ ringText }} tasks done</span>
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">{{ hoursLabel }} · {{ pointsLabel }}</span>
+                </div>
+              </div>
+              <span onClick="{{ goHome }}" style="font-size:12px;font-weight:800;color:#A8A8A4;cursor:pointer;white-space:nowrap;flex:none;">Open full day →</span>
+            </div>
+            <!-- task chips row -->
+            <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;">
+              <div onClick="{{ tRef.toggle }}" style="{{ tRef.chipStyle }}">
+                <span style="width:6px;height:6px;border-radius:2px;background:#5B9DFF;flex:none;"></span>
+                <span style="{{ tRef.chipBoxStyle }}">{{ tRef.check }}</span>
+                <span style="{{ tRef.chipLabelStyle }}">Collect 3 reference sites</span>
+                <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;flex:none;">0.5h</span>
+              </div>
+              <div onClick="{{ tCase.toggle }}" style="{{ tCase.chipStyle }}">
+                <span style="width:6px;height:6px;border-radius:2px;background:#5B9DFF;flex:none;"></span>
+                <span style="{{ tCase.chipBoxStyle }}">{{ tCase.check }}</span>
+                <span style="{{ tCase.chipLabelStyle }}">Write case study #1 draft</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:2px 7px;flex:none;"><span style="width:5px;height:5px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+                <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;flex:none;">2h</span>
+              </div>
+              <div onClick="{{ tOutline.toggle }}" style="{{ tOutline.chipStyle }}">
+                <span style="width:6px;height:6px;border-radius:2px;background:#5B9DFF;flex:none;"></span>
+                <span style="{{ tOutline.chipBoxStyle }}">{{ tOutline.check }}</span>
+                <span style="{{ tOutline.chipLabelStyle }}">Outline portfolio structure</span>
+                <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;flex:none;">1h</span>
+              </div>
+              <div onClick="{{ tMentor.toggle }}" style="{{ tMentor.chipStyle }}">
+                <span style="width:6px;height:6px;border-radius:2px;background:#A78BFA;flex:none;"></span>
+                <span style="{{ tMentor.chipBoxStyle }}">{{ tMentor.check }}</span>
+                <span style="{{ tMentor.chipLabelStyle }}">Send intro email to mentor</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#A8A8A4;background:#1A1A1D;border:1px solid #45454C;border-radius:9999px;padding:2px 7px;flex:none;">◆ 2:00 PM</span>
+                <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;flex:none;">0.5h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CONTENT ===== -->
+      <div style="flex:1;overflow-y:auto;min-height:0;">
+
+        <!-- HOME -->
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:24px;display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:start;">
+            <!-- LEFT · Today focus rail -->
+            <div style="background:#121214;border:1px solid #242428;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+                <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Today's daily goal</span><span style="font-size:22px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Saturday, June 13</span></div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:18px;">
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#3DD68C;">{{ ringText }}</span><span style="font-size:10px;font-weight:700;color:#74747A;">tasks</span></div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#F4F4F2;">{{ hoursLabel }}</span><span style="font-size:10px;font-weight:700;color:#74747A;">today</span></div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#3DD68C;">{{ pointsLabel }}</span><span style="font-size:10px;font-weight:700;color:#74747A;">points</span></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <!-- Group: Portfolio · Design & content -->
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <div style="display:flex;align-items:center;gap:8px;padding:4px 2px 6px;">
+                    <span style="width:7px;height:7px;border-radius:2px;background:#5B9DFF;flex:none;"></span>
+                    <span style="font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#5B9DFF;">Portfolio · Design &amp; content</span>
+                    <span style="flex:1;height:1px;background:#1E1E22;"></span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#45454C;">3.5h</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px;padding-left:15px;">
+                    <div onClick="{{ tRef.toggle }}" style="{{ tRef.rowStyle }}">
+                      <span style="{{ tRef.boxStyle }}">{{ tRef.check }}</span>
+                      <span style="{{ tRef.labelStyle }}">Collect 3 reference sites</span>
+                      <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">0.5h</span>
+                    </div>
+                    <div onClick="{{ tCase.toggle }}" style="{{ tCase.rowStyle }}">
+                      <span style="{{ tCase.boxStyle }}">{{ tCase.check }}</span>
+                      <span style="{{ tCase.labelStyle }}">Write case study #1 draft</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+                      <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">2h</span>
+                    </div>
+                    <div onClick="{{ tOutline.toggle }}" style="{{ tOutline.rowStyle }}">
+                      <span style="{{ tOutline.boxStyle }}">{{ tOutline.check }}</span>
+                      <span style="{{ tOutline.labelStyle }}">Outline portfolio structure</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;border:2px solid #74747A;"></span>Open</span>
+                      <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">1h</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Group: Outreach -->
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <div style="display:flex;align-items:center;gap:8px;padding:4px 2px 6px;">
+                    <span style="width:7px;height:7px;border-radius:2px;background:#A78BFA;flex:none;"></span>
+                    <span style="font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#A78BFA;">Outreach</span>
+                    <span style="flex:1;height:1px;background:#1E1E22;"></span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#45454C;">0.5h</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px;padding-left:15px;">
+                    <div onClick="{{ tMentor.toggle }}" style="{{ tMentor.rowStyle }}">
+                      <span style="{{ tMentor.boxStyle }}">{{ tMentor.check }}</span>
+                      <span style="{{ tMentor.labelStyle }}">Send intro email to mentor ◆</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#A8A8A4;background:#1A1A1D;border:1.5px solid #45454C;border-radius:9999px;padding:2px 9px;">◆ 2:00 PM</span>
+                      <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">0.5h</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <span onClick="{{ toastAddTask }}" style="font-size:13px;font-weight:800;color:#74747A;cursor:pointer;">+ Quick add task to today</span>
+            </div>
+
+            <!-- RIGHT · quieter column -->
+            <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+
+            <!-- road ahead strip -->
+            <div style="background:#121214;border:1px solid #242428;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:15px;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:14px;font-weight:900;color:#F4F4F2;">The road ahead</span><span style="font-size:12px;font-weight:600;color:#74747A;">next 6 days · Portfolio site</span><button onClick="{{ goRoadmap }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:9px 15px;cursor:pointer;">Open Roadmap →</button></div>
+              <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px;">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:88px;"><span style="font-size:10px;font-weight:800;color:#3DD68C;">Thu</span><span style="width:38px;height:38px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-size:15px;">✓</span></div>
+                <span style="flex:none;width:22px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:88px;"><span style="font-size:10px;font-weight:800;color:#3DD68C;">Fri</span><span style="width:38px;height:38px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-size:15px;">✓</span></div>
+                <span style="flex:none;width:22px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:900;color:#F4F4F2;">Today</span><span style="width:44px;height:44px;border-radius:9999px;background:#0E0E10;border:3px solid #3DD68C;box-shadow:0 0 0 4px #16352A;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;">{{ ringText }}</span></div>
+                <span style="flex:none;width:22px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:88px;"><span style="font-size:10px;font-weight:800;color:#A8A8A4;">Mon</span><span style="width:38px;height:38px;border-radius:9999px;background:#1A1A1D;border:2px solid #34343A;display:flex;align-items:center;justify-content:center;color:#74747A;font-size:13px;">○</span></div>
+                <span style="flex:none;width:22px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:96px;"><span style="font-size:10px;font-weight:800;color:#A78BFA;">Tue</span><span style="width:42px;height:42px;border-radius:11px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:15px;">🚩</span></span><span style="font-size:9px;font-weight:800;color:#A78BFA;">Site live</span></div>
+                <span style="flex:none;width:22px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:88px;"><span style="font-size:10px;font-weight:800;color:#A78BFA;">Wed</span><span style="width:38px;height:38px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;color:#A78BFA;font-size:14px;">◇</span></div>
+              </div>
+            </div>
+
+            <!-- goals + attention -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <span style="font-size:14px;font-weight:900;color:#F4F4F2;">Goals &amp; progress</span>
+                <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;">
+                  <div style="display:flex;align-items:center;gap:9px;"><span style="color:#3DD68C;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#F4F4F2;">Build client base</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:2px 7px;">MID</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#3DD68C;">46%</span></div>
+                  <span style="height:8px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:46%;background:#3DD68C;border-radius:9999px;"></span></span>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="color:#A78BFA;">🚩</span>Next: <b style="color:#F4F4F2;">Site live</b><span style="font-family:ui-monospace,monospace;color:#74747A;">· in 3 days</span><span onClick="{{ openProject }}" style="margin-left:auto;font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;">Open project →</span></div>
+                </div>
+                <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;">
+                  <div style="display:flex;align-items:center;gap:9px;"><span style="color:#3DD68C;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#F4F4F2;">Get fit</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:2px 7px;">LONG</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#A8A8A4;">11%</span></div>
+                  <span style="height:8px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:11%;background:#3DD68C;border-radius:9999px;"></span></span>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="color:#A78BFA;">🚩</span>Next: <b style="color:#F4F4F2;">First 5k</b><span style="font-family:ui-monospace,monospace;color:#74747A;">· in 18 days</span></div>
+                </div>
+              </div>
+              <div style="order:-1;display:flex;flex-direction:column;gap:12px;">
+                <span style="font-size:14px;font-weight:900;color:#F4F4F2;">Needs your attention</span>
+                <sc-if value="{{ replanPending }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#A78BFA;font-size:15px;margin-top:1px;">◇</span><div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:800;color:#F4F4F2;">A replan is proposed</span><span style="font-size:12px;font-weight:600;line-height:17px;color:#cdbdfb;">Push 3 tasks forward one day; milestone moves Fri → Mon.</span></div></div>
+                    <div style="display:flex;gap:8px;">
+                      <button onClick="{{ approveReplan }}" style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:11px;padding:10px;cursor:pointer;box-shadow:0 3px 0 #7c5cfc;">Approve</button>
+                      <button onClick="{{ reviewReplan }}" style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A78BFA;background:transparent;border:1px solid #3a2f63;border-radius:11px;padding:10px;cursor:pointer;">Review →</button>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ replanDone }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#121214;border:1px solid #234034;border-radius:16px;padding:17px 18px;display:flex;align-items:center;gap:11px;"><span style="font-size:16px;color:#3DD68C;">✓</span><span style="font-size:12px;font-weight:700;color:#A8E9C8;">Replan approved — milestone now Mon. You're all caught up.</span></div>
+                </sc-if>
+                <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:15px 18px;display:flex;align-items:center;gap:11px;">
+                  <span style="font-size:18px;">🔥</span><div style="display:flex;flex-direction:column;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">{{ streak }}-day streak</span><span style="font-size:11px;font-weight:600;color:#A8A8A4;">Engaged today — keep it alive.</span></div><span style="margin-left:auto;font-size:20px;font-weight:900;color:#3DD68C;">320</span>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- PROJECT DETAIL -->
+        <sc-if value="{{ isProject }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <!-- project header -->
+            <div style="flex:none;border-bottom:1px solid #242428;background:#0c0c0e;padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
+              <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+                <div style="display:flex;flex-direction:column;gap:5px;">
+                  <span style="font-size:11px;font-weight:700;color:#74747A;cursor:pointer;" onClick="{{ goHome }}">◎ Build client base <span style="color:#34343A;">/</span> Portfolio site</span>
+                  <div style="display:flex;align-items:center;gap:11px;">
+                    <h3 style="margin:0;font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">{{ projectName }}</h3>
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:4px 11px;"><span style="width:7px;height:7px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:16px;margin-top:2px;">
+                    <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Capacity <b style="color:#F4F4F2;">{{ capacity }}h/day</b></span>
+                    <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Target <b style="color:#F4F4F2;">Aug 29</b></span>
+                    <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Progress <b style="color:#3DD68C;">62%</b></span>
+                  </div>
+                </div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:9px;">
+                  <button onClick="{{ toastAddWp }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:11px;padding:10px 15px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">+ Work package</button>
+                  <button onClick="{{ toastSettings }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:10px 15px;cursor:pointer;">Edit project</button>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="display:inline-flex;background:#1A1A1D;border:1px solid #2E2E33;border-radius:12px;padding:4px;gap:3px;">
+                  <button onClick="{{ setFlow }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ flowBtnBg }};color:{{ flowBtnFg }};">Flow</button>
+                  <button onClick="{{ setTimeline }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ tlBtnBg }};color:{{ tlBtnFg }};">Timeline</button>
+                  <button onClick="{{ setTable }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ tableBtnBg }};color:{{ tableBtnFg }};">Table</button>
+                </div>
+                <span style="font-size:12px;font-weight:700;color:#74747A;">{{ viewHint }}</span>
+                <button onClick="{{ toggleSheet }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:10px;padding:8px 13px;cursor:pointer;">{{ sheetBtnLabel }}</button>
+              </div>
+            </div>
+
+            <!-- body: view + sheet -->
+            <div style="flex:1;display:flex;min-height:0;">
+              <div style="flex:1;min-width:0;min-height:0;position:relative;background:#0E0E10;overflow:auto;">
+                <!-- FLOW -->
+                <sc-if value="{{ isFlow }}" hint-placeholder-val="{{ true }}">
+                  <div ref="{{ flowRef }}" style="{{ flowWrapStyle }}">
+                    <svg width="840" height="{{ flowH }}" style="position:absolute;inset:0;overflow:visible;">
+                      <sc-for list="{{ flowEdges }}" as="e" hint-placeholder-count="4"><path d="{{ e.d }}" stroke="{{ e.stroke }}" stroke-width="{{ e.width }}" stroke-dasharray="{{ e.dash }}" fill="none"></path></sc-for>
+                      <sc-if value="{{ dragActive }}" hint-placeholder-val="{{ false }}"><path d="{{ dragLine }}" stroke="#A78BFA" stroke-width="2.5" stroke-dasharray="5 6" fill="none"></path></sc-if>
+                    </svg>
+                    <span style="position:absolute;left:200px;top:64px;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#3DD68C;background:#0E0E10;padding:1px 6px;">critical path →</span>
+                    <sc-for list="{{ flowNodes }}" as="n" hint-placeholder-count="4">
+                      <div onPointerDown="{{ n.onMove }}" style="{{ n.nodeStyle }}">
+                        <span style="{{ n.statusStyle }}">{{ n.status }}</span>
+                        <span style="font-size:13px;font-weight:800;color:#F4F4F2;">{{ n.name }}</span>
+                        <span style="{{ n.metaStyle }}">{{ n.meta }}</span>
+                        <span onPointerDown="{{ n.onConnect }}" title="Drag to another work package to add a dependency" style="position:absolute;right:-7px;top:50%;width:15px;height:15px;margin-top:-7px;border-radius:9999px;background:#0E0E10;border:2px solid #A78BFA;box-shadow:0 0 0 3px rgba(167,139,250,.18);cursor:crosshair;touch-action:none;z-index:9;"></span>
+                      </div>
+                    </sc-for>
+                    <div style="position:absolute;left:600px;top:128px;width:64px;height:64px;border-radius:16px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:24px;">🚩</span></div>
+                    <span style="position:absolute;left:580px;top:198px;width:104px;text-align:center;font-size:11px;font-weight:800;color:#A78BFA;">Milestone “Site live”</span>
+                    <span style="position:absolute;left:14px;bottom:10px;font-size:11px;font-weight:700;color:#52525a;">Drag a card to move it · drag the lilac handle onto another card to add a dependency</span>
+                  </div>
+                </sc-if>
+                <!-- TIMELINE -->
+                <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;min-height:100%;width:max-content;min-width:100%;box-sizing:border-box;background:#0E0E10;">
+                    <div style="display:flex;align-items:center;border-bottom:1px solid #242428;padding:18px 22px 8px;position:sticky;top:0;background:#0E0E10;z-index:3;">
+                      <span style="width:160px;flex:none;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Work package</span>
+                      <div style="flex:none;width:910px;display:grid;grid-template-columns:repeat(7,130px);">
+                        <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Thu</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Fri</span><span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:800;color:#3DD68C;text-align:center;">Sat</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Mon</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Tue</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Wed</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Thu</span>
+                      </div>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding:12px 22px 0;">
+                      <sc-for list="{{ tlList }}" as="r" hint-placeholder-count="5">
+                        <sc-if value="{{ r.isWp }}" hint-placeholder-val="{{ true }}">
+                          <div style="display:flex;align-items:center;"><span onClick="{{ r.onPick }}" style="{{ r.nameStyle }}">{{ r.name }}</span><div style="flex:none;width:910px;display:grid;grid-template-columns:repeat(7,130px);"><div onPointerDown="{{ r.onDrag }}" style="{{ r.barStyle }}">{{ r.label }}</div></div></div>
+                        </sc-if>
+                        <sc-if value="{{ r.isMile }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;align-items:center;"><span onClick="{{ r.onPick }}" style="{{ r.mileNameStyle }}">🚩 {{ r.name }}</span><div style="flex:none;width:910px;display:grid;grid-template-columns:repeat(7,130px);"><div onClick="{{ r.onPick }}" style="{{ r.cellStyle }}"><span title="{{ r.hint }}" style="{{ r.dotStyle }}"></span></div></div></div>
+                        </sc-if>
+                      </sc-for>
+                      <span style="font-size:11px;font-weight:700;color:#52525a;margin-top:18px;border-top:1px solid #242428;padding-top:14px;">Drag a bar sideways to reschedule — it snaps to the nearest day. Click a work package to see its tasks.</span>
+                    </div>
+                  </div>
+                </sc-if>
+                <!-- TABLE -->
+                <sc-if value="{{ isTable }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:18px 22px;min-width:680px;">
+                    <div style="border:1px solid #242428;border-radius:13px;overflow:hidden;">
+                      <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 1fr;background:#1A1A1D;border-bottom:1px solid #242428;">
+                        <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Title</span><span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Milestone</span><span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Estimate</span><span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Status</span>
+                      </div>
+                      <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="4">
+                        <div onClick="{{ r.open }}" style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 1fr;background:#0E0E10;border-bottom:1px solid #1c1c20;align-items:center;cursor:pointer;"><span style="padding:12px 14px;font-size:13px;font-weight:800;color:#F4F4F2;">{{ r.name }}</span><span style="{{ r.msStyle }}">{{ r.milestone }}</span><span style="padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#A8A8A4;">{{ r.hours }}</span><span style="padding:12px 14px;"><span style="{{ r.badgeStyle }}">{{ r.statusLabel }}</span></span></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+
+              <!-- WP SHEET -->
+              <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ true }}">
+                <aside style="width:360px;flex:none;border-left:1px solid #242428;background:#121214;display:flex;flex-direction:column;">
+                  <div style="padding:18px 20px;border-bottom:1px solid #242428;display:flex;flex-direction:column;gap:13px;">
+                    <div style="display:flex;align-items:center;gap:9px;">
+                      <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:{{ sheetKindColor }};">{{ sheetKindLabel }}</span>
+                      <sc-if value="{{ sheetIsWp }}" hint-placeholder-val="{{ true }}"><span style="{{ selWpBadgeStyle }}"><span style="{{ selWpDotStyle }}"></span>{{ selWpStatusLabel }}</span></sc-if>
+                      <sc-if value="{{ sheetIsMilestone }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#cdbdfb;background:#272040;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;background:#A78BFA;"></span>{{ mileMemberLabel }}</span></sc-if>
+                      <span onClick="{{ toggleSheet }}" style="margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A8A8A4;cursor:pointer;">✕</span>
+                    </div>
+                    <input value="{{ sheetTitle }}" onInput="{{ sheetRename }}" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1px solid #2E2E33;border-radius:11px;padding:11px 13px;font-size:17px;font-weight:800;color:#F4F4F2;outline:none;" />
+                    <sc-if value="{{ sheetIsWp }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;flex-wrap:wrap;gap:7px;"><sc-if value="{{ selWpHasMilestone }}" hint-placeholder-val="{{ true }}"><span onClick="{{ openSelWpMilestone }}" title="Open milestone" style="font-size:11px;font-weight:700;color:#A78BFA;background:#272040;border-radius:9px;padding:6px 10px;cursor:pointer;">🚩 {{ selWpMilestone }}</span></sc-if><span style="font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9px;padding:6px 10px;">⏱ {{ selWpHoursLabel }}</span></div>
+                    </sc-if>
+                    <sc-if value="{{ sheetIsMilestone }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-wrap:wrap;gap:7px;"><span style="font-size:11px;font-weight:700;color:#cdbdfb;background:#272040;border-radius:9px;padding:6px 10px;">📦 {{ mileMemberLabel }}</span><span style="font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9px;padding:6px 10px;">⏱ {{ mileHoursLabel }}</span></div>
+                    </sc-if>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:9px;">
+                    <sc-if value="{{ sheetIsWp }}" hint-placeholder-val="{{ true }}">
+                      <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">To-do list · {{ selWpTaskLabel }}</span>
+                      <sc-for list="{{ sheetTasks }}" as="t" hint-placeholder-count="3">
+                        <div onClick="{{ t.toggle }}" style="{{ t.cardStyle }}"><span style="{{ t.boxStyle }}">{{ t.check }}</span><div style="flex:1;display:flex;flex-direction:column;gap:4px;"><span style="{{ t.titleStyle }}">{{ t.title }}</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">{{ t.hours }}</span></div></div>
+                      </sc-for>
+                      <sc-if value="{{ sheetAdding }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#3DD68C;flex:none;"></span><input value="{{ sheetDraft }}" onInput="{{ onSheetInput }}" onKeyDown="{{ onSheetKey }}" autoFocus="{{ true }}" placeholder="Type a task name…" style="flex:1;font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:700;color:#F4F4F2;outline:none;" /></div>
+                        <div style="display:flex;align-items:center;gap:9px;padding-left:17px;">
+                          <button onClick="{{ commitSheetTask }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:9px;padding:8px 15px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Add task</button>
+                          <button onClick="{{ cancelSheetTask }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#74747A;background:transparent;border:none;cursor:pointer;">Cancel</button>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ sheetNotAdding }}" hint-placeholder-val="{{ true }}">
+                        <span onClick="{{ startSheetAdd }}" style="font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;padding:3px;">+ Add task</span>
+                      </sc-if>
+                    </sc-if>
+                    <sc-if value="{{ sheetIsMilestone }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Work packages · {{ mileMemberLabel }}</span>
+                      <sc-for list="{{ mileMembers }}" as="w" hint-placeholder-count="2">
+                        <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:11px;display:flex;align-items:center;gap:9px;"><span onClick="{{ w.open }}" style="{{ w.dotStyle }}"></span><div onClick="{{ w.open }}" style="flex:1;display:flex;flex-direction:column;gap:3px;cursor:pointer;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">{{ w.name }}</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">{{ w.meta }}</span></div><span onClick="{{ w.remove }}" title="Remove from milestone" style="width:22px;height:22px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#74747A;cursor:pointer;flex:none;">✕</span></div>
+                      </sc-for>
+                      <sc-if value="{{ mileHasNone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:700;color:#52525a;padding:2px;">No work packages yet — add one below.</span></sc-if>
+                      <sc-if value="{{ mileCanAdd }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;margin-top:6px;">Add work package</span>
+                        <div style="display:flex;flex-wrap:wrap;gap:7px;">
+                          <sc-for list="{{ mileAddable }}" as="a" hint-placeholder-count="0">
+                            <span onClick="{{ a.add }}" title="{{ a.title }}" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:#cdbdfb;background:#1c1830;border:1px solid #3a2f63;border-radius:9px;padding:7px 11px;cursor:pointer;">+ {{ a.name }}<sc-if value="{{ a.warn }}" hint-placeholder-val="{{ false }}"><span title="{{ a.title }}" style="color:#E0A33E;font-size:12px;line-height:1;">⚠</span></sc-if></span>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </sc-if>
+                  </div>
+                  <div style="border-top:1px solid #242428;padding:14px 18px;display:flex;align-items:center;gap:9px;">
+                    <button onClick="{{ addMilestone }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:11px;padding:11px 16px;cursor:pointer;box-shadow:0 3px 0 #7c5fd6;">+ Add milestone</button>
+                    <sc-if value="{{ sheetIsMilestone }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ removeMilestone }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#E0A33E;background:transparent;border:1px solid #5a4520;border-radius:11px;padding:11px 16px;cursor:pointer;">Remove milestone</button>
+                    </sc-if>
+                    <button onClick="{{ toggleSheet }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:11px 18px;cursor:pointer;">Close</button>
+                  </div>
+                </aside>
+              </sc-if>
+            </div>
+          </div>
+          <sc-if value="{{ wpModalOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ closeWpModal }}" style="position:fixed;inset:0;z-index:55;background:rgba(8,8,10,.72);display:flex;align-items:center;justify-content:center;padding:24px;">
+              <div onClick="{{ stop }}" style="width:440px;max-width:100%;max-height:88%;overflow-y:auto;background:#121214;border:1px solid #2E2E33;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.55);display:flex;flex-direction:column;">
+                <div style="padding:20px 22px 16px;border-bottom:1px solid #242428;display:flex;align-items:center;gap:9px;">
+                  <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#3DD68C;">New work package</span>
+                  <span onClick="{{ closeWpModal }}" style="margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A8A8A4;cursor:pointer;">✕</span>
+                </div>
+                <div style="padding:18px 22px;display:flex;flex-direction:column;gap:16px;">
+                  <div style="display:flex;flex-direction:column;gap:7px;">
+                    <span style="font-size:11px;font-weight:800;color:#74747A;">Name</span>
+                    <input value="{{ wpModalName }}" onInput="{{ setWpModalName }}" autoFocus="{{ true }}" placeholder="e.g. Launch checklist" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #2E2E33;border-radius:12px;padding:13px 14px;font-size:16px;font-weight:800;color:#F4F4F2;outline:none;" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:9px;">
+                    <span style="font-size:11px;font-weight:800;color:#74747A;">Tasks</span>
+                    <sc-for list="{{ wpModalTasks }}" as="t" hint-placeholder-count="0">
+                      <div style="display:flex;align-items:center;gap:10px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:10px 12px;"><span style="width:7px;height:7px;border-radius:9999px;background:#3DD68C;flex:none;"></span><span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">{{ t.title }}</span><span onClick="{{ t.remove }}" style="font-size:13px;color:#74747A;cursor:pointer;flex:none;">✕</span></div>
+                    </sc-for>
+                    <div style="display:flex;align-items:center;gap:9px;">
+                      <span style="width:7px;height:7px;border-radius:9999px;background:#3DD68C;flex:none;"></span>
+                      <input value="{{ wpModalDraft }}" onInput="{{ setWpModalDraft }}" onKeyDown="{{ onWpModalTaskKey }}" placeholder="Type a task name…" style="flex:1;font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:700;color:#F4F4F2;outline:none;" />
+                      <button onClick="{{ commitModalTask }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:9px;padding:8px 15px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;flex:none;">Add task</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="border-top:1px solid #242428;padding:16px 22px;display:flex;align-items:center;gap:10px;">
+                  <button onClick="{{ createProjectWp }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:12px;padding:12px 20px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Create work package</button>
+                  <button onClick="{{ closeWpModal }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:12px;padding:12px 18px;cursor:pointer;">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ isRoadmap }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;min-height:100%;">
+            <!-- path column -->
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <div style="flex:none;border-bottom:1px solid #242428;background:#0c0c0e;padding:18px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <h3 style="margin:0;font-size:22px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Roadmap</h3>
+                <span style="font-size:12px;font-weight:700;color:#74747A;">Portfolio site · 8 days ahead</span>
+                <button onClick="{{ proposeMore }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Propose more days</button>
+              </div>
+              <div style="flex:none;display:flex;flex-wrap:wrap;gap:10px;padding:13px 24px;border-bottom:1px solid #242428;">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#3DD68C;"><span style="width:11px;height:11px;border-radius:9999px;background:#3DD68C;"></span>Completed</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A8A8A4;"><span style="width:11px;height:11px;border-radius:9999px;border:2px solid #45454C;"></span>Confirmed</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A78BFA;"><span style="width:11px;height:11px;border-radius:9999px;background:#A78BFA;"></span>Proposed</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#9a9a96;"><span style="width:11px;height:11px;border-radius:9999px;border:1.5px dashed #74747A;"></span>Slipped</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A78BFA;">🚩 Milestone</span>
+              </div>
+              <div style="flex:1;overflow-y:auto;padding:22px 24px;">
+                <div style="position:relative;display:flex;flex-direction:column;gap:14px;padding-left:30px;">
+                  <div style="position:absolute;left:12px;top:10px;bottom:10px;width:3px;background:#2A2A2E;border-radius:9999px;"></div>
+                  <div style="display:flex;align-items:center;gap:16px;position:relative;margin-left:-30px;padding-left:0;"><span style="width:26px;height:26px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;font-size:12px;color:#3DD68C;flex:none;z-index:1;">✓</span><div onClick="{{ selThu }}" style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #16352A;border-radius:13px;cursor:pointer;{{ thuRing }}"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Thu Jun 11</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">Reference sites · structure</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 9px;">✓ +30</span></div></div>
+                  <div style="display:flex;align-items:center;gap:16px;position:relative;margin-left:-30px;"><span style="width:26px;height:26px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;font-size:12px;color:#3DD68C;flex:none;z-index:1;">✓</span><div onClick="{{ selFri }}" style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #16352A;border-radius:13px;cursor:pointer;{{ friRing }}"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Fri Jun 12</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">Wireframe · copy pass</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 9px;">✓ +20</span></div></div>
+                  <div style="display:flex;align-items:center;gap:16px;position:relative;margin-left:-30px;"><span style="width:30px;height:30px;border-radius:9999px;background:#0E0E10;border:3px solid #3DD68C;box-shadow:0 0 0 4px #16352A;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9px;font-weight:700;color:#3DD68C;flex:none;z-index:1;margin-left:-2px;">{{ ringText }}</span><div onClick="{{ selSat }}" style="flex:1;display:flex;align-items:center;gap:11px;padding:13px 15px;background:#16221C;border:1.5px solid #3DD68C;border-radius:13px;cursor:pointer;{{ satRing }}"><span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#3DD68C;">You are here</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Sat Jun 13</span><span style="font-size:12px;font-weight:600;color:#A8E9C8;">Case study · outline · mentor email</span></div></div>
+                  <sc-for list="{{ replanRows }}" as="r" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:flex-start;gap:16px;position:relative;margin-left:-30px;">
+                      <span style="{{ r.nodeStyle }}">{{ r.nodeMark }}</span>
+                      <div onClick="{{ r.onSelect }}" style="{{ r.cardStyle }}">
+                        <div style="display:flex;align-items:center;gap:11px;width:100%;flex-wrap:wrap;">
+                          <span style="font-size:13px;font-weight:800;color:#F4F4F2;">{{ r.date }}</span>
+                          <span style="font-size:12px;font-weight:600;color:#A8A8A4;">{{ r.summary }}</span>
+                          <span style="{{ r.statusStyle }}">{{ r.statusLabel }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;align-items:center;gap:16px;position:relative;margin-left:-30px;"><span style="width:30px;height:30px;border-radius:8px;transform:rotate(45deg);background:#15233a;border:2px solid #5B9DFF;display:flex;align-items:center;justify-content:center;flex:none;z-index:1;margin-left:-2px;"><span style="transform:rotate(-45deg);font-size:13px;">🚩</span></span><div style="flex:1;display:flex;align-items:center;gap:11px;padding:13px 15px;background:#15233a;border:1.5px solid #5B9DFF;border-radius:13px;"><span style="font-size:14px;font-weight:900;color:#9cc3ff;">🚩 Milestone — “Site live”</span><span style="font-size:12px;font-weight:600;color:#9cc3ff;">{{ milestoneEta }}</span></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- day plan drawer (view + edit a selected day, grouped by project) -->
+            <sc-if value="{{ daySelected }}" hint-placeholder-val="{{ false }}">
+              <aside style="width:380px;flex:none;border-left:1px solid #242428;background:#0c0c0e;display:flex;flex-direction:column;">
+                <div style="padding:18px 20px;border-bottom:1px solid #242428;display:flex;align-items:flex-start;gap:10px;">
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;align-items:center;gap:7px;">
+                      <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#5B9DFF;">Day plan</span>
+                      <sc-if value="{{ dayIsProposal }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:2px 8px;">◇ proposal</span></sc-if>
+                    </div>
+                    <span style="font-size:16px;font-weight:900;color:#F4F4F2;">{{ selDayLabel }} <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#74747A;">{{ selDayDate }}</span></span>
+                  </div>
+                  <sc-if value="{{ dayHasExplicit }}" hint-placeholder-val="{{ false }}"><span onClick="{{ closeDayPanel }}" title="Back to current proposal" style="margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A8A8A4;cursor:pointer;flex:none;">✕</span></sc-if>
+                </div>
+                <sc-if value="{{ dayIsProposal }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:none;padding:16px 20px 6px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#A78BFA;">Steering, not failure</span>
+                        <span style="margin-left:auto;font-size:9px;font-weight:800;color:#cdbdfb;background:#272040;border-radius:9999px;padding:3px 9px;">{{ dayStepLabel }}</span>
+                      </div>
+                      <span style="font-size:12px;font-weight:600;line-height:17px;color:#cdbdfb;">{{ daySteeringSummary }}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <sc-for list="{{ dayDots }}" as="d" hint-placeholder-count="3"><span style="{{ d.style }}"></span></sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <div style="flex:none;padding:11px 20px;border-bottom:1px solid #242428;"><span style="font-size:11px;font-weight:700;color:#74747A;">{{ dayProgressLabel }} · grouped by project</span></div>
+                <div style="flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:22px;">
+                  <sc-for list="{{ dayProjects }}" as="p" hint-placeholder-count="1">
+                    <div style="display:flex;flex-direction:column;gap:13px;">
+                      <div style="display:flex;align-items:center;gap:8px;padding-bottom:9px;border-bottom:1px solid #242428;">
+                        <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#52525a;">Project</span>
+                        <span style="font-size:13px;font-weight:900;color:#F4F4F2;">{{ p.project }}</span>
+                        <span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">{{ p.projCount }}</span>
+                      </div>
+                      <div style="display:flex;flex-direction:column;gap:17px;padding-left:11px;border-left:1px solid #242428;margin-left:3px;">
+                        <sc-for list="{{ p.wps }}" as="g" hint-placeholder-count="1">
+                          <div style="display:flex;flex-direction:column;gap:9px;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                              <span style="{{ g.dotStyle }}"></span>
+                              <span style="{{ g.headStyle }}">{{ g.wp }}</span>
+                              <span style="{{ g.countStyle }}">{{ g.count }}</span>
+                            </div>
+                            <sc-for list="{{ g.tasks }}" as="t" hint-placeholder-count="2">
+                              <div style="display:flex;align-items:center;gap:8px;">
+                                <div onClick="{{ t.toggle }}" style="{{ t.cardStyle }}">
+                                  <span style="{{ t.boxStyle }}">{{ t.check }}</span>
+                                  <span style="{{ t.titleStyle }}">{{ t.title }}</span>
+                                  <sc-if value="{{ t.hasMove }}" hint-placeholder-val="{{ false }}"><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">{{ t.moveFrom }}</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#A78BFA;">{{ t.moveTo }}</span></sc-if>
+                                  <sc-if value="{{ t.proposed }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:800;color:#0E0E10;background:#A78BFA;border-radius:6px;padding:3px 7px;">NEW</span></sc-if>
+                                  <sc-if value="{{ t.hasMeta }}" hint-placeholder-val="{{ true }}"><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">{{ t.meta }}</span></sc-if>
+                                </div>
+                                <span onClick="{{ t.remove }}" title="Remove task" style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#74747A;cursor:pointer;flex:none;">✕</span>
+                              </div>
+                            </sc-for>
+                            <sc-if value="{{ g.adding }}" hint-placeholder-val="{{ false }}">
+                              <div style="display:flex;align-items:center;gap:9px;">
+                                <span style="{{ g.dotStyle }}"></span>
+                                <input value="{{ g.draft }}" onInput="{{ g.onInput }}" onKeyDown="{{ g.onKey }}" autoFocus="{{ true }}" placeholder="Type a task name…" style="flex:1;font-family:'Nunito',sans-serif;background:#0E0E10;border:1.5px solid #3DD68C;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:700;color:#F4F4F2;outline:none;" />
+                                <button onClick="{{ g.commit }}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:9px;padding:8px 13px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;flex:none;">Add</button>
+                              </div>
+                            </sc-if>
+                            <sc-if value="{{ g.notAdding }}" hint-placeholder-val="{{ true }}">
+                              <span onClick="{{ g.onStartAdd }}" style="align-self:flex-start;font-size:12px;font-weight:800;color:#74747A;cursor:pointer;padding:4px 2px;">+ Add task</span>
+                            </sc-if>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <sc-if value="{{ dayMsShow }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Milestone impact</span>
+                      <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:#121214;border:1px solid #2c4a6e;border-radius:11px;"><span style="font-size:13px;">🚩</span><span style="flex:1;font-size:12px;font-weight:800;color:#F4F4F2;">{{ dayMsName }}</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-decoration:line-through;">{{ dayMsFrom }}</span><span style="color:#5B9DFF;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#5B9DFF;">{{ dayMsTo }}</span></div>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ dayApproveShow }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px solid #242428;padding:14px 20px;display:flex;flex-direction:column;gap:7px;">
+                    <button onClick="{{ approveDay }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:12px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">{{ dayApproveLabel }}</button>
+                    <span style="text-align:center;font-size:11px;font-weight:700;color:#52525a;">{{ dayApproveSubLabel }}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ dayFutureShow }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px solid #242428;padding:14px 20px;display:flex;align-items:center;gap:9px;"><span style="font-size:13px;color:#A78BFA;">◇</span><span style="font-size:11px;font-weight:700;color:#74747A;">Approve the earlier proposed days first to reach this one.</span></div>
+                </sc-if>
+              </aside>
+            </sc-if>
+            <sc-if value="{{ showResolvedDrawer }}" hint-placeholder-val="{{ false }}">
+              <aside style="width:380px;flex:none;border-left:1px solid #242428;background:#0c0c0e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px;text-align:center;">
+                <span style="width:52px;height:52px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;font-size:24px;color:#3DD68C;">✓</span>
+                <span style="font-size:15px;font-weight:800;color:#F4F4F2;">{{ replanResultLabel }}</span>
+                <span style="font-size:12px;font-weight:600;color:#74747A;">No pending proposals. The path above is your committed plan.</span>
+              </aside>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ CELEBRATION ============ -->
+  <sc-if value="{{ celebrationOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;">
+      <div onClick="{{ closeCelebration }}" style="position:absolute;inset:0;background:rgba(8,8,10,.74);backdrop-filter:blur(3px);"></div>
+      <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+        <sc-for list="{{ confetti }}" as="c" hint-placeholder-count="0">
+          <span style="{{ c.style }}"></span>
+        </sc-for>
+      </div>
+      <div style="position:relative;width:368px;background:#16161A;border:1px solid #2E2E33;border-radius:20px;padding:0 0 22px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden;animation:pop .35s ease;">
+        <div style="position:relative;height:120px;background:linear-gradient(#1c1830,#16161A);display:flex;align-items:center;justify-content:center;">
+          <span style="width:74px;height:74px;border-radius:20px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px rgba(167,139,250,.12);"><span style="transform:rotate(-45deg);font-size:34px;">🚩</span></span>
+        </div>
+        <div style="padding:6px 24px 0;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#A78BFA;">Day complete</span>
+            <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">All 6 done 🎉</span>
+          </div>
+          <div style="width:100%;background:#121214;border:1px solid #242428;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;">
+            <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#A8E9C8;"><span style="width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">✓</span><span style="flex:1;text-align:left;">6 daily goals cleared</span></div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="width:18px;height:18px;border-radius:6px;background:#242428;display:flex;align-items:center;justify-content:center;font-size:11px;">⏱</span><span style="flex:1;text-align:left;">5 hours of focused work</span></div>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;color:#3DD68C;"><span style="width:18px;height:18px;border-radius:6px;background:#16352A;display:flex;align-items:center;justify-content:center;font-size:11px;">★</span><span style="flex:1;text-align:left;">{{ pointsLabel }} points · streak {{ streak }} 🔥</span></div>
+          </div>
+          <div style="width:100%;background:#1c1830;border:1px solid #3a2f63;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;text-align:left;"><span style="font-size:18px;">🚩</span><div style="display:flex;flex-direction:column;"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#A78BFA;">Next landmark</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Site live · in 3 days</span></div></div>
+          <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:2px;">
+            <button onClick="{{ celebrateToRoadmap }}" style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:13px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #7c5cfc;">See what's next →</button>
+            <button onClick="{{ closeCelebration }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#A8A8A4;background:transparent;border:none;border-radius:11px;padding:8px;cursor:pointer;">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ TOAST ============ -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:60;background:#1A1A1D;border:1px solid #34343A;border-radius:12px;padding:12px 18px;font-size:13px;font-weight:800;color:#F4F4F2;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:9px;animation:toastIn .25s ease;">
+      <span style="color:#3DD68C;">●</span>{{ toast }}
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen:'onboarding', step:1,
+    tab:'home', todayOpen:false,
+    pdView:'flow', sheetOpen:true, selectedWpId:'build', tlDragId:null,
+    sheetMode:'wp', selectedMilestone:'Site live', milestones:['Site live'],
+    tasks:{ ref:true, casestudy:false, outline:false, mentor:false },
+    streak:7,
+    horizon:'Mid', capacity:5,
+    goalName:'Build a freelance client base', projectName:'Portfolio website', milestoneName:'Site live',
+    replan:'pending', orderAccepted:false,
+    replanIndex:0,
+    selectedDay:null, dayAddWp:null, dayAddDraft:'',
+    dayPlans:{
+      thu11:{ date:'Thu Jun 11', label:'Thursday', tasks:[
+        { id:'d11a', title:'Collect 3 reference sites', project:'Portfolio site', wp:'Design & content', done:true },
+        { id:'d11b', title:'Outline portfolio structure', project:'Portfolio site', wp:'Design & content', done:true },
+      ] },
+      fri12:{ date:'Fri Jun 12', label:'Friday', tasks:[
+        { id:'d12a', title:'Low-fi wireframe', project:'Portfolio site', wp:'Design & content', done:true },
+        { id:'d12b', title:'First copy pass', project:'Portfolio site', wp:'Design & content', done:true },
+      ] },
+      sat13:{ date:'Sat Jun 13', label:'Saturday', tasks:[
+        { id:'d13a', title:'Draft case study #1 outline', project:'Portfolio site', wp:'Case studies', done:false },
+        { id:'d13b', title:'Send mentor intro email', project:'Outreach', wp:'Outreach setup', done:false },
+      ] },
+      mon15:{ date:'Mon Jun 15', label:'Monday', tasks:[
+        { id:'d15a', title:'Build project pages', project:'Portfolio site', wp:'Build & ship', done:false, meta:'5h', moveFrom:'Sun', moveTo:'Mon' },
+        { id:'d15b', title:'Review buffer', project:'Portfolio site', wp:'Build & ship', done:false, meta:'1h', proposed:true },
+      ] },
+      tue16:{ date:'Tue Jun 16', label:'Tuesday', tasks:[
+        { id:'d16a', title:'Deploy & domain', project:'Portfolio site', wp:'Build & ship', done:false, meta:'1h', moveFrom:'Mon', moveTo:'Tue' },
+        { id:'d16b', title:'Smoke-test live site', project:'Portfolio site', wp:'Build & ship', done:false, meta:'0.5h', proposed:true },
+      ] },
+      wed17:{ date:'Wed Jun 17', label:'Wednesday', tasks:[
+        { id:'d17a', title:'QA pass', project:'Portfolio site', wp:'Build & ship', done:false, meta:'2h', moveFrom:'Tue', moveTo:'Wed' },
+        { id:'d17b', title:'Fix QA findings', project:'Portfolio site', wp:'Case studies', done:false, meta:'1h', proposed:true },
+      ] },
+    },
+    replanDays:[
+      { id:'mon15', day:'Monday · Jun 15', short:'Monday', summary:'The build day pushes one day forward — pick it up Monday.',
+        tasks:[
+          { title:'Build project pages', meta:'5h', moveFrom:'Sun', moveTo:'Mon' },
+          { title:'Review buffer', meta:'1h', proposed:true },
+        ] },
+      { id:'tue16', day:'Tuesday · Jun 16', short:'Tuesday', summary:'Deploy & domain slide to Tuesday to keep capacity honest.',
+        tasks:[
+          { title:'Deploy & domain', meta:'1h', moveFrom:'Mon', moveTo:'Tue' },
+          { title:'Smoke-test live site', meta:'0.5h', proposed:true },
+        ] },
+      { id:'wed17', day:'Wednesday · Jun 17', short:'Wednesday', summary:'A QA pass wraps the milestone on Wednesday.',
+        tasks:[
+          { title:'QA pass', meta:'2h', moveFrom:'Tue', moveTo:'Wed' },
+          { title:'Fix QA findings', meta:'1h', proposed:true },
+        ],
+        milestone:{ name:'Site live', from:'Fri 13', to:'Mon 16' } },
+    ],
+    celebrationOpen:false, toast:null,
+    extraMilestones:[],
+    deps:[
+      { from:'design', to:'build', crit:true },
+      { from:'build', to:'milestone', crit:true },
+      { from:'design', to:'case' },
+      { from:'build', to:'outreach', dash:true },
+    ],
+    dragFrom:null, dragPos:null, moveId:null,
+    projectWps:[
+      { id:'design', name:'Design & content', status:'done', taskCount:4, hours:8, meta:'4 tasks · 8h', milestone:'Site live', x:20, y:64, tlStart:1, tlSpan:2, tlLabel:'✓ Done', tasks:[
+        {id:'d1',title:'Moodboard & references',done:true,hours:'2h'},
+        {id:'d2',title:'Wireframe the key pages',done:true,hours:'3h'},
+        {id:'d3',title:'Visual design pass',done:true,hours:'2h'},
+        {id:'d4',title:'Write the page copy',done:true,hours:'1h'},
+      ] },
+      { id:'build', name:'Build & ship', status:'progress', taskCount:3, hours:6, meta:'3 tasks · 6h', milestone:'Site live', x:300, y:60, tlStart:3, tlSpan:2, tlLabel:'In progress', tasks:[
+        {id:'b1',title:'Scaffold the site',done:true,hours:'3h'},
+        {id:'b2',title:'Build the project pages',done:false,hours:'2h'},
+        {id:'b3',title:'Deploy & connect domain',done:false,hours:'1h'},
+      ] },
+      { id:'case', name:'Case studies', status:'open', taskCount:2, hours:4, meta:'2 tasks · 4h', milestone:'Site live', x:300, y:240, tlStart:4, tlSpan:2, tlLabel:'Open', tasks:[
+        {id:'c1',title:'Outline three case studies',done:false,hours:'2h'},
+        {id:'c2',title:'Write & lay them out',done:false,hours:'2h'},
+      ] },
+      { id:'outreach', name:'Outreach setup', status:'blocked', taskCount:2, hours:3, meta:'waits on Build', milestone:'', x:300, y:368, tlStart:5, tlSpan:2, tlLabel:'△ Blocked', tasks:[
+        {id:'o1',title:'Draft the outreach list',done:false,hours:'2h'},
+        {id:'o2',title:'Set up the email template',done:false,hours:'1h'},
+      ] },
+    ],
+    wpModalOpen:false, wpModalName:'', wpModalTasks:[], wpModalDraft:'', pwpSeq:1,
+    wps:[
+      { id:1, name:'Design & content', estimate:'8h', tasks:[
+        { id:11, title:'Collect 3 reference sites', est:'0.5h' },
+        { id:12, title:'Outline portfolio structure', est:'low' },
+      ], adding:false, draft:'' },
+      { id:2, name:'Build & ship', estimate:'mid', tasks:[
+        { id:21, title:'Scaffold the site', est:'3h' },
+      ], adding:false, draft:'' },
+    ],
+    addingWp:false, newWpText:'', dragIndex:null, overIndex:null, nextId:100,
+    sheetAdding:false, sheetDraft:'', sheetTasks:[],
+    wpTaskDone:{scaffold:true, buildPages:false, deploy:false},
+
+  };
+
+  // ----- task / work-package editing -----
+  startAddTask(id){ this.setState(s=>({wps:s.wps.map(w=>w.id===id?{...w,adding:true,draft:''}:{...w,adding:false})})); }
+  setTaskDraft(id,val){ this.setState(s=>({wps:s.wps.map(w=>w.id===id?{...w,draft:val}:w)})); }
+  commitTask(id){ this.setState(s=>{ let nid=s.nextId; const wps=s.wps.map(w=>{ if(w.id!==id) return w; const t=(w.draft||'').trim(); if(!t) return {...w,adding:false,draft:''}; return {...w,tasks:[...w.tasks,{id:nid++,title:t,est:'—'}],adding:false,draft:''}; }); return {wps,nextId:nid}; }); }
+  cancelTask(id){ this.setState(s=>({wps:s.wps.map(w=>w.id===id?{...w,adding:false,draft:''}:w)})); }
+  toggleWpTask(id){ this.setState(s=>({wpTaskDone:{...s.wpTaskDone,[id]:!s.wpTaskDone[id]}})); }
+  startSheetAdd(){ this.setState({sheetAdding:true, sheetDraft:''}); }
+  setSheetDraft(val){ this.setState({sheetDraft:val}); }
+  commitSheetTask(){ this.setState(s=>{ const t=(s.sheetDraft||'').trim(); if(!t) return {sheetAdding:false,sheetDraft:''}; const nid='st'+Date.now(); return {projectWps:s.projectWps.map(w=>w.id===s.selectedWpId?{...w,tasks:[...(w.tasks||[]),{id:nid,title:t,done:false,hours:'1h'}]}:w),sheetAdding:false,sheetDraft:''}; }); }
+  cancelSheetAdd(){ this.setState({sheetAdding:false,sheetDraft:''}); }
+  toggleSheetTask(id){ this.setState(s=>({projectWps:s.projectWps.map(w=>w.id===s.selectedWpId?{...w,tasks:(w.tasks||[]).map(t=>t.id===id?{...t,done:!t.done}:t)}:w)})); }
+
+  // ----- gantt: select a work package + drag its bar to a day slot -----
+  selectWp(id){ this.setState({sheetMode:'wp', selectedWpId:id, sheetOpen:true}); }
+  selectMilestone(name){ this.setState({sheetMode:'milestone', selectedMilestone:name, sheetOpen:true}); }
+  addMilestone(){ this.setState(s=>{ let n=1, name; const have=new Set(s.milestones); do{ name='Milestone '+n; n++; }while(have.has(name)); return { milestones:[...s.milestones,name], sheetMode:'milestone', selectedMilestone:name, sheetOpen:true }; }, ()=>this.showToast('Milestone added')); }
+  removeMilestone(){ this.setState(s=>({ milestones:s.milestones.filter(m=>m!==s.selectedMilestone), projectWps:s.projectWps.map(w=>w.milestone===s.selectedMilestone?{...w,milestone:''}:w), sheetMode:'wp' }), ()=>this.showToast('Milestone removed')); }
+  renameMilestone(v){ this.setState(s=>({ milestones:s.milestones.map(m=>m===s.selectedMilestone?v:m), projectWps:s.projectWps.map(w=>w.milestone===s.selectedMilestone?{...w,milestone:v}:w), selectedMilestone:v })); }
+  setWpMilestone(id, name){ this.setState(s=>({ projectWps:s.projectWps.map(w=>w.id===id?{...w,milestone:name}:w) })); }
+  startTlDrag(id){ return (e)=>{
+    if(e.button&&e.button!==0) return;
+    e.preventDefault(); e.stopPropagation();
+    const grid=e.currentTarget.parentElement;
+    const colW=grid.getBoundingClientRect().width/7;
+    const w=this.state.projectWps.find(p=>p.id===id);
+    this._tlDrag={ id, startX:e.clientX, startCol:w.tlStart, span:w.tlSpan, colW, curCol:w.tlStart, moved:false };
+    this.setState({tlDragId:id});
+    window.addEventListener('pointermove',this._onTlMove);
+    window.addEventListener('pointerup',this._onTlUp);
+  }; }
+  _onTlMove=(e)=>{ const d=this._tlDrag; if(!d) return;
+    const dx=e.clientX-d.startX;
+    if(Math.abs(dx)>3) d.moved=true;
+    let col=d.startCol+Math.round(dx/d.colW);
+    col=Math.max(1, Math.min(8-d.span, col));
+    if(col!==d.curCol){ d.curCol=col; this.setState(s=>({projectWps:s.projectWps.map(p=>p.id===d.id?{...p,tlStart:col}:p)})); }
+  };
+  _onTlUp=()=>{ const d=this._tlDrag; window.removeEventListener('pointermove',this._onTlMove); window.removeEventListener('pointerup',this._onTlUp); this._tlDrag=null; this.setState({tlDragId:null}); if(!d) return; this.selectWp(d.id); if(d.moved) this.showToast('Moved to a new day'); };
+
+  // ----- roadmap day plans (view + edit, grouped by project › work package) -----
+  WP_PROJECT = { 'Design & content':'Portfolio site', 'Build & ship':'Portfolio site', 'Case studies':'Portfolio site', 'Outreach setup':'Outreach' };
+  selectDay(id){ this.setState({selectedDay:id, dayAddWp:null, dayAddDraft:''}); }
+  closeDayPanel(){ this.setState({selectedDay:null, dayAddWp:null, dayAddDraft:''}); }
+  toggleDayTask(taskId){ this.setState(s=>{ const id=s.selectedDay; if(!id) return {}; const dp={...s.dayPlans}; dp[id]={...dp[id], tasks:dp[id].tasks.map(t=>t.id===taskId?{...t,done:!t.done}:t)}; return {dayPlans:dp}; }); }
+  removeDayTask(taskId){ this.setState(s=>{ const id=s.selectedDay; if(!id) return {}; const dp={...s.dayPlans}; dp[id]={...dp[id], tasks:dp[id].tasks.filter(t=>t.id!==taskId)}; return {dayPlans:dp}; }); }
+  startDayAdd(wp){ this.setState({dayAddWp:wp, dayAddDraft:''}); }
+  setDayAddDraft(val){ this.setState({dayAddDraft:val}); }
+  cancelDayAdd(){ this.setState({dayAddWp:null, dayAddDraft:''}); }
+  commitDayTask(){ this.setState(s=>{ const id=s.selectedDay, wp=s.dayAddWp; const t=(s.dayAddDraft||'').trim(); if(!id||!wp||!t) return {dayAddWp:null,dayAddDraft:''}; const proj=this.WP_PROJECT[wp]||'Portfolio site'; const dp={...s.dayPlans}; dp[id]={...dp[id], tasks:[...dp[id].tasks,{id:'dt'+Date.now(),title:t,project:proj,wp,done:false}]}; return {dayPlans:dp, dayAddWp:null, dayAddDraft:''}; }); }
+  approveSelectedDay(){ this.setState(s=>{ const ni=s.replanIndex+1; const base={ selectedDay:null, dayAddWp:null, dayAddDraft:'' }; return ni>=s.replanDays.length?{...base,replanIndex:ni,replan:'approved'}:{...base,replanIndex:ni}; }, ()=>{ if(this.state.replanIndex>=this.state.replanDays.length) this.showToast('Plan committed — milestone moved to Mon'); else this.showToast('Day approved — next proposal selected'); }); }
+
+  commitWp(){ this.setState(s=>{ const t=(s.newWpText||'').trim(); if(!t) return {addingWp:false,newWpText:''}; return {wps:[...s.wps,{id:s.nextId,name:t,estimate:'—',tasks:[],adding:false,draft:''}],nextId:s.nextId+1,addingWp:false,newWpText:''}; }); }
+  reorderWp(from,to){ if(from==null||to==null||from===to) return; this.setState(s=>{ const arr=[...s.wps]; const [m]=arr.splice(from,1); arr.splice(to,0,m); return {wps:arr,dragIndex:null,overIndex:null}; }); }
+
+  // ----- suggested ordering -----
+  wpPriority(name){ const n=(name||'').toLowerCase();
+    const buckets=[
+      ['research','reference','plan','design','content','outline','scope','wireframe'],
+      ['build','develop','scaffold','implement','code','create'],
+      ['test','qa','review','polish'],
+      ['ship','deploy','launch','publish','release','domain'],
+    ];
+    for(let i=0;i<buckets.length;i++){ if(buckets[i].some(k=>n.includes(k))) return i; }
+    return 2;
+  }
+  sortedSuggestion(arr){ return arr.map((w,i)=>({w,i})).sort((a,b)=>{ const pa=this.wpPriority(a.w.name), pb=this.wpPriority(b.w.name); return pa!==pb?pa-pb:a.i-b.i; }).map(x=>x.w); }
+
+  showToast(msg){ this.setState({toast:msg}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:null}),2200); }
+
+  // ----- flow dependency graph -----
+  getNodes(){ const N={}; this.state.projectWps.forEach(w=>{ N[w.id]={x:w.x,y:w.y,w:150,h:74}; }); N.milestone={x:600,y:128,w:64,h:64}; return N; }
+  flowRef = React.createRef();
+  toLocal(e){ const el=this.flowRef.current; if(!el) return {x:0,y:0}; const r=el.getBoundingClientRect(); const sx=(r.width/840)||1, sy=(r.height/520)||1; return { x:(e.clientX-r.left)/sx, y:(e.clientY-r.top)/sy }; }
+  hitNode(p,ex){ const N=this.getNodes(); for(const id in N){ if(id===ex) continue; const n=N[id]; if(p.x>=n.x&&p.x<=n.x+n.w&&p.y>=n.y&&p.y<=n.y+n.h) return id; } return null; }
+  startConnect(id){ return (e)=>{ if(e.button&&e.button!==0) return; e.preventDefault(); e.stopPropagation(); const n=this.getNodes()[id]; if(!n) return; this._dragMoved=false; this._dragStart={x:e.clientX,y:e.clientY}; this.setState({dragFrom:id,dragPos:{x:n.x+n.w,y:n.y+n.h/2}}); window.addEventListener('pointermove',this._onMove); window.addEventListener('pointerup',this._onUp); }; }
+  _onMove=(e)=>{ if(this.state.dragFrom==null) return; if(this._dragStart){ const dx=e.clientX-this._dragStart.x, dy=e.clientY-this._dragStart.y; if(dx*dx+dy*dy>25) this._dragMoved=true; } this.setState({dragPos:this.toLocal(e)}); };
+  _onUp=(e)=>{ const from=this.state.dragFrom; if(from!=null){ if(this._dragMoved){ const tgt=this.hitNode(this.toLocal(e),from); if(tgt) this.addDep(from,tgt); } } this.setState({dragFrom:null,dragPos:null}); window.removeEventListener('pointermove',this._onMove); window.removeEventListener('pointerup',this._onUp); };
+  // ----- drag a node to reposition it -----
+  startMove(id){ return (e)=>{ if(e.button&&e.button!==0) return; e.preventDefault(); const n=this.getNodes()[id]; if(!n) return; const p=this.toLocal(e); this._moveOff={dx:p.x-n.x, dy:p.y-n.y}; this._moveMoved=false; this._moveStart={x:e.clientX,y:e.clientY}; this.setState({moveId:id}); window.addEventListener('pointermove',this._onMoveNode); window.addEventListener('pointerup',this._onUpNode); }; }
+  _onMoveNode=(e)=>{ if(this.state.moveId==null) return; if(this._moveStart){ const dx=e.clientX-this._moveStart.x, dy=e.clientY-this._moveStart.y; if(dx*dx+dy*dy>20) this._moveMoved=true; } const p=this.toLocal(e); const x=Math.max(0,Math.min(674,p.x-this._moveOff.dx)), y=Math.max(0,p.y-this._moveOff.dy); this.setState(s=>({projectWps:s.projectWps.map(w=>w.id===s.moveId?{...w,x,y}:w)})); };
+  _onUpNode=(e)=>{ const id=this.state.moveId; window.removeEventListener('pointermove',this._onMoveNode); window.removeEventListener('pointerup',this._onUpNode); this.setState({moveId:null}); if(id!=null && !this._moveMoved){ this.setState({sheetOpen:true}); } };
+  addDep(from,to){ if(from===to) return; const ex=this.state.deps.some(d=>(d.from===from&&d.to===to)||(d.from===to&&d.to===from)); if(ex){ this.showToast('Already linked'); return; } this.setState(s=>({deps:[...s.deps,{from,to,added:true}]})); this.showToast('Dependency added'); }
+
+  // ----- add a project work package via dialog -----
+  openWpModal(){ this.setState({wpModalOpen:true, wpModalName:'', wpModalTasks:[], wpModalDraft:''}); }
+  closeWpModal(){ this.setState({wpModalOpen:false}); }
+  commitModalTask(){ this.setState(s=>{ const t=(s.wpModalDraft||'').trim(); if(!t) return {wpModalDraft:''}; return {wpModalTasks:[...s.wpModalTasks,{id:'mt'+Date.now(),title:t}], wpModalDraft:''}; }); }
+  removeModalTask(id){ this.setState(s=>({wpModalTasks:s.wpModalTasks.filter(t=>t.id!==id)})); }
+  createProjectWp(){
+    this.setState(s=>{
+      const name=(s.wpModalName||'').trim(); if(!name) return {};
+      const k=s.projectWps.filter(w=>!['design','build','case','outreach'].includes(w.id)).length;
+      const id='pwp'+s.pwpSeq;
+      const tc=s.wpModalTasks.length;
+      const node={ id, name, status:'open', taskCount:tc, hours:Math.max(1,tc), meta:tc+' task'+(tc===1?'':'s')+' · '+Math.max(1,tc)+'h', milestone:'',
+        x:300, y:368+150*(k+1), tlStart:Math.min(6,2+k), tlSpan:2, tlLabel:'Open',
+        tasks:s.wpModalTasks.map(t=>({id:t.id,title:t.title,done:false,hours:'1h'})) };
+      return { projectWps:[...s.projectWps, node], pwpSeq:s.pwpSeq+1, wpModalOpen:false, selectedWpId:id };
+    }, ()=>this.showToast('Work package added'));
+  }
+
+  doneCount(){ const t=this.state.tasks; return 2 + (t.ref?1:0)+(t.casestudy?1:0)+(t.outline?1:0)+(t.mentor?1:0); }
+
+  toggleTask(id){
+    this.setState(s=>{ const tasks={...s.tasks, [id]:!s.tasks[id]}; return {tasks}; }, ()=>{
+      if(this.doneCount()===6){ this.setState({celebrationOpen:true, todayOpen:false}); }
+    });
+  }
+
+  renderVals(){
+    const st=this.state;
+    const onboarding = st.screen==='onboarding';
+    const inApp = st.screen==='app';
+    const done = this.doneCount();
+    const points = 20 + 10*done;
+    const deg = Math.round(360*done/6);
+
+    // onboarding stepper
+    const labels=['Goal','Project','Milestone','Breakdown','Group','Capacity','Roadmap'];
+    const steps = labels.map((l,i)=>{
+      const n=i+1, isDone=n<st.step, isCur=n===st.step;
+      const circleStyle = 'width:24px;height:24px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex:none;'+
+        (isDone?'background:#3DD68C;color:#0E0E10;':isCur?'background:#A78BFA;color:#0E0E10;':'background:#242428;border:1px solid #34343A;color:#74747A;');
+      const labelStyle='font-size:11px;font-weight:'+(isCur||isDone?'800':'700')+';color:'+(isCur||isDone?'#F4F4F2':'#74747A')+';white-space:nowrap;';
+      const connStyle = n===1?'display:none;':('flex:none;width:26px;height:2px;margin:0 7px;background:'+(n<=st.step?'#A78BFA':'#2E2E33')+';');
+      return { label:l, mark:isDone?'✓':String(n), circleStyle, labelStyle, connStyle };
+    });
+
+    // horizon buttons
+    const hz=(h)=>{ const on=st.horizon===h; return 'flex:1;text-align:center;font-size:13px;font-weight:800;border-radius:11px;padding:11px;cursor:pointer;'+
+      (on?'color:#0E0E10;background:#3DD68C;':'color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;'); };
+
+    // task display
+    const td=(b,toggle)=>({
+      toggle,
+      rowStyle:(b?'background:#16352A;border:1px solid #2bbd7c;':'background:#1A1A1D;border:1px solid #2E2E33;')+'display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:13px;cursor:pointer;',
+      boxStyle:b?'width:22px;height:22px;border-radius:7px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;'
+                :'width:22px;height:22px;border-radius:7px;border:2px solid #45454C;flex:none;',
+      check:b?'✓':'',
+      labelStyle:'flex:1;font-size:14px;font-weight:700;'+(b?'color:#A8E9C8;text-decoration:line-through;':'color:#F4F4F2;'),
+      chipStyle:(b?'background:#0F2B20;border:1px solid #2bbd7c;':'background:#161618;border:1px solid #2E2E33;')+'display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:10px;cursor:pointer;flex:none;',
+      chipBoxStyle:b?'width:14px;height:14px;border-radius:4px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex:none;'
+                   :'width:14px;height:14px;border-radius:4px;border:1.5px solid #45454C;flex:none;',
+      chipLabelStyle:'font-size:12px;font-weight:700;white-space:nowrap;'+(b?'color:#A8E9C8;text-decoration:line-through;':'color:#F4F4F2;'),
+    });
+
+    // sidebar nav
+    const navItem=(active)=>'display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;cursor:pointer;margin-top:3px;'+
+      (active?'background:#1A1A1D;border:1px solid #2E2E33;font-weight:800;color:#F4F4F2;':'font-weight:700;color:#A8A8A4;');
+    const navProjItem=(active)=>'display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;'+
+      (active?'background:#16221C;border:1px solid #234034;color:#F4F4F2;':'color:#A8A8A4;');
+
+    // project detail view toggle
+    const v=st.pdView;
+    const tabBg=(on)=>on?'#242428':'transparent', tabFg=(on)=>on?'#F4F4F2':'#74747A';
+
+    // flow dependency edges
+    const NODES=this.getNodes();
+    const edgePath=(from,to)=>{ const a=NODES[from], b=NODES[to]; if(!a||!b) return ''; const sx=a.x+a.w, sy=a.y+a.h/2, tx=b.x, ty=b.y+b.h/2; const dx=Math.max(40,Math.abs(tx-sx)/2); return 'M'+sx+','+sy+' C'+(sx+dx)+','+sy+' '+(tx-dx)+','+ty+' '+tx+','+ty; };
+    const flowEdges = st.deps.map(d=>({ d:edgePath(d.from,d.to), stroke:d.added?'#A78BFA':d.crit?'#3DD68C':d.dash?'#E0A33E':'#3a3a40', width:d.crit?3:2, dash:d.dash?'6 6':'0' }));
+    const dragActive = st.dragFrom!=null && !!st.dragPos;
+    let dragLine=''; if(dragActive){ const a=NODES[st.dragFrom]; const sx=a.x+a.w, sy=a.y+a.h/2, tx=st.dragPos.x, ty=st.dragPos.y; const dx=Math.max(30,Math.abs(tx-sx)/2); dragLine='M'+sx+','+sy+' C'+(sx+dx)+','+sy+' '+(tx-dx)+','+ty+' '+tx+','+ty; }
+    const pdHints={flow:'Dependency graph · drag node handles to connect',timeline:'Same data on a horizontal time axis',table:'At-a-glance · sortable & filterable'};
+
+    // ----- data-driven project work packages (flow / timeline / table) -----
+    const PW=st.projectWps;
+    const flowH=Math.max(520, PW.reduce((m,w)=>Math.max(m,w.y+74),0)+46);
+    const nodeSkin={
+      done:{box:'background:#16352A;border:1.5px solid #3DD68C;', meta:'#A8E9C8', st:'✓ DONE', stc:'#3DD68C', extra:''},
+      progress:{box:'background:#15233a;border:2px solid #5B9DFF;', meta:'#9cc3ff', st:'● IN PROGRESS', stc:'#9cc3ff', extra:'box-shadow:0 0 0 4px rgba(91,157,255,.16);'},
+      open:{box:'background:#1A1A1D;border:1.5px solid #45454C;', meta:'#74747A', st:'○ OPEN', stc:'#A8A8A4', extra:''},
+      blocked:{box:'background:#2a2012;border:1.5px solid #E0A33E;', meta:'#c9923a', st:'△ BLOCKED', stc:'#E0A33E', extra:''},
+    };
+    const flowNodes=PW.map(w=>{ const sk=nodeSkin[w.status]||nodeSkin.open; const moving=st.moveId===w.id; return {
+      id:w.id, name:w.name, meta:w.meta, status:sk.st,
+      onMove:this.startMove(w.id), onConnect:this.startConnect(w.id),
+      nodeStyle:'position:absolute;left:'+w.x+'px;top:'+w.y+'px;width:150px;cursor:'+(moving?'grabbing':'grab')+';touch-action:none;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;'+sk.box+sk.extra+(moving?'box-shadow:0 12px 30px rgba(0,0,0,.45);z-index:8;':''),
+      statusStyle:'font-size:9px;font-weight:800;color:'+sk.stc+';',
+      metaStyle:'font-family:ui-monospace,monospace;font-size:10px;color:'+sk.meta+';',
+    }; });
+
+    const tlSkin={
+      done:'background:#16352A;border:1px solid #3DD68C;color:#3DD68C;',
+      progress:'background:#15233a;border:1px solid #5B9DFF;color:#9cc3ff;',
+      open:'background:#242428;border:1px solid #45454C;color:#A8A8A4;',
+      blocked:'background:#2a2012;border:1px dashed #E0A33E;color:#E0A33E;',
+    };
+    const mileSelName = st.sheetMode==='milestone' ? st.selectedMilestone : null;
+    const mkWpRow=(w)=>{ const sel=st.sheetMode==='wp' && w.id===st.selectedWpId; const inMile=mileSelName && w.milestone===mileSelName; const dragging=w.id===st.tlDragId; const ring=sel?'box-shadow:0 0 0 2px #0E0E10,0 0 0 4px #3DD68C;':(inMile?'box-shadow:0 0 0 2px #0E0E10,0 0 0 4px #A78BFA;':''); return {
+      isWp:true, isMile:false,
+      id:w.id, name:w.name, label:w.tlLabel,
+      onDrag:this.startTlDrag(w.id), onPick:()=>this.selectWp(w.id),
+      nameStyle:'width:160px;flex:none;font-size:12px;font-weight:800;cursor:pointer;color:'+(sel?'#3DD68C':(inMile?'#cdbdfb':'#F4F4F2'))+';',
+      barStyle:'grid-column:'+w.tlStart+' / span '+w.tlSpan+';height:26px;border-radius:8px;display:flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;user-select:none;touch-action:none;cursor:'+(dragging?'grabbing':'grab')+';transition:box-shadow .15s;'+ring+(tlSkin[w.status]||tlSkin.open),
+    }; };
+    const endLineOf=(mem)=>Math.min(8,Math.max(2,...mem.map(w=>w.tlStart+w.tlSpan)));
+    const mkMileRow=(name, mem)=>{ const selM=mileSelName===name; return {
+      isWp:false, isMile:true,
+      name, onPick:()=>this.selectMilestone(name),
+      mileNameStyle:'width:160px;flex:none;font-size:11px;font-weight:800;cursor:pointer;color:'+(selM?'#cdbdfb':'#A78BFA')+';',
+      cellStyle:'grid-column:1 / '+endLineOf(mem)+';display:flex;justify-content:flex-end;align-items:center;cursor:pointer;',
+      dotStyle:'width:18px;height:18px;border-radius:5px;margin-right:-9px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;cursor:pointer;transition:box-shadow .15s;'+(selM?'box-shadow:0 0 0 2px #0E0E10,0 0 0 4px #A78BFA;':''),
+      hint:name+' · ends with the last work package',
+    }; };
+
+    // group work packages under their milestone: sort milestones by end, list members then the milestone marker; ungrouped (not-done) packages last
+    const mileGroups=(st.milestones||[]).map(name=>({name, mem:PW.filter(w=>w.milestone===name)}))
+      .filter(g=>g.mem.length>0)
+      .sort((a,b)=>endLineOf(a.mem)-endLineOf(b.mem));
+    const tlList=[];
+    mileGroups.forEach(g=>{
+      g.mem.slice().sort((x,y)=>x.tlStart-y.tlStart).forEach(w=>tlList.push(mkWpRow(w)));
+      tlList.push(mkMileRow(g.name, g.mem));
+    });
+    PW.filter(w=>!w.milestone && w.status!=='done').sort((x,y)=>x.tlStart-y.tlStart).forEach(w=>tlList.push(mkWpRow(w)));
+    const tlRows=tlList.filter(r=>r.isWp);
+    const tlMilestones=tlList.filter(r=>r.isMile);
+
+    const badgeSkin={
+      done:'color:#3DD68C;background:#16352A;', progress:'color:#9cc3ff;background:#1b2f4d;',
+      open:'color:#A8A8A4;background:#242428;', blocked:'color:#E0A33E;background:#3a2c12;',
+    };
+    const badgeLabel={done:'✓ Done',progress:'In progress',open:'Open',blocked:'△ Blocked'};
+    const tableRows=PW.map(w=>({
+      name:w.name, milestone:w.milestone||'—',
+      msStyle:'padding:12px 14px;font-size:12px;font-weight:700;color:'+(w.milestone?'#A8A8A4':'#74747A')+';',
+      hours:w.hours+'h', statusLabel:badgeLabel[w.status]||'Open',
+      open:()=>this.setState({sheetOpen:true, selectedWpId:w.id}),
+      badgeStyle:'font-size:10px;font-weight:700;border-radius:9999px;padding:3px 9px;'+(badgeSkin[w.status]||badgeSkin.open),
+    }));
+
+    // add-WP modal
+    const wpModalTasks=st.wpModalTasks.map(t=>({ id:t.id, title:t.title, remove:()=>this.removeModalTask(t.id) }));
+
+
+    // work-package list for A4 breakdown (inline task add)
+    const wpList = st.wps.map(w=>({
+      id:w.id, name:w.name, estimate:w.estimate, tasks:w.tasks,
+      adding:w.adding, notAdding:!w.adding, draft:w.draft,
+      startAdd:()=>this.startAddTask(w.id),
+      onInput:e=>this.setTaskDraft(w.id,e.target.value),
+      onKey:e=>{ if(e.key==='Enter'){ e.preventDefault(); this.commitTask(w.id); } else if(e.key==='Escape'){ this.cancelTask(w.id); } },
+      commit:()=>this.commitTask(w.id),
+      cancel:()=>this.cancelTask(w.id),
+    }));
+
+    // draggable list for A5 regroup
+    const wpDragList = st.wps.map((w,i)=>{
+      const dragging = st.dragIndex===i, over = st.overIndex===i && st.dragIndex!==i;
+      const style='display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#F4F4F2;border-radius:9px;padding:8px 11px;cursor:grab;transition:background .12s,box-shadow .12s;'+
+        (dragging?'background:#2b2540;opacity:.45;':over?'background:#272040;box-shadow:inset 0 0 0 1.5px #A78BFA;':'background:#242428;');
+      return {
+        name:w.name, style,
+        onDragStart:e=>{ this.setState({dragIndex:i,overIndex:i}); if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',String(i)); }catch(_){} } },
+        onDragEnter:e=>{ e.preventDefault(); if(st.overIndex!==i) this.setState({overIndex:i}); },
+        onDrop:e=>{ e.preventDefault(); this.reorderWp(st.dragIndex,i); },
+        onDragEnd:()=>this.setState({dragIndex:null,overIndex:null}),
+      };
+    });
+
+    // suggested ordering chips (A5)
+    const suggested = this.sortedSuggestion(st.wps);
+    const suggestionList = suggested.map((w,i)=>({
+      name:w.name, notFirst:i>0,
+      chipStyle:'background:#242428;border-radius:8px;padding:6px 10px;color:#F4F4F2;',
+    }));
+
+    // extra milestones (A3)
+    const extraMsList = st.extraMilestones.map((name,i)=>({
+      name,
+      onInput:e=>{ const v=e.target.value; this.setState(s=>{ const arr=[...s.extraMilestones]; arr[i]=v; return {extraMilestones:arr}; }); },
+      remove:()=>this.setState(s=>({extraMilestones:s.extraMilestones.filter((_,j)=>j!==i)})),
+    }));
+
+    // ----- day-by-day replan -----
+    const rDays = st.replanDays;
+    const rDates = ['Mon Jun 15','Tue Jun 16','Wed Jun 17'];
+    const rDay = rDays[Math.min(st.replanIndex, rDays.length-1)] || rDays[0];
+    const rRemaining = Math.max(0, rDays.length - st.replanIndex);
+    const lastDay = st.replanIndex >= rDays.length-1;
+    const taskRow = (t)=>({
+      title:t.title, meta:t.meta||'', hasMeta:!!t.meta,
+      moveFrom:t.moveFrom||'', moveTo:t.moveTo||'', hasMove:!!t.moveFrom,
+      proposed:!!t.proposed,
+      rowStyle:'display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;'+(t.proposed?'background:#1c1830;border:1px solid #5b46a8;':'background:#0E0E10;border:1px solid #242428;'),
+      titleStyle:'flex:1;font-size:12px;font-weight:700;color:'+(t.proposed?'#cdbdfb':'#F4F4F2')+';',
+    });
+    const replanRows = rDays.map((d,i)=>{
+      const approved = i<st.replanIndex;
+      const selected = i===st.replanIndex && st.replan==='pending';
+      const nodeBase = 'width:28px;height:28px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;z-index:1;margin-top:2px;';
+      const nodeStyle = nodeBase + (approved?'background:#16352A;border:2px solid #3DD68C;color:#3DD68C;':selected?'background:#A78BFA;border:2px solid #A78BFA;color:#0E0E10;box-shadow:0 0 0 5px rgba(167,139,250,.30);':'background:#1A1A1D;border:2px solid #45454C;color:#74747A;');
+      const cardStyle = 'flex:1;display:flex;flex-direction:column;gap:9px;padding:12px 15px;border-radius:13px;cursor:pointer;'+(approved?'background:#121214;border:1px solid #16352A;':selected?'background:#241a3d;border:2px solid #A78BFA;box-shadow:0 0 0 4px rgba(167,139,250,.20);':'background:#121214;border:1px solid #242428;opacity:.62;')+(st.selectedDay===d.id?' outline:2px solid #5B9DFF;outline-offset:2px;':'');
+      const statusStyle='margin-left:auto;font-size:10px;font-weight:700;border-radius:9999px;padding:3px 9px;'+(approved?'color:#3DD68C;background:#16352A;':selected?'color:#0E0E10;background:#A78BFA;':'color:#74747A;background:#1A1A1D;');
+      return { date:rDates[i]||d.day, summary:d.summary, approved, selected, onSelect:()=>this.selectDay(d.id), nodeStyle, nodeMark:approved?'✓':selected?'◇':'○', cardStyle, statusStyle, statusLabel:approved?'✓ Approved':selected?'◇ Reviewing':'Pending', tasks:d.tasks.map(taskRow) };
+    });
+    const replanDots = rDays.map((d,i)=>({ style:'flex:1;height:5px;border-radius:9999px;background:'+(i<st.replanIndex?'#3DD68C':(i===st.replanIndex&&st.replan==='pending')?'#A78BFA':'#2A2A2E')+';' }));
+
+    // ----- selected day plan (grouped by project, editable) -----
+    const projAccent={ 'Design & content':'#3DD68C', 'Build & ship':'#5B9DFF', 'Case studies':'#A78BFA', 'Outreach setup':'#E0A33E' };
+    // current pending proposal day; selecting a day defaults to it so the proposal is never lost
+    const curPropId = (st.replan==='pending' && st.replanIndex < rDays.length) ? rDays[st.replanIndex].id : null;
+    const explicitSel = st.selectedDay;
+    const effId = explicitSel || curPropId;
+    const selDay = effId ? st.dayPlans[effId] : null;
+    const daySelected = !!selDay;
+    // proposal status of the effective day
+    const propIdx = effId ? rDays.findIndex(d=>d.id===effId) : -1;
+    const effPropDay = propIdx>=0 ? rDays[propIdx] : null;
+    const dayIsProposal = propIdx>=0 && st.replan==='pending' && propIdx>=st.replanIndex;
+    const dayIsCurrent = propIdx===st.replanIndex && st.replan==='pending';
+    const dayIsFuture = propIdx>st.replanIndex && st.replan==='pending';
+    const dayIsApprovedProp = propIdx>=0 && (st.replan!=='pending' || propIdx<st.replanIndex);
+    const propLast = propIdx===rDays.length-1;
+    const dayTaskBox=(b)=>b?'width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;':'width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;';
+    let dayProjects=[]; let dayTaskTotal=0, dayDoneTotal=0;
+    if(selDay){
+      const wpOrder=['Design & content','Build & ship','Case studies','Outreach setup'];
+      const projOrder=['Portfolio site','Outreach'];
+      const wpToTask=(t)=>{ const b=!!t.done; const showProp=dayIsProposal && !!t.proposed; const showMove=dayIsProposal && !!t.moveFrom && !b; return {
+        id:t.id, title:t.title, check:b?'✓':'',
+        toggle:()=>this.toggleDayTask(t.id), remove:()=>this.removeDayTask(t.id),
+        proposed:showProp, hasMove:showMove, moveFrom:t.moveFrom||'', moveTo:t.moveTo||'',
+        meta:t.meta||'', hasMeta:!!t.meta && !showMove,
+        cardStyle:(b?'background:#16352A;border:1px solid #2bbd7c;':showProp?'background:#1c1830;border:1px solid #5b46a8;':'background:#1A1A1D;border:1px solid #2E2E33;')+'flex:1;display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:11px;cursor:pointer;',
+        boxStyle:dayTaskBox(b),
+        titleStyle:'flex:1;font-size:13px;font-weight:700;'+(b?'color:#A8E9C8;text-decoration:line-through;':showProp?'color:#cdbdfb;':'color:#F4F4F2;'),
+      }; };
+      // group: project -> work package -> tasks
+      const tree={};
+      selDay.tasks.forEach(t=>{ const proj=t.project||'Portfolio site', wp=t.wp||'General'; tree[proj]=tree[proj]||{}; (tree[proj][wp]=tree[proj][wp]||[]).push(t); });
+      const rank=(arr,v)=>{ const i=arr.indexOf(v); return i<0?99:i; };
+      const projKeys=Object.keys(tree).sort((a,b)=>rank(projOrder,a)-rank(projOrder,b));
+      dayProjects=projKeys.map(proj=>{
+        const wpKeys=Object.keys(tree[proj]).sort((a,b)=>rank(wpOrder,a)-rank(wpOrder,b));
+        let projDone=0, projTotal=0;
+        const wps=wpKeys.map(wp=>{
+          const accent=projAccent[wp]||'#A8A8A4';
+          const adding=st.dayAddWp===wp;
+          const items=tree[proj][wp];
+          projTotal+=items.length; projDone+=items.filter(t=>t.done).length;
+          dayTaskTotal+=items.length; dayDoneTotal+=items.filter(t=>t.done).length;
+          return {
+            wp, accent,
+            dotStyle:'width:9px;height:9px;border-radius:9999px;flex:none;background:'+accent+';',
+            headStyle:'font-size:11px;font-weight:900;letter-spacing:.02em;color:'+accent+';',
+            countStyle:'margin-left:auto;font-family:ui-monospace,monospace;font-size:10px;color:#74747A;',
+            count:items.filter(t=>t.done).length+'/'+items.length,
+            adding, notAdding:!adding,
+            draft:adding?st.dayAddDraft:'',
+            onStartAdd:()=>this.startDayAdd(wp),
+            onInput:e=>this.setDayAddDraft(e.target.value),
+            onKey:e=>{ if(e.key==='Enter'){ e.preventDefault(); this.commitDayTask(); } else if(e.key==='Escape'){ this.cancelDayAdd(); } },
+            commit:()=>this.commitDayTask(), cancel:()=>this.cancelDayAdd(),
+            tasks:items.map(wpToTask),
+          };
+        });
+        return { project:proj, projCount:projDone+'/'+projTotal, wps };
+      });
+    }
+    const dayRing=(id)=>explicitSel===id?' outline:2px solid #A78BFA;outline-offset:2px;border-radius:13px;':'';
+    const dayMs = (dayIsProposal && effPropDay && effPropDay.milestone) ? effPropDay.milestone : null;
+    const propRemaining = Math.max(0, rDays.length - propIdx);
+
+
+
+    // confetti — generated once per celebration, cached so it stays stable across renders
+    if(st.celebrationOpen){
+      if(!this._confetti){
+        const colors=['#3DD68C','#A78BFA','#5B9DFF','#E0A33E'];
+        this._confetti = Array.from({length:26}).map((_,i)=>{
+          const left=8+Math.random()*84, delay=(Math.random()*0.6).toFixed(2), dur=(1.3+Math.random()*1.1).toFixed(2);
+          const c=colors[i%4], sz=6+Math.round(Math.random()*5), round=Math.random()>.5?'9999px':'2px';
+          return { style:`position:absolute;top:-20px;left:${left}%;width:${sz}px;height:${sz}px;border-radius:${round};background:${c};animation:fall ${dur}s linear ${delay}s infinite;` };
+        });
+      }
+    } else { this._confetti=null; }
+    const confetti = this._confetti || [];
+
+    return {
+      onboarding, inApp,
+      steps,
+      s1:st.step===1,s2:st.step===2,s3:st.step===3,s4:st.step===4,s5:st.step===5,s6:st.step===6,s7:st.step===7,
+      goalName:st.goalName, projectName:st.projectName, milestoneName:st.milestoneName, capacity:st.capacity,
+      hzShort:hz('Short'), hzMid:hz('Mid'), hzLong:hz('Long'),
+      orderLabel:st.orderAccepted?'Accepted ✓':'Accept',
+
+      // shell
+      isHome:st.tab==='home', isProject:st.tab==='project', isRoadmap:st.tab==='roadmap',
+      navHome:navItem(st.tab==='home'), navRoad:navItem(st.tab==='roadmap'), navProj:navProjItem(st.tab==='project'),
+      todayOpen:st.todayOpen, todayHint:st.todayOpen?'hover to collapse ▴':'hover to expand ▾',
+      ringBg:`conic-gradient(#3DD68C ${deg}deg,#1a2620 0)`, ringText:done+' / 6',
+      nowTask:'Write case study #1 draft', streak:st.streak,
+      pointsLabel:'+'+points, hoursLabel:(done*0.7).toFixed(1)+'h / 5h',
+
+      // project detail
+      pdView:v, isFlow:v==='flow', isTimeline:v==='timeline', isTable:v==='table',
+      flowEdges, dragActive, dragLine, flowRef:this.flowRef,
+      flowNodes, flowH, tlRows, tlMilestones, tlList, tableRows,
+      flowSize:flowH+'px', flowWrapStyle:'position:relative;width:840px;height:'+flowH+'px;margin:18px auto;background-image:radial-gradient(#1d1d22 1px,transparent 1px);background-size:22px 22px;',
+      onConnDesign:this.startConnect('design'), onConnBuild:this.startConnect('build'), onConnCase:this.startConnect('case'), onConnOutreach:this.startConnect('outreach'),
+      flowBtnBg:tabBg(v==='flow'),flowBtnFg:tabFg(v==='flow'),
+      tlBtnBg:tabBg(v==='timeline'),tlBtnFg:tabFg(v==='timeline'),
+      tableBtnBg:tabBg(v==='table'),tableBtnFg:tabFg(v==='table'),
+      viewHint:pdHints[v], sheetOpen:st.sheetOpen, sheetBtnLabel:st.sheetOpen?'Hide sheet →':'← Show WP sheet',
+
+      // replan
+      replanPending:st.replan==='pending', replanDone:st.replan==='approved',
+      replanResolved:st.replan!=='pending',
+      replanResultLabel:st.replan==='approved'?'Replan approved':'Replan rejected',
+      milestoneEta:st.replan==='approved'?'projected Mon Jun 16':'projected Tue Jun 16',
+      replanRows, replanDots,
+      // day plan panel (merges replan proposal when the selected day is a proposal)
+      daySelected,
+      showResolvedDrawer: st.replan!=='pending' && !daySelected,
+      dayProjects, selDayDate:selDay?selDay.date:'', selDayLabel:selDay?selDay.label:'',
+      dayProgressLabel:dayDoneTotal+' of '+dayTaskTotal+' done',
+      dayHasExplicit:!!explicitSel,
+      dayIsProposal,
+      dayStepLabel:'Day '+(propIdx+1)+' of '+rDays.length,
+      daySteeringSummary:effPropDay?effPropDay.summary:'',
+      dayDots:replanDots,
+      dayMsShow:!!dayMs, dayMsName:dayMs?dayMs.name:'', dayMsFrom:dayMs?dayMs.from:'', dayMsTo:dayMs?dayMs.to:'',
+      dayApproveShow:dayIsCurrent,
+      dayFutureShow:dayIsFuture,
+      dayApprovedShow:dayIsApprovedProp,
+      dayApproveLabel:propLast?'Approve & commit plan':('Approve '+(effPropDay?effPropDay.short:'')+' →'),
+      dayApproveSubLabel:propLast?'Locks in the milestone move':((propRemaining-1)+' more day'+((propRemaining-1)===1?'':'s')+' to review after this'),
+      approveDay:()=>this.approveSelectedDay(),
+      closeDayPanel:()=>this.closeDayPanel(),
+      selThu:()=>this.selectDay('thu11'), selFri:()=>this.selectDay('fri12'), selSat:()=>this.selectDay('sat13'),
+      thuRing:dayRing('thu11'), friRing:dayRing('fri12'), satRing:dayRing('sat13'),
+      replanStepLabel:'Day '+Math.min(st.replanIndex+1,rDays.length)+' of '+rDays.length,
+      replanDayTitle:rDay?rDay.day:'', replanDaySummary:rDay?rDay.summary:'',
+      curMilestoneShow:!!(rDay&&rDay.milestone),
+      msName:rDay&&rDay.milestone?rDay.milestone.name:'', msFrom:rDay&&rDay.milestone?rDay.milestone.from:'', msTo:rDay&&rDay.milestone?rDay.milestone.to:'',
+      approveLabel:lastDay?'Approve & commit plan':('Approve '+(rDay?rDay.short:'')+' →'),
+      approveSubLabel:lastDay?'Locks in the milestone move':((rRemaining-1)+' more day'+((rRemaining-1)===1?'':'s')+' to review after this'),
+      proposalLabel:rRemaining+' proposal'+(rRemaining===1?'':'s'),
+      replanDayLabel:'Proposed for '+(rDay?rDay.short:''), replanDayTasks:(rDay?rDay.tasks:[]).map(taskRow),
+
+      // tasks
+      tRef:td(st.tasks.ref, ()=>this.toggleTask('ref')),
+      tCase:td(st.tasks.casestudy, ()=>this.toggleTask('casestudy')),
+      tOutline:td(st.tasks.outline, ()=>this.toggleTask('outline')),
+      tMentor:td(st.tasks.mentor, ()=>this.toggleTask('mentor')),
+
+      celebrationOpen:st.celebrationOpen, confetti, toast:st.toast,
+
+      // A4 breakdown + A5 regroup + A3 milestones
+      wpList, wpDragList, suggestionList, extraMsList,
+      addingWp:st.addingWp, newWpText:st.newWpText,
+      startAddWp:()=>this.setState({addingWp:true,newWpText:''}),
+      setNewWp:e=>this.setState({newWpText:e.target.value}),
+      onNewWpKey:e=>{ if(e.key==='Enter'){ e.preventDefault(); this.commitWp(); } else if(e.key==='Escape'){ this.setState({addingWp:false,newWpText:''}); } },
+      commitWp:()=>this.commitWp(),
+      cancelWp:()=>this.setState({addingWp:false,newWpText:''}),
+      onListDragOver:e=>e.preventDefault(),
+      addMilestone:()=>this.setState(s=>({extraMilestones:[...s.extraMilestones,'']})),
+
+      // onboarding handlers
+      setGoal:e=>this.setState({goalName:e.target.value}),
+      setProject:e=>this.setState({projectName:e.target.value}),
+      setMilestone:e=>this.setState({milestoneName:e.target.value}),
+      setShort:()=>this.setState({horizon:'Short'}), setMid:()=>this.setState({horizon:'Mid'}), setLong:()=>this.setState({horizon:'Long'}),
+      capUp:()=>this.setState(s=>({capacity:Math.min(12,s.capacity+1)})), capDown:()=>this.setState(s=>({capacity:Math.max(1,s.capacity-1)})),
+      next:()=>this.setState(s=>({step:Math.min(7,s.step+1)})),
+      back:()=>this.setState(s=>({step:Math.max(1,s.step-1)})),
+      enterApp:()=>{ this.setState({screen:'app',tab:'home'}); this.showToast('Welcome to your workspace'); },
+      acceptOrder:()=>{ this.setState(s=>({wps:this.sortedSuggestion(s.wps),orderAccepted:true})); this.showToast('Suggested order applied'); },
+      toastDismiss:()=>this.showToast('Suggestion dismissed'),
+      toastNewMilestone:()=>this.showToast('New milestone added'),
+      toastRepropose:()=>this.showToast('Re-proposing your week…'),
+      toastAddTask:()=>this.showToast('Task added'),
+
+      // top bar hover → expand strip animation
+      todayAnimStyle:'display:grid;grid-template-rows:'+(st.todayOpen?'1fr':'0fr')+';transition:grid-template-rows .32s cubic-bezier(.4,0,.2,1);',
+      progressBarStyle:'height:100%;width:'+Math.round((this.doneCount()/6)*100)+'%;background:linear-gradient(90deg,#3DD68C,#5BF0A8);border-radius:9999px;transition:width .4s ease;',
+      sheetAdding:st.sheetAdding, sheetNotAdding:!st.sheetAdding,
+      ...(()=>{ const selWp=PW.find(w=>w.id===st.selectedWpId)||PW[0]||{name:'',tasks:[],milestone:'',hours:0,status:'open'};
+        const tks=selWp.tasks||[]; const tc=tks.length;
+        const selBadgeSkin={done:'color:#3DD68C;background:#16352A;',progress:'color:#9cc3ff;background:#1b2f4d;',open:'color:#A8A8A4;background:#242428;',blocked:'color:#E0A33E;background:#3a2c12;'};
+        const selDot={done:'#3DD68C',progress:'#5B9DFF',open:'#A8A8A4',blocked:'#E0A33E'};
+        const mode=st.sheetMode||'wp', isWp=mode!=='milestone', isMile=mode==='milestone';
+        const mName=st.selectedMilestone;
+        const mem=PW.filter(w=>w.milestone===mName);
+        const mileH=mem.reduce((a,w)=>a+(w.hours||0),0);
+        const addable=PW.filter(w=>w.milestone!==mName);
+        return {
+          sheetIsWp:isWp, sheetIsMilestone:isMile,
+          sheetKindLabel:isMile?'Milestone':'Work package',
+          sheetKindColor:isMile?'#A78BFA':'#74747A',
+          sheetTitle:isMile?(mName||''):(selWp.name||''),
+          sheetRename:isMile?(e=>this.renameMilestone(e.target.value)):(e=>{ const v=e.target.value; this.setState(s=>({projectWps:s.projectWps.map(w=>w.id===s.selectedWpId?{...w,name:v}:w)})); }),
+          openSelWpMilestone:()=>{ if(selWp.milestone) this.selectMilestone(selWp.milestone); },
+          mileMemberLabel:mem.length+' work package'+(mem.length===1?'':'s'),
+          mileHoursLabel:mileH+'h',
+          mileHasNone:mem.length===0, mileCanAdd:addable.length>0,
+          mileMembers:mem.map(w=>({ name:w.name, meta:(w.taskCount||0)+' tasks · '+(w.hours||0)+'h',
+            dotStyle:'width:10px;height:10px;border-radius:3px;transform:rotate(45deg);flex:none;cursor:pointer;background:'+(selDot[w.status]||selDot.open)+';',
+            open:()=>this.selectWp(w.id), remove:()=>this.setWpMilestone(w.id,'') })),
+          mileAddable:addable.map(w=>({ name:w.name, warn:!!w.milestone, title:w.milestone?('Currently in “'+w.milestone+'” — adding moves it here'):'Add to this milestone', add:()=>this.setWpMilestone(w.id, mName) })),
+          selWpName:selWp.name,
+          renameWp:e=>{ const v=e.target.value; this.setState(s=>({projectWps:s.projectWps.map(w=>w.id===s.selectedWpId?{...w,name:v}:w)})); },
+          selWpStatusLabel:badgeLabel[selWp.status]||'Open',
+          selWpBadgeStyle:'display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;border-radius:9999px;padding:3px 9px;'+(selBadgeSkin[selWp.status]||selBadgeSkin.open),
+          selWpDotStyle:'width:6px;height:6px;border-radius:9999px;background:'+(selDot[selWp.status]||selDot.open)+';',
+          selWpHasMilestone:!!selWp.milestone, selWpMilestone:selWp.milestone||'',
+          selWpHoursLabel:(selWp.hours||0)+'h',
+          selWpTaskLabel:tc+' task'+(tc===1?'':'s'),
+          sheetTasks:tks.map(t=>{ const b=!!t.done; return {
+            id:t.id, title:t.title, hours:t.hours||'—',
+            toggle:()=>this.toggleSheetTask(t.id),
+            cardStyle:(b?'background:#16352A;border:1px solid #2bbd7c;':'background:#1A1A1D;border:1px solid #2E2E33;')+'display:flex;align-items:flex-start;gap:9px;padding:11px;border-radius:11px;cursor:pointer;',
+            boxStyle:b?'width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;margin-top:1px;':'width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;margin-top:1px;',
+            check:b?'✓':'',
+            titleStyle:'font-size:13px;font-weight:700;'+(b?'color:#A8E9C8;text-decoration:line-through;':'color:#F4F4F2;'),
+          }; }),
+        };
+      })(),
+      sheetDraft:st.sheetDraft, sheetTasksLegacy:st.sheetTasks.map(t=>{ const b=!!t.done; return {
+        id:t.id, title:t.title,
+        toggle:()=>this.toggleSheetTask(t.id),
+        cardStyle:(b?'background:#16352A;border:1px solid #2bbd7c;':'background:#1A1A1D;border:1px solid #2E2E33;')+'display:flex;align-items:flex-start;gap:9px;padding:11px;border-radius:11px;cursor:pointer;',
+        boxStyle:b?'width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;margin-top:1px;':'width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;margin-top:1px;',
+        check:b?'✓':'',
+        titleStyle:'font-size:13px;font-weight:700;'+(b?'color:#A8E9C8;text-decoration:line-through;':'color:#F4F4F2;'),
+      }; }),
+      startSheetAdd:()=>this.startSheetAdd(),
+      onSheetInput:e=>this.setSheetDraft(e.target.value),
+      onSheetKey:e=>{ if(e.key==='Enter'){ e.preventDefault(); this.commitSheetTask(); } else if(e.key==='Escape'){ this.cancelSheetAdd(); } },
+      commitSheetTask:()=>this.commitSheetTask(),
+      cancelSheetTask:()=>this.cancelSheetAdd(),
+      toastAddWp:()=>this.openWpModal(),
+      openWpModal:()=>this.openWpModal(),
+      stop:e=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
+      closeWpModal:()=>this.closeWpModal(),
+      wpModalOpen:st.wpModalOpen, wpModalName:st.wpModalName, wpModalDraft:st.wpModalDraft, wpModalTasks,
+      wpModalHasTasks:wpModalTasks.length>0,
+      wpModalCanCreate:!!(st.wpModalName||'').trim(),
+      setWpModalName:e=>this.setState({wpModalName:e.target.value}),
+      setWpModalDraft:e=>this.setState({wpModalDraft:e.target.value}),
+      onWpModalTaskKey:e=>{ if(e.key==='Enter'){ e.preventDefault(); this.commitModalTask(); } },
+      commitModalTask:()=>this.commitModalTask(),
+      createProjectWp:()=>this.createProjectWp(),
+      toastAddGoal:()=>this.showToast('Start a new goal'),
+      toastSettings:()=>this.showToast('Settings (prototype)'),
+
+      // shell handlers
+      goHome:()=>this.setState({tab:'home'}),
+      goRoadmap:()=>this.setState({tab:'roadmap'}),
+      openProject:()=>this.setState({tab:'project'}),
+      toggleToday:()=>this.setState(s=>({todayOpen:!s.todayOpen})),
+      openToday:()=>this.setState({todayOpen:true}),
+      closeToday:()=>this.setState({todayOpen:false}),
+      setFlow:()=>this.setState({pdView:'flow'}), setTimeline:()=>this.setState({pdView:'timeline'}), setTable:()=>this.setState({pdView:'table'}),
+      toggleSheet:()=>this.setState(s=>({sheetOpen:!s.sheetOpen})),
+      addMilestone:()=>this.addMilestone(), removeMilestone:()=>this.removeMilestone(),
+      approveReplan:()=>{ this.setState(s=>({replan:'approved',replanIndex:s.replanDays.length})); this.showToast('Replan approved — milestone moved to Mon'); },
+      approveReplanDay:()=>{ this.setState(s=>{ const ni=s.replanIndex+1; return ni>=s.replanDays.length?{replanIndex:ni,replan:'approved'}:{replanIndex:ni}; }, ()=>{ if(this.state.replanIndex>=this.state.replanDays.length) this.showToast('Plan committed — milestone moved to Mon'); else this.showToast('Day approved — next proposal selected'); }); },
+      reviewReplan:()=>this.setState({tab:'roadmap'}),
+      rejectReplan:()=>{ this.setState({replan:'rejected'}); this.showToast('Replan rejected'); },
+      proposeMore:()=>this.showToast('Proposing more days…'),
+      confirmDay:()=>this.showToast('Day confirmed'),
+      closeCelebration:()=>this.setState({celebrationOpen:false}),
+      celebrateToRoadmap:()=>this.setState({celebrationOpen:false, tab:'roadmap'}),
+    };
+  }
+}
+</script>
+</body>
+</html>

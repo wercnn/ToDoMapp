@@ -14,3 +14,6 @@ next-env.d.ts
 
 # test / coverage
 /coverage
+
+# macOS
+.DS_Store

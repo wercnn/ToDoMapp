@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#141416; -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar{ width:10px;height:10px; }
+  ::-webkit-scrollbar-thumb{ background:#34343A;border-radius:9999px; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#141416;padding:46px 40px 120px;font-family:'Nunito',sans-serif;color:#F4F4F2;">
+
+  <!-- ===================== PAGE HEADER ===================== -->
+  <div style="max-width:1340px;margin:0 auto 46px;">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">TodoMapp</span>
+      <span style="color:#34343A;">/</span>
+      <h1 style="margin:0;font-size:30px;font-weight:900;letter-spacing:-0.02em;color:#F4F4F2;">Web Workspace — Hi-Fi Wireframes</h1>
+      <span style="font-size:11px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:5px 12px;">v1 · for review</span>
+    </div>
+    <p style="margin:13px 0 0;font-size:15px;line-height:23px;font-weight:600;color:#A8A8A4;max-width:840px;text-wrap:pretty;">Every screen from <span style="font-family:ui-monospace,monospace;font-size:13px;color:#C9C9C5;">web-screens.md</span>, built in the <span style="color:#F4F4F2;font-weight:800;">Earned Momentum</span> system. Shell + Onboarding (A) · Home (B) · Project Detail (C) · Roadmap (D) · Celebration (E). Green is <span style="color:#3DD68C;">your reality</span>, lilac is <span style="color:#A78BFA;">what the system proposes</span>; slippage is never red. Some screens are lightly interactive — toggle the Project Detail views, expand the Today bar, open the work-package sheet.</p>
+    <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;">
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;background:#1C1C20;border:1px solid #2A2A2E;border-radius:9999px;padding:6px 12px;">Nunito · 600–900</span>
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;background:#1C1C20;border:1px solid #2A2A2E;border-radius:9999px;padding:6px 12px;">chunky radii · 3D buttons</span>
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;background:#1C1C20;border:1px solid #2A2A2E;border-radius:9999px;padding:6px 12px;">persistent shell · sidebar + Today bar</span>
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;background:#1C1C20;border:1px solid #2A2A2E;border-radius:9999px;padding:6px 12px;">dark primary · light on key screens</span>
+    </div>
+  </div>
+
+  <!-- ===================== 00 · THE SHELL ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">00</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">The Shell · persistent across every screen</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 26px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">Two elements never leave the screen: the left <b style="color:#A8A8A4;">Sidebar</b> (navigation + the WBS spine) and the pinned <b style="color:#A8A8A4;">Today</b> bar (your daily goal, ever-present). Both shown here in isolation, then composed in every screen below.</p>
+
+  <div style="max-width:1340px;margin:0 auto 64px;display:grid;grid-template-columns:288px 1fr;gap:24px;align-items:start;">
+
+    <!-- ---------- SIDEBAR ---------- -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:#52525a;">0.1 · LEFT SIDEBAR</span>
+      <aside style="width:288px;height:632px;background:#121214;border:1px solid #242428;border-radius:18px;display:flex;flex-direction:column;padding:16px 13px;overflow:hidden;">
+        <!-- logo -->
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 8px 16px;">
+          <span style="width:32px;height:32px;border-radius:10px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:17px;flex:none;">▲</span>
+          <span style="font-size:16px;font-weight:900;color:#F4F4F2;letter-spacing:-.01em;">TodoMapp</span>
+          <span style="margin-left:auto;width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;color:#74747A;font-size:13px;">⟨</span>
+        </div>
+        <!-- primary nav -->
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div style="display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:11px;background:#1A1A1D;border:1px solid #2E2E33;font-size:14px;font-weight:800;color:#F4F4F2;cursor:pointer;">
+            <span style="font-size:15px;">⌂</span>Home
+          </div>
+          <div style="display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:11px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2">
+            <span style="font-size:15px;">🗺</span>Roadmap
+            <span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span>
+          </div>
+        </div>
+        <div style="height:1px;background:#242428;margin:14px 6px;"></div>
+        <!-- goals header -->
+        <div style="display:flex;align-items:center;padding:2px 9px 8px;">
+          <span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Goals</span>
+          <span style="margin-left:auto;width:22px;height:22px;border-radius:7px;background:#1F2A24;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;cursor:pointer;">+</span>
+        </div>
+        <!-- goal tree -->
+        <div style="display:flex;flex-direction:column;gap:2px;overflow-y:auto;">
+          <!-- goal 1 -->
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:10px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;" style-hover="background:#1A1A1D">
+            <span style="font-size:10px;color:#74747A;">▾</span>
+            <span style="color:#3DD68C;font-size:13px;">◎</span>
+            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Build client base</span>
+            <span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:6px;padding:2px 6px;">MID</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 9px 7px 30px;border-radius:10px;font-size:13px;font-weight:800;color:#F4F4F2;background:#16221C;border:1px solid #234034;cursor:pointer;">
+            <span style="color:#74747A;">▸</span><span style="flex:1;">Portfolio site</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;color:#3DD68C;">62%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 9px 7px 30px;border-radius:10px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2">
+            <span style="color:#74747A;">▸</span><span style="flex:1;">Outreach</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">28%</span>
+          </div>
+          <!-- goal 2 -->
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 9px;margin-top:4px;border-radius:10px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;" style-hover="background:#1A1A1D">
+            <span style="font-size:10px;color:#74747A;">▾</span>
+            <span style="color:#3DD68C;font-size:13px;">◎</span>
+            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Get fit</span>
+            <span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:6px;padding:2px 6px;">LONG</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 9px 7px 30px;border-radius:10px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2">
+            <span style="color:#74747A;">▸</span><span style="flex:1;">Training plan</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">11%</span>
+          </div>
+        </div>
+        <!-- settings pinned -->
+        <div style="margin-top:auto;padding-top:12px;">
+          <div style="display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:11px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D;color:#F4F4F2">
+            <span style="font-size:15px;">⚙</span>Settings
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ---------- TOP BAR ---------- -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:#52525a;">0.2 · PINNED “TODAY” BAR — collapsed (default)</span>
+      <!-- collapsed bar -->
+      <div style="background:#0E0E10;border:1px solid #242428;border-radius:16px;height:64px;display:flex;align-items:center;gap:20px;padding:0 22px;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <div style="width:40px;height:40px;border-radius:9999px;flex:none;background:conic-gradient(#3DD68C 240deg,#1a2620 0);display:flex;align-items:center;justify-content:center;">
+            <div style="width:30px;height:30px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#3DD68C;">4/6</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Now</span>
+            <span style="font-size:13px;font-weight:800;color:#F4F4F2;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Write case study #1 draft</span>
+          </div>
+        </div>
+        <span style="width:1px;height:30px;background:#242428;"></span>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="font-size:16px;">🔥</span><span style="font-size:14px;font-weight:800;color:#F4F4F2;">7</span></div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:9999px;background:#3DD68C;"></span><span style="font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#3DD68C;">+50 pts</span></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:7px 13px;cursor:pointer;"><span style="width:8px;height:8px;border-radius:9999px;background:#A78BFA;"></span>1 proposal</span>
+          <span style="width:34px;height:34px;border-radius:9999px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#A8A8A4;">JD</span>
+        </div>
+      </div>
+
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.12em;color:#52525a;margin-top:6px;">0.2 · EXPANDED ON HOVER — light adjustables popover</span>
+      <!-- expanded popover -->
+      <div style="background:#0E0E10;border:1px solid #2E2E33;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.5);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:13px;font-weight:900;color:#F4F4F2;">Today · Sat Jun 13</span>
+          <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#74747A;">4 / 6 · 3.5h of 5h</span>
+          <span style="margin-left:auto;font-size:11px;font-weight:800;color:#3DD68C;background:#16352A;border-radius:9999px;padding:4px 10px;">+50 pts</span>
+        </div>
+        <!-- proposal card -->
+        <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:11px;">
+          <span style="font-size:12px;font-weight:800;color:#A78BFA;flex:1;">◇ A new task is proposed for today</span>
+          <button style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:9px;padding:7px 12px;cursor:pointer;box-shadow:0 3px 0 #7c5cfc;">Approve</button>
+          <button style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#A78BFA;background:transparent;border:1px solid #3a2f63;border-radius:9px;padding:7px 12px;cursor:pointer;">Review in Roadmap →</button>
+        </div>
+        <!-- task list -->
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#16352A;border:1px solid #2bbd7c;border-radius:11px;">
+            <span style="width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;">✓</span>
+            <span style="flex:1;font-size:13px;font-weight:700;color:#A8E9C8;text-decoration:line-through;">Collect 3 reference sites</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;color:#2c8a55;">0.5h</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;">
+            <span style="width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;cursor:pointer;"></span>
+            <span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">Write case study #1 draft <span style="font-size:10px;font-weight:700;color:#74747A;">· Portfolio site</span></span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:3px 8px;"><span style="width:6px;height:6px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+            <span style="display:flex;gap:5px;">
+              <span title="defer" style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#A8A8A4;cursor:pointer;">↪</span>
+              <span title="pull forward" style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#A8A8A4;cursor:pointer;">↩</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;">
+            <span style="width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;cursor:pointer;"></span>
+            <span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">Outline portfolio structure <span style="font-size:10px;font-weight:700;color:#74747A;">· Portfolio site</span></span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:3px 8px;"><span style="width:6px;height:6px;border-radius:9999px;border:2px solid #74747A;"></span>Open</span>
+            <span style="display:flex;gap:5px;">
+              <span style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#A8A8A4;cursor:pointer;">↪</span>
+              <span style="width:24px;height:24px;border-radius:7px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:12px;color:#A8A8A4;cursor:pointer;">↩</span>
+            </span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;padding-top:2px;">
+          <span style="font-size:12px;font-weight:800;color:#74747A;cursor:pointer;">+ Quick add task to today</span>
+          <span style="margin-left:auto;font-size:12px;font-weight:800;color:#A8A8A4;cursor:pointer;">Open full day →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== A · ONBOARDING ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">A</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">Onboarding · from ambition to roadmap</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 26px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">A linear, teaching flow with a visible stepper. The shell isn't active yet — each step is one focused screen-state. Ends on the “moment of magic”: the first proposed roadmap.</p>
+
+  <!-- onboarding canvas (centered focus screens on its own bg) -->
+  <div style="max-width:1340px;margin:0 auto 64px;background:#0E0E10;border:1px solid #242428;border-radius:22px;padding:30px 30px 36px;">
+    <!-- stepper -->
+    <div style="display:flex;align-items:center;gap:0;max-width:1080px;margin:0 auto 30px;">
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">✓</span><span style="font-size:11px;font-weight:800;color:#F4F4F2;">Goal</span></div>
+      <span style="flex:1;height:2px;background:#3DD68C;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">✓</span><span style="font-size:11px;font-weight:800;color:#F4F4F2;">Project</span></div>
+      <span style="flex:1;height:2px;background:#A78BFA;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#A78BFA;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">3</span><span style="font-size:11px;font-weight:800;color:#F4F4F2;">Milestone</span></div>
+      <span style="flex:1;height:2px;background:#2E2E33;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#242428;border:1px solid #34343A;color:#74747A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">4</span><span style="font-size:11px;font-weight:700;color:#74747A;">Breakdown</span></div>
+      <span style="flex:1;height:2px;background:#2E2E33;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#242428;border:1px solid #34343A;color:#74747A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">5</span><span style="font-size:11px;font-weight:700;color:#74747A;">Group</span></div>
+      <span style="flex:1;height:2px;background:#2E2E33;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#242428;border:1px solid #34343A;color:#74747A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">6</span><span style="font-size:11px;font-weight:700;color:#74747A;">Capacity</span></div>
+      <span style="flex:1;height:2px;background:#2E2E33;margin:0 8px;"></span>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="width:24px;height:24px;border-radius:9999px;background:#242428;border:1px solid #34343A;color:#74747A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">7</span><span style="font-size:11px;font-weight:700;color:#74747A;">Roadmap</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+      <!-- A1 -->
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A1 · CREATE YOUR FIRST GOAL</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:30px 28px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <span style="font-size:13px;font-weight:800;color:#A78BFA;">Let's start with the outcome.</span>
+            <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">What outcome are you pursuing?</span>
+          </div>
+          <div style="background:#0E0E10;border:1.5px solid #3DD68C;border-radius:13px;padding:15px 16px;font-size:17px;font-weight:800;color:#F4F4F2;">Build a freelance client base<span style="display:inline-block;width:2px;height:19px;background:#3DD68C;margin-left:2px;vertical-align:middle;"></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Horizon</span>
+            <div style="display:flex;gap:8px;">
+              <span style="flex:1;text-align:center;font-size:13px;font-weight:800;color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:11px;cursor:pointer;">Short</span>
+              <span style="flex:1;text-align:center;font-size:13px;font-weight:800;color:#0E0E10;background:#3DD68C;border-radius:11px;padding:11px;cursor:pointer;">Mid</span>
+              <span style="flex:1;text-align:center;font-size:13px;font-weight:800;color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:11px;cursor:pointer;">Long</span>
+            </div>
+          </div>
+          <textarea placeholder="Optional — a sentence of context" style="font-family:'Nunito',sans-serif;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600;color:#A8A8A4;resize:none;height:62px;"></textarea>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:2px;">
+            <span style="font-size:12px;font-weight:800;color:#74747A;cursor:pointer;">Skip intro</span>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A2 -->
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A2 · CREATE THE FIRST PROJECT</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:30px 28px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <span style="font-size:13px;font-weight:800;color:#A78BFA;">A concrete initiative toward it.</span>
+            <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">What's a concrete initiative toward this goal?</span>
+          </div>
+          <div style="background:#0E0E10;border:1.5px solid #2E2E33;border-radius:13px;padding:15px 16px;font-size:17px;font-weight:800;color:#F4F4F2;">Portfolio website</div>
+          <textarea placeholder="Optional description" style="font-family:'Nunito',sans-serif;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600;color:#A8A8A4;resize:none;height:48px;"></textarea>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Target end date · optional</span>
+            <div style="display:flex;align-items:center;gap:10px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;"><span style="font-size:15px;">📅</span><span style="font-size:13px;font-weight:700;color:#A8A8A4;">Aug 29, 2026</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:2px;">
+            <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A3 milestone full width -->
+      <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A3 · NAME YOUR FIRST MILESTONE</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center;">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <span style="font-size:13px;font-weight:800;color:#A78BFA;">A landmark worth reaching.</span>
+              <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">What's the first milestone for this project?</span>
+            </div>
+            <div style="background:#0E0E10;border:1.5px solid #A78BFA;border-radius:13px;padding:15px 16px;display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;color:#F4F4F2;"><span style="font-size:18px;">🚩</span>Site live<span style="display:inline-block;width:2px;height:19px;background:#A78BFA;margin-left:1px;"></span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Target date · optional</span>
+              <div style="display:flex;align-items:center;gap:10px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;padding:12px 14px;"><span style="font-size:15px;">📅</span><span style="font-size:13px;font-weight:700;color:#A8A8A4;">Jun 16, 2026</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#272040;border:1px solid #3a2f63;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:700;color:#cdbdfb;line-height:16px;text-wrap:pretty;"><span style="font-size:15px;">💡</span>Next you'll add <b style="color:#A78BFA;">work packages</b> under this milestone — you can add more milestones and re-group later.</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:2px;">
+              <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+              <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+            </div>
+          </div>
+          <div style="background:#0E0E10;border:1px solid #242428;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;">
+            <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">The shape you're building</span>
+            <div style="border:1.5px solid #A78BFA;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px;background:#16121f;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;color:#A78BFA;">🚩 Site live <span style="font-size:9px;font-weight:800;color:#cdbdfb;background:#272040;border-radius:5px;padding:2px 7px;">MILESTONE</span></span>
+              <div style="margin-left:10px;display:flex;flex-direction:column;gap:7px;">
+                <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;"><span style="font-size:12px;font-weight:800;color:#F4F4F2;">📦 Design &amp; content</span><span style="margin-left:8px;font-size:11px;font-weight:600;color:#A8A8A4;">— Collect references · Outline structure</span></div>
+                <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:9px;padding:9px 11px;display:flex;flex-direction:column;gap:5px;"><span style="font-size:12px;font-weight:800;color:#F4F4F2;">📦 Build &amp; ship</span><span style="margin-left:8px;font-size:11px;font-weight:600;color:#A8A8A4;">— Scaffold · Deploy</span></div>
+              </div>
+            </div>
+            <span style="font-size:10px;font-weight:600;color:#52525a;text-align:center;">Milestone → work packages → tasks</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- A4 breakdown full width -->
+      <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A4 · GUIDED BREAKDOWN — build inside the milestone</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:center;gap:11px;background:#1c1830;border:1px solid #3a2f63;border-radius:12px;padding:11px 14px;">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#A78BFA;">Adding to milestone</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#F4F4F2;">🚩 Site live</span>
+            <span style="margin-left:auto;font-size:11px;font-weight:700;color:#cdbdfb;cursor:pointer;">change ▾</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:280px;">
+              <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Add work packages &amp; tasks to this milestone</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#272040;border:1px solid #3a2f63;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:700;color:#cdbdfb;max-width:340px;text-wrap:pretty;line-height:16px;"><span style="font-size:15px;">💡</span>A <b style="color:#A78BFA;">work package</b> is a to-do list. A <b style="color:#A78BFA;">task</b> is one line inside it.</div>
+          </div>
+          <!-- WP 1 -->
+          <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;">
+              <span style="font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Work package</span>
+              <span style="font-size:16px;font-weight:800;color:#F4F4F2;">Design &amp; content</span>
+              <span style="margin-left:auto;display:flex;gap:7px;">
+                <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:8px;padding:5px 10px;">8h</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:8px;padding:5px 10px;cursor:pointer;">◆ time-fixed</span>
+              </span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding-left:14px;border-left:2px solid #2E2E33;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#45454C;flex:none;"></span><span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">Collect 3 reference sites</span><span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;background:#242428;border-radius:7px;padding:3px 9px;">0.5h</span><span style="font-size:13px;color:#74747A;cursor:pointer;">✕</span></div>
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#45454C;flex:none;"></span><span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">Outline portfolio structure</span><span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;background:#242428;border-radius:7px;padding:3px 9px;">low</span><span style="font-size:13px;color:#74747A;cursor:pointer;">✕</span></div>
+              <span style="font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;padding-top:1px;">+ Add task</span>
+            </div>
+          </div>
+          <!-- WP 2 -->
+          <div style="background:#1A1A1D;border:1px solid #2E2E33;border-radius:14px;padding:15px 17px;display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;">
+              <span style="font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#74747A;">Work package</span>
+              <span style="font-size:16px;font-weight:800;color:#F4F4F2;">Build &amp; ship</span>
+              <span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:8px;padding:5px 10px;">mid</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;padding-left:14px;border-left:2px solid #2E2E33;">
+              <div style="display:flex;align-items:center;gap:10px;"><span style="width:7px;height:7px;border-radius:9999px;background:#45454C;flex:none;"></span><span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;">Scaffold the site</span><span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;background:#242428;border-radius:7px;padding:3px 9px;">3h</span><span style="font-size:13px;color:#74747A;cursor:pointer;">✕</span></div>
+              <span style="font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;padding-top:1px;">+ Add task</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:12px;padding:11px 18px;cursor:pointer;">+ Add work package</button>
+            <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:12px 20px;cursor:pointer;">← Back</button>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:12px 24px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A5 re-group -->
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A5 · RE-GROUP ACROSS MILESTONES &amp; CONNECT</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:21px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Re-group work packages &amp; connect</span>
+            <span style="font-size:12px;font-weight:600;line-height:17px;color:#A8A8A4;text-wrap:pretty;">Add milestones and drag work packages between them — some may belong to none.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#A78BFA;">🚩 Site live</span>
+            <div style="background:#1A1A1D;border:1px solid #3a2f63;border-radius:13px;padding:11px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#F4F4F2;background:#242428;border-radius:9px;padding:8px 11px;cursor:grab;"><span style="color:#74747A;">⠿</span>📦 Design &amp; content</span>
+              <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#F4F4F2;background:#242428;border-radius:9px;padding:8px 11px;cursor:grab;"><span style="color:#74747A;">⠿</span>📦 Build &amp; ship</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">🚩 First clients</span>
+            <div style="background:#1A1A1D;border:1px dashed #45454C;border-radius:13px;padding:11px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#F4F4F2;background:#242428;border-radius:9px;padding:8px 11px;cursor:grab;"><span style="color:#74747A;">⠿</span>📦 Outreach setup</span>
+              <span style="font-size:10px;font-weight:700;color:#52525a;text-align:center;padding:6px;border:1px dashed #34343A;border-radius:8px;">drop a work package here</span>
+            </div>
+          </div>
+          <!-- suggested dependency -->
+          <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:13px;padding:13px;display:flex;flex-direction:column;gap:10px;">
+            <span style="font-size:12px;font-weight:800;color:#A78BFA;">◇ Suggested ordering</span>
+            <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#F4F4F2;"><span style="background:#242428;border-radius:8px;padding:6px 10px;">Design &amp; content</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="background:#242428;border-radius:8px;padding:6px 10px;">Build &amp; ship</span></div>
+            <div style="display:flex;gap:8px;">
+              <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:10px;padding:9px;cursor:pointer;box-shadow:0 3px 0 #7c5cfc;">Accept</button>
+              <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:10px;padding:9px;cursor:pointer;">Dismiss</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:12px;padding:10px 15px;cursor:pointer;">+ New milestone</button>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:11px 22px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A5 -->
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A6 · SET CAPACITY</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:18px;height:calc(100% - 28px);">
+          <span style="font-size:21px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">How many hours per day on this project?</span>
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:14px 0;">
+            <span style="width:46px;height:46px;border-radius:12px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#A8A8A4;cursor:pointer;">−</span>
+            <div style="display:flex;align-items:baseline;gap:7px;"><span style="font-size:64px;font-weight:900;letter-spacing:-.03em;color:#3DD68C;line-height:1;">5</span><span style="font-size:20px;font-weight:800;color:#74747A;">hrs / day</span></div>
+            <span style="width:46px;height:46px;border-radius:12px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#A8A8A4;cursor:pointer;">+</span>
+          </div>
+          <span style="font-size:13px;font-weight:600;line-height:19px;color:#74747A;text-align:center;text-wrap:pretty;">The planner fills each day up to this — never beyond. You can change it anytime.</span>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:auto;">
+            <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:13px;padding:13px 20px;cursor:pointer;">← Back</button>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 22px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Generate my roadmap →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- A6 full width -->
+      <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:11px;">
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">A7 · FIRST ROADMAP (proposed) — the moment of magic</span>
+        <div style="background:#16161A;border:1px solid #2A2A2E;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Here's your path — starting tomorrow morning</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:6px 13px;">◇ All days proposed</span>
+          </div>
+          <!-- proposed path -->
+          <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 0 10px;">
+            <!-- repeated day node -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:118px;">
+              <span style="font-size:11px;font-weight:800;color:#74747A;">Mon</span>
+              <span style="width:54px;height:54px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span>
+              <span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Reference<br>sites</span>
+            </div>
+            <span style="flex:none;width:30px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:118px;">
+              <span style="font-size:11px;font-weight:800;color:#74747A;">Tue</span>
+              <span style="width:54px;height:54px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span>
+              <span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Structure<br>+ wireframe</span>
+            </div>
+            <span style="flex:none;width:30px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+            <!-- milestone landmark -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:128px;">
+              <span style="font-size:11px;font-weight:800;color:#A78BFA;">Wed</span>
+              <span style="width:60px;height:60px;border-radius:16px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:22px;">🚩</span></span>
+              <span style="font-size:11px;font-weight:800;color:#A78BFA;text-align:center;line-height:14px;">Milestone<br>“Site live”</span>
+            </div>
+            <span style="flex:none;width:30px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:118px;">
+              <span style="font-size:11px;font-weight:800;color:#74747A;">Thu</span>
+              <span style="width:54px;height:54px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span>
+              <span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Outreach<br>list</span>
+            </div>
+            <span style="flex:none;width:30px;height:2px;background:#3a2f63;margin-top:-22px;"></span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:9px;flex:none;width:118px;">
+              <span style="font-size:11px;font-weight:800;color:#74747A;">Fri</span>
+              <span style="width:54px;height:54px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;font-size:18px;color:#A78BFA;">◇</span>
+              <span style="font-size:11px;font-weight:700;color:#A8A8A4;text-align:center;line-height:14px;">Draft 5<br>emails</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;border-top:1px solid #242428;padding-top:18px;">
+            <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:12px;padding:11px 17px;cursor:pointer;">Adjust a day</button>
+            <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:12px;padding:11px 17px;cursor:pointer;">↻ Re-propose</button>
+            <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:13px;padding:13px 26px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Confirm &amp; enter Workspace →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== B · HOME / DASHBOARD ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">B</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">Home / Dashboard · today front-and-center</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 24px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">The default return view, inside the full shell. <b style="color:#A8A8A4;">Click the Today bar to expand it.</b> Dark is the primary theme; the light theme follows below.</p>
+
+  <!-- ---------- HOME · DARK (interactive) ---------- -->
+  <div style="max-width:1340px;margin:0 auto 22px;display:flex;flex-direction:column;gap:11px;">
+    <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">B · DARK THEME — primary</span>
+    <div style="display:flex;background:#0E0E10;border:1px solid #242428;border-radius:20px;overflow:hidden;min-height:820px;">
+      <!-- sidebar -->
+      <aside style="width:258px;flex:none;background:#121214;border-right:1px solid #242428;display:flex;flex-direction:column;padding:15px 11px;">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 7px 15px;">
+          <span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:16px;flex:none;">▲</span>
+          <span style="font-size:15px;font-weight:900;color:#F4F4F2;">TodoMapp</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;background:#1A1A1D;border:1px solid #2E2E33;font-size:14px;font-weight:800;color:#F4F4F2;cursor:pointer;"><span>⌂</span>Home</div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;margin-top:3px;" style-hover="background:#1A1A1D;color:#F4F4F2"><span>🗺</span>Roadmap<span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span></div>
+        <div style="height:1px;background:#242428;margin:13px 5px;"></div>
+        <div style="display:flex;align-items:center;padding:2px 8px 7px;"><span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Goals</span><span style="margin-left:auto;width:21px;height:21px;border-radius:6px;background:#1F2A24;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;">+</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Build client base</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:1px 5px;">MID</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D"><span style="color:#74747A;">▸</span><span style="flex:1;">Portfolio site</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#3DD68C;">62%</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D"><span style="color:#74747A;">▸</span><span style="flex:1;">Outreach</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">28%</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:3px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;cursor:pointer;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Get fit</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:1px 5px;">LONG</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D"><span style="color:#74747A;">▸</span><span style="flex:1;">Training plan</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">11%</span></div>
+        <div style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;" style-hover="background:#1A1A1D"><span>⚙</span>Settings</div>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <!-- top bar (clickable) -->
+        <div onClick="{{ toggleToday }}" style="height:62px;flex:none;border-bottom:1px solid #242428;background:#0E0E10;display:flex;align-items:center;gap:18px;padding:0 22px;cursor:pointer;">
+          <div style="display:flex;align-items:center;gap:11px;">
+            <div style="width:38px;height:38px;border-radius:9999px;flex:none;background:conic-gradient(#3DD68C 240deg,#1a2620 0);display:flex;align-items:center;justify-content:center;"><div style="width:28px;height:28px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#3DD68C;">4/6</div></div>
+            <div style="display:flex;flex-direction:column;gap:0;"><span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Now</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Write case study #1 draft</span></div>
+          </div>
+          <span style="width:1px;height:28px;background:#242428;"></span>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🔥</span><span style="font-size:14px;font-weight:800;color:#F4F4F2;">7</span></div>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:9999px;background:#3DD68C;"></span><span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#3DD68C;">+50</span></div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:11px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:6px 12px;"><span style="width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span>1 proposal</span>
+            <span style="font-size:11px;font-weight:700;color:#74747A;">{{ todayHint }}</span>
+            <span style="width:32px;height:32px;border-radius:9999px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#A8A8A4;">JD</span>
+          </div>
+        </div>
+
+        <!-- expandable popover -->
+        <sc-if value="{{ todayOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="border-bottom:1px solid #242428;background:#0c0c0e;padding:16px 22px;display:flex;flex-direction:column;gap:9px;">
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:900;color:#F4F4F2;">Today · 6 daily goals</span><span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#74747A;">tap a task to check off · ↪ defer · ↩ pull forward</span></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#A8E9C8;background:#16352A;border:1px solid #2bbd7c;border-radius:10px;padding:8px 11px;"><span style="width:15px;height:15px;border-radius:5px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">✓</span>Reference sites</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#F4F4F2;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;padding:8px 11px;"><span style="width:15px;height:15px;border-radius:5px;border:2px solid #45454C;"></span>Case study draft</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#F4F4F2;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;padding:8px 11px;"><span style="width:15px;height:15px;border-radius:5px;border:2px solid #45454C;"></span>Outline structure</span>
+              <span style="font-size:12px;font-weight:800;color:#74747A;align-self:center;cursor:pointer;">+ Quick add</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- content -->
+        <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;background:#0E0E10;">
+          <!-- Today detail panel -->
+          <div style="background:#121214;border:1px solid #242428;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Today's daily goal</span><span style="font-size:22px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Saturday, June 13</span></div>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:18px;">
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#3DD68C;">4 / 6</span><span style="font-size:10px;font-weight:700;color:#74747A;">tasks</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#F4F4F2;">3.5h / 5h</span><span style="font-size:10px;font-weight:700;color:#74747A;">today</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#3DD68C;">+50</span><span style="font-size:10px;font-weight:700;color:#74747A;">points</span></div>
+              </div>
+            </div>
+            <!-- task rows -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#16352A;border:1px solid #2bbd7c;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;">✓</span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#A8E9C8;text-decoration:line-through;">Collect 3 reference sites</span>
+                <span style="font-size:11px;font-weight:700;color:#2c8a55;">Portfolio · Design &amp; content</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#2c8a55;">0.5h</span>
+                <span style="font-size:11px;font-weight:800;color:#0E0E10;background:#3DD68C;border-radius:9999px;padding:2px 9px;">+10</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #45454C;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#F4F4F2;">Write case study #1 draft</span>
+                <span style="font-size:11px;font-weight:700;color:#74747A;">Portfolio · Design &amp; content</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">2h</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #45454C;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#F4F4F2;">Outline portfolio structure</span>
+                <span style="font-size:11px;font-weight:700;color:#74747A;">Portfolio · Design &amp; content</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;border:2px solid #74747A;"></span>Open</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">1h</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #45454C;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#F4F4F2;">Send intro email to mentor <span style="color:#A8A8A4;">◆</span></span>
+                <span style="font-size:11px;font-weight:700;color:#74747A;">Outreach</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#A8A8A4;background:#1A1A1D;border:1.5px solid #45454C;border-radius:9999px;padding:2px 9px;">◆ 2:00 PM</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">0.5h</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding-top:2px;">
+              <span style="font-size:13px;font-weight:800;color:#74747A;cursor:pointer;">+ Quick add task to today</span>
+            </div>
+          </div>
+
+          <!-- Roadmap summary strip -->
+          <div style="background:#121214;border:1px solid #242428;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:14px;font-weight:900;color:#F4F4F2;">The road ahead</span>
+              <span style="font-size:12px;font-weight:600;color:#74747A;">next 6 days · Portfolio site</span>
+              <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:9px 15px;cursor:pointer;">Open Roadmap →</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#3DD68C;">Thu</span><span style="width:38px;height:38px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-size:15px;">✓</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#3DD68C;">Fri</span><span style="width:38px;height:38px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-size:15px;">✓</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:96px;"><span style="font-size:10px;font-weight:900;color:#F4F4F2;">Today</span><span style="width:44px;height:44px;border-radius:9999px;background:#0E0E10;border:3px solid #3DD68C;box-shadow:0 0 0 4px #16352A;display:flex;align-items:center;justify-content:center;color:#3DD68C;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;">4/6</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#A8A8A4;">Mon</span><span style="width:38px;height:38px;border-radius:9999px;background:#1A1A1D;border:2px solid #34343A;display:flex;align-items:center;justify-content:center;color:#74747A;font-size:13px;">○</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:100px;"><span style="font-size:10px;font-weight:800;color:#A78BFA;">Tue</span><span style="width:42px;height:42px;border-radius:11px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:15px;">🚩</span></span><span style="font-size:9px;font-weight:800;color:#A78BFA;">Site live</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#2E2E33;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#A78BFA;">Wed</span><span style="width:38px;height:38px;border-radius:9999px;background:#1c1830;border:2px solid #3a2f63;display:flex;align-items:center;justify-content:center;color:#A78BFA;font-size:14px;">◇</span></div>
+            </div>
+          </div>
+
+          <!-- bottom row: goals overview + needs attention -->
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
+            <!-- goals overview -->
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <span style="font-size:14px;font-weight:900;color:#F4F4F2;">Goals &amp; progress</span>
+              <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="color:#3DD68C;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#F4F4F2;">Build client base</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:2px 7px;">MID</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#3DD68C;">46%</span></div>
+                <span style="height:8px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:46%;background:#3DD68C;border-radius:9999px;"></span></span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="color:#A78BFA;">🚩</span>Next: <b style="color:#F4F4F2;">Site live</b><span style="font-family:ui-monospace,monospace;color:#74747A;">· in 3 days</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;">Open project →</span></div>
+              </div>
+              <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="color:#3DD68C;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#F4F4F2;">Get fit</span><span style="font-size:9px;font-weight:800;color:#A8A8A4;background:#242428;border-radius:5px;padding:2px 7px;">LONG</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#A8A8A4;">11%</span></div>
+                <span style="height:8px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:11%;background:#3DD68C;border-radius:9999px;"></span></span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="color:#A78BFA;">🚩</span>Next: <b style="color:#F4F4F2;">First 5k</b><span style="font-family:ui-monospace,monospace;color:#74747A;">· in 18 days</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;">Open project →</span></div>
+              </div>
+            </div>
+            <!-- needs attention -->
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <span style="font-size:14px;font-weight:900;color:#F4F4F2;">Needs your attention</span>
+              <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#A78BFA;font-size:15px;margin-top:1px;">◇</span><div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:800;color:#F4F4F2;">A replan is proposed</span><span style="font-size:12px;font-weight:600;line-height:17px;color:#cdbdfb;">Push 3 tasks forward one day; milestone moves Fri → Mon.</span></div></div>
+                <div style="display:flex;gap:8px;">
+                  <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:11px;padding:10px;cursor:pointer;box-shadow:0 3px 0 #7c5cfc;">Approve</button>
+                  <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A78BFA;background:transparent;border:1px solid #3a2f63;border-radius:11px;padding:10px;cursor:pointer;">Review →</button>
+                </div>
+              </div>
+              <div style="background:#121214;border:1px solid #242428;border-radius:16px;padding:15px 18px;display:flex;align-items:center;gap:11px;">
+                <span style="font-size:18px;">🔥</span><div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">7-day streak</span><span style="font-size:11px;font-weight:600;color:#A8A8A4;">Engaged today — keep it alive.</span></div><span style="margin-left:auto;font-size:20px;font-weight:900;color:#3DD68C;">320</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- HOME · LIGHT ---------- -->
+  <div style="max-width:1340px;margin:0 auto 22px;display:flex;flex-direction:column;gap:11px;">
+    <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">B · LIGHT THEME — same screen, soft shadows carry elevation</span>
+    <div style="display:flex;background:#EFEFEC;border:1px solid #2A2A2E;border-radius:20px;overflow:hidden;min-height:760px;box-shadow:0 1px 2px rgba(0,0,0,.3);">
+      <!-- sidebar -->
+      <aside style="width:258px;flex:none;background:#FFFFFF;border-right:1px solid #E2E2DF;display:flex;flex-direction:column;padding:15px 11px;">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 7px 15px;">
+          <span style="width:30px;height:30px;border-radius:9px;background:#1F9D55;display:flex;align-items:center;justify-content:center;color:#FFFFFF;font-weight:900;font-size:16px;flex:none;">▲</span>
+          <span style="font-size:15px;font-weight:900;color:#1A1A1A;">TodoMapp</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;background:#F2F2F0;border:1px solid #E2E2DF;font-size:14px;font-weight:800;color:#1A1A1A;cursor:pointer;"><span>⌂</span>Home</div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#5C5C5A;cursor:pointer;margin-top:3px;"><span>🗺</span>Roadmap<span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#7C5CFC;"></span></div>
+        <div style="height:1px;background:#ECECEA;margin:13px 5px;"></div>
+        <div style="display:flex;align-items:center;padding:2px 8px 7px;"><span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#8A8A87;">Goals</span><span style="margin-left:auto;width:21px;height:21px;border-radius:6px;background:#E4F5EC;color:#1F9D55;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;cursor:pointer;">+</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;font-size:13px;font-weight:800;color:#1A1A1A;cursor:pointer;"><span style="font-size:9px;color:#8A8A87;">▾</span><span style="color:#1F9D55;">◎</span><span style="flex:1;">Build client base</span><span style="font-size:9px;font-weight:800;color:#5C5C5A;background:#E8E8E6;border-radius:5px;padding:1px 5px;">MID</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#5C5C5A;cursor:pointer;"><span style="color:#8A8A87;">▸</span><span style="flex:1;">Portfolio site</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#1F9D55;">62%</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#5C5C5A;cursor:pointer;"><span style="color:#8A8A87;">▸</span><span style="flex:1;">Outreach</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#8A8A87;">28%</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:3px;border-radius:9px;font-size:13px;font-weight:800;color:#1A1A1A;cursor:pointer;"><span style="font-size:9px;color:#8A8A87;">▾</span><span style="color:#1F9D55;">◎</span><span style="flex:1;">Get fit</span><span style="font-size:9px;font-weight:800;color:#5C5C5A;background:#E8E8E6;border-radius:5px;padding:1px 5px;">LONG</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#5C5C5A;cursor:pointer;"><span style="color:#8A8A87;">▸</span><span style="flex:1;">Training plan</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#8A8A87;">11%</span></div>
+        <div style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#5C5C5A;cursor:pointer;"><span>⚙</span>Settings</div>
+      </aside>
+      <!-- main -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <div style="height:62px;flex:none;border-bottom:1px solid #E2E2DF;background:#FFFFFF;display:flex;align-items:center;gap:18px;padding:0 22px;">
+          <div style="display:flex;align-items:center;gap:11px;">
+            <div style="width:38px;height:38px;border-radius:9999px;flex:none;background:conic-gradient(#1F9D55 240deg,#d6ece0 0);display:flex;align-items:center;justify-content:center;"><div style="width:28px;height:28px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#1F9D55;">4/6</div></div>
+            <div style="display:flex;flex-direction:column;"><span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8A8A87;">Now</span><span style="font-size:13px;font-weight:800;color:#1A1A1A;">Write case study #1 draft</span></div>
+          </div>
+          <span style="width:1px;height:28px;background:#E2E2DF;"></span>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:15px;">🔥</span><span style="font-size:14px;font-weight:800;color:#1A1A1A;">7</span></div>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:9999px;background:#1F9D55;"></span><span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#15803D;">+50</span></div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:11px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#6D4FE0;background:#EEE9FE;border-radius:9999px;padding:6px 12px;"><span style="width:7px;height:7px;border-radius:9999px;background:#7C5CFC;"></span>1 proposal</span>
+            <span style="width:32px;height:32px;border-radius:9999px;background:#F2F2F0;border:1px solid #E2E2DF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#5C5C5A;">JD</span>
+          </div>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;">
+          <!-- today panel -->
+          <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 1px 2px rgba(17,17,17,.03),0 6px 18px rgba(17,17,17,.04);">
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8A8A87;">Today's daily goal</span><span style="font-size:22px;font-weight:900;letter-spacing:-.01em;color:#1A1A1A;">Saturday, June 13</span></div>
+              <div style="margin-left:auto;display:flex;align-items:center;gap:18px;">
+                <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#15803D;">4 / 6</span><span style="font-size:10px;font-weight:700;color:#8A8A87;">tasks</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#1A1A1A;">3.5h / 5h</span><span style="font-size:10px;font-weight:700;color:#8A8A87;">today</span></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-family:ui-monospace,monospace;font-size:16px;font-weight:700;color:#15803D;">+50</span><span style="font-size:10px;font-weight:700;color:#8A8A87;">points</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#E4F5EC;border:1px solid #9bd9b6;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;background:#1F9D55;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;">✓</span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#2c8a55;text-decoration:line-through;">Collect 3 reference sites</span>
+                <span style="font-size:11px;font-weight:700;color:#2c8a55;">Portfolio · Design &amp; content</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#2c8a55;">0.5h</span>
+                <span style="font-size:11px;font-weight:800;color:#FFFFFF;background:#1F9D55;border-radius:9999px;padding:2px 9px;">+10</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #CFCFCB;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#1A1A1A;">Write case study #1 draft</span>
+                <span style="font-size:11px;font-weight:700;color:#8A8A87;">Portfolio · Design &amp; content</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#2D7FF9;background:#DCEAFF;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;background:#2D7FF9;"></span>In progress</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#8A8A87;">2h</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #CFCFCB;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#1A1A1A;">Outline portfolio structure</span>
+                <span style="font-size:11px;font-weight:700;color:#8A8A87;">Portfolio · Design &amp; content</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#5C5C5A;background:#E8E8E6;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;border:2px solid #8A8A87;"></span>Open</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#8A8A87;">1h</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:13px;">
+                <span style="width:22px;height:22px;border-radius:7px;border:2px solid #CFCFCB;flex:none;cursor:pointer;"></span>
+                <span style="flex:1;font-size:14px;font-weight:700;color:#1A1A1A;">Send intro email to mentor</span>
+                <span style="font-size:11px;font-weight:700;color:#8A8A87;">Outreach</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#5C5C5A;background:#FFFFFF;border:1.5px solid #CFCFCB;border-radius:9999px;padding:2px 9px;">◆ 2:00 PM</span>
+                <span style="font-family:ui-monospace,monospace;font-size:11px;color:#8A8A87;">0.5h</span>
+              </div>
+            </div>
+            <span style="font-size:13px;font-weight:800;color:#8A8A87;cursor:pointer;">+ Quick add task to today</span>
+          </div>
+          <!-- roadmap strip -->
+          <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:15px;box-shadow:0 1px 2px rgba(17,17,17,.03),0 6px 18px rgba(17,17,17,.04);">
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:14px;font-weight:900;color:#1A1A1A;">The road ahead</span><span style="font-size:12px;font-weight:600;color:#8A8A87;">next 6 days · Portfolio site</span><button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#1A1A1A;background:#F2F2F0;border:1px solid #E2E2DF;border-radius:11px;padding:9px 15px;cursor:pointer;">Open Roadmap →</button></div>
+            <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#15803D;">Thu</span><span style="width:38px;height:38px;border-radius:9999px;background:#E4F5EC;border:2px solid #1F9D55;display:flex;align-items:center;justify-content:center;color:#1F9D55;font-size:15px;">✓</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#E2E2DF;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#15803D;">Fri</span><span style="width:38px;height:38px;border-radius:9999px;background:#E4F5EC;border:2px solid #1F9D55;display:flex;align-items:center;justify-content:center;color:#1F9D55;font-size:15px;">✓</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#E2E2DF;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:96px;"><span style="font-size:10px;font-weight:900;color:#1A1A1A;">Today</span><span style="width:44px;height:44px;border-radius:9999px;background:#FFFFFF;border:3px solid #1F9D55;box-shadow:0 0 0 4px #E4F5EC;display:flex;align-items:center;justify-content:center;color:#15803D;font-family:ui-monospace,monospace;font-size:11px;font-weight:700;">4/6</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#E2E2DF;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#5C5C5A;">Mon</span><span style="width:38px;height:38px;border-radius:9999px;background:#F2F2F0;border:2px solid #CFCFCB;display:flex;align-items:center;justify-content:center;color:#8A8A87;font-size:13px;">○</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#E2E2DF;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:100px;"><span style="font-size:10px;font-weight:800;color:#6D4FE0;">Tue</span><span style="width:42px;height:42px;border-radius:11px;transform:rotate(45deg);background:#EEE9FE;border:2px solid #7C5CFC;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:15px;">🚩</span></span><span style="font-size:9px;font-weight:800;color:#6D4FE0;">Site live</span></div>
+              <span style="flex:none;width:24px;height:2px;background:#E2E2DF;margin-top:-18px;"></span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;width:92px;"><span style="font-size:10px;font-weight:800;color:#6D4FE0;">Wed</span><span style="width:38px;height:38px;border-radius:9999px;background:#F4F0FE;border:2px solid #D9CCFD;display:flex;align-items:center;justify-content:center;color:#6D4FE0;font-size:14px;">◇</span></div>
+            </div>
+          </div>
+          <!-- bottom row -->
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <span style="font-size:14px;font-weight:900;color:#1A1A1A;">Goals &amp; progress</span>
+              <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;box-shadow:0 1px 2px rgba(17,17,17,.03);">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="color:#1F9D55;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#1A1A1A;">Build client base</span><span style="font-size:9px;font-weight:800;color:#5C5C5A;background:#E8E8E6;border-radius:5px;padding:2px 7px;">MID</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#15803D;">46%</span></div>
+                <span style="height:8px;border-radius:9999px;background:#F2F2F0;overflow:hidden;"><span style="display:block;height:100%;width:46%;background:#1F9D55;border-radius:9999px;"></span></span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#5C5C5A;"><span style="color:#6D4FE0;">🚩</span>Next: <b style="color:#1A1A1A;">Site live</b><span style="font-family:ui-monospace,monospace;color:#8A8A87;">· in 3 days</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:#15803D;cursor:pointer;">Open project →</span></div>
+              </div>
+              <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:11px;box-shadow:0 1px 2px rgba(17,17,17,.03);">
+                <div style="display:flex;align-items:center;gap:9px;"><span style="color:#1F9D55;font-size:14px;">◎</span><span style="font-size:15px;font-weight:800;color:#1A1A1A;">Get fit</span><span style="font-size:9px;font-weight:800;color:#5C5C5A;background:#E8E8E6;border-radius:5px;padding:2px 7px;">LONG</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:13px;font-weight:700;color:#5C5C5A;">11%</span></div>
+                <span style="height:8px;border-radius:9999px;background:#F2F2F0;overflow:hidden;"><span style="display:block;height:100%;width:11%;background:#1F9D55;border-radius:9999px;"></span></span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#5C5C5A;"><span style="color:#6D4FE0;">🚩</span>Next: <b style="color:#1A1A1A;">First 5k</b><span style="font-family:ui-monospace,monospace;color:#8A8A87;">· in 18 days</span><span style="margin-left:auto;font-size:12px;font-weight:800;color:#15803D;cursor:pointer;">Open project →</span></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <span style="font-size:14px;font-weight:900;color:#1A1A1A;">Needs your attention</span>
+              <div style="background:#F4F0FE;border:1px solid #D9CCFD;border-radius:16px;padding:17px 18px;display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;"><span style="color:#6D4FE0;font-size:15px;margin-top:1px;">◇</span><div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:14px;font-weight:800;color:#1A1A1A;">A replan is proposed</span><span style="font-size:12px;font-weight:600;line-height:17px;color:#6d5cb0;">Push 3 tasks forward one day; milestone moves Fri → Mon.</span></div></div>
+                <div style="display:flex;gap:8px;">
+                  <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#FFFFFF;background:#7C5CFC;border:none;border-radius:11px;padding:10px;cursor:pointer;box-shadow:0 3px 0 #5b3fe0;">Approve</button>
+                  <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#6D4FE0;background:#FFFFFF;border:1px solid #D9CCFD;border-radius:11px;padding:10px;cursor:pointer;">Review →</button>
+                </div>
+              </div>
+              <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:16px;padding:15px 18px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 2px rgba(17,17,17,.03);">
+                <span style="font-size:18px;">🔥</span><div style="display:flex;flex-direction:column;"><span style="font-size:13px;font-weight:800;color:#1A1A1A;">7-day streak</span><span style="font-size:11px;font-weight:600;color:#5C5C5A;">Engaged today — keep it alive.</span></div><span style="margin-left:auto;font-size:20px;font-weight:900;color:#15803D;">320</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------- HOME · LAYOUT EXPLORATION ---------- -->
+  <div style="max-width:1340px;margin:0 auto 64px;display:flex;flex-direction:column;gap:13px;">
+    <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">B · LAYOUT EXPLORATION — “focus rail” alternative</span>
+    <div style="display:flex;align-items:center;gap:10px;background:#1C1C20;border:1px solid #2A2A2E;border-radius:12px;padding:11px 15px;">
+      <span style="font-size:13px;font-weight:700;line-height:19px;color:#A8A8A4;text-wrap:pretty;"><b style="color:#F4F4F2;">Two arrangements of the same content.</b> Default (above) stacks Today → road ahead → goals + attention. The alternative below makes <b style="color:#3DD68C;">Today</b> a tall left focus rail and moves the road ahead, goals and attention into a quieter right column — better when the daily list runs long.</span>
+    </div>
+    <div style="display:flex;background:#0E0E10;border:1px solid #242428;border-radius:18px;overflow:hidden;height:480px;">
+      <!-- mini sidebar -->
+      <aside style="width:54px;flex:none;background:#121214;border-right:1px solid #242428;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:14px;">
+        <span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:15px;">▲</span>
+        <span style="width:32px;height:32px;border-radius:9px;background:#1A1A1D;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:15px;">⌂</span>
+        <span style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#74747A;">🗺</span>
+        <span style="margin-top:auto;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#74747A;">⚙</span>
+      </aside>
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <div style="height:52px;flex:none;border-bottom:1px solid #242428;background:#0E0E10;display:flex;align-items:center;gap:14px;padding:0 18px;">
+          <div style="width:30px;height:30px;border-radius:9999px;background:conic-gradient(#3DD68C 240deg,#1a2620 0);display:flex;align-items:center;justify-content:center;"><div style="width:22px;height:22px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9px;font-weight:700;color:#3DD68C;">4/6</div></div>
+          <span style="font-size:12px;font-weight:800;color:#F4F4F2;">Write case study #1 draft</span>
+          <span style="margin-left:auto;font-size:10px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:5px 10px;">1 proposal</span>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1.15fr 1fr;gap:14px;padding:16px;min-height:0;">
+          <!-- focus rail -->
+          <div style="background:#121214;border:1px solid #242428;border-radius:14px;padding:15px;display:flex;flex-direction:column;gap:9px;overflow:hidden;">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:14px;font-weight:900;color:#F4F4F2;">Today</span><span style="font-family:ui-monospace,monospace;font-size:11px;color:#3DD68C;">4/6 · 3.5h/5h</span></div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:#16352A;border:1px solid #2bbd7c;border-radius:10px;"><span style="width:16px;height:16px;border-radius:5px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">✓</span><span style="flex:1;font-size:12px;font-weight:700;color:#A8E9C8;text-decoration:line-through;">Collect 3 reference sites</span></div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;"><span style="width:16px;height:16px;border-radius:5px;border:2px solid #45454C;"></span><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Write case study #1 draft</span><span style="width:6px;height:6px;border-radius:9999px;background:#5B9DFF;"></span></div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;"><span style="width:16px;height:16px;border-radius:5px;border:2px solid #45454C;"></span><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Outline portfolio structure</span></div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;"><span style="width:16px;height:16px;border-radius:5px;border:2px solid #45454C;"></span><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Send intro email ◆</span><span style="font-family:ui-monospace,monospace;font-size:9px;color:#74747A;">2pm</span></div>
+            <span style="margin-top:auto;font-size:11px;font-weight:800;color:#74747A;">+ Quick add</span>
+          </div>
+          <!-- quieter right column -->
+          <div style="display:flex;flex-direction:column;gap:14px;min-height:0;">
+            <div style="background:#121214;border:1px solid #242428;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;">
+              <span style="font-size:12px;font-weight:900;color:#F4F4F2;">The road ahead</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:22px;height:22px;border-radius:9999px;background:#16352A;border:1.5px solid #3DD68C;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:10px;">✓</span>
+                <span style="flex:none;width:14px;height:2px;background:#2E2E33;"></span>
+                <span style="width:26px;height:26px;border-radius:9999px;background:#0E0E10;border:2px solid #3DD68C;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:8px;font-weight:700;">4/6</span>
+                <span style="flex:none;width:14px;height:2px;background:#2E2E33;"></span>
+                <span style="width:22px;height:22px;border-radius:9999px;background:#1A1A1D;border:1.5px solid #34343A;color:#74747A;display:flex;align-items:center;justify-content:center;font-size:9px;">○</span>
+                <span style="flex:none;width:14px;height:2px;background:#2E2E33;"></span>
+                <span style="width:24px;height:24px;border-radius:7px;transform:rotate(45deg);background:#272040;border:1.5px solid #A78BFA;"></span>
+                <span style="margin-left:auto;font-size:10px;font-weight:800;color:#A8A8A4;cursor:pointer;">Open →</span>
+              </div>
+            </div>
+            <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:12px;font-weight:800;color:#A78BFA;">◇ Replan proposed</span>
+              <span style="font-size:11px;font-weight:600;line-height:15px;color:#cdbdfb;">Push 3 tasks forward; milestone Fri → Mon.</span>
+              <div style="display:flex;gap:6px;"><span style="flex:1;text-align:center;font-size:10px;font-weight:800;color:#0E0E10;background:#A78BFA;border-radius:8px;padding:7px;">Approve</span><span style="flex:1;text-align:center;font-size:10px;font-weight:800;color:#A78BFA;border:1px solid #3a2f63;border-radius:8px;padding:7px;">Review</span></div>
+            </div>
+            <div style="flex:1;background:#121214;border:1px solid #242428;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;min-height:0;">
+              <span style="font-size:12px;font-weight:900;color:#F4F4F2;">Goals</span>
+              <div style="display:flex;align-items:center;gap:7px;"><span style="color:#3DD68C;font-size:11px;">◎</span><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Build client base</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#3DD68C;">46%</span></div>
+              <span style="height:6px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:46%;background:#3DD68C;"></span></span>
+              <div style="display:flex;align-items:center;gap:7px;"><span style="color:#3DD68C;font-size:11px;">◎</span><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Get fit</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#A8A8A4;">11%</span></div>
+              <span style="height:6px;border-radius:9999px;background:#1A1A1D;overflow:hidden;"><span style="display:block;height:100%;width:11%;background:#3DD68C;"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== C · PROJECT DETAIL ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">C</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">Project Detail · the WBS workbench</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 24px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">Three interchangeable views of the same data. <b style="color:#A8A8A4;">Use the toggle to switch Flow / Timeline / Table</b>; the work-package sheet on the right is live too — collapse it to give the view room.</p>
+
+  <div style="max-width:1340px;margin:0 auto 64px;display:flex;flex-direction:column;gap:11px;">
+    <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">C · DARK — Flow is the default view</span>
+    <div style="display:flex;background:#0E0E10;border:1px solid #242428;border-radius:20px;overflow:hidden;min-height:768px;">
+      <!-- sidebar -->
+      <aside style="width:230px;flex:none;background:#121214;border-right:1px solid #242428;display:flex;flex-direction:column;padding:15px 11px;">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 7px 15px;"><span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:16px;flex:none;">▲</span><span style="font-size:15px;font-weight:900;color:#F4F4F2;">TodoMapp</span></div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;"><span>⌂</span>Home</div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;margin-top:3px;"><span>🗺</span>Roadmap<span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span></div>
+        <div style="height:1px;background:#242428;margin:13px 5px;"></div>
+        <div style="display:flex;align-items:center;padding:2px 8px 7px;"><span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Goals</span><span style="margin-left:auto;width:21px;height:21px;border-radius:6px;background:#1F2A24;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;">+</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Build client base</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;background:#16221C;border:1px solid #234034;"><span style="color:#74747A;">▾</span><span style="flex:1;">Portfolio site</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;"><span style="color:#74747A;">▸</span><span style="flex:1;">Outreach</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:3px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;"><span style="font-size:9px;color:#74747A;">▸</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Get fit</span></div>
+        <div style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;"><span>⚙</span>Settings</div>
+      </aside>
+      <!-- main -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+        <!-- top bar slim -->
+        <div style="height:54px;flex:none;border-bottom:1px solid #242428;background:#0E0E10;display:flex;align-items:center;gap:14px;padding:0 20px;">
+          <div style="width:30px;height:30px;border-radius:9999px;background:conic-gradient(#3DD68C 240deg,#1a2620 0);display:flex;align-items:center;justify-content:center;"><div style="width:22px;height:22px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9px;font-weight:700;color:#3DD68C;">4/6</div></div>
+          <span style="font-size:12px;font-weight:800;color:#F4F4F2;">Write case study #1 draft</span>
+          <span style="margin-left:auto;font-size:10px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:5px 11px;">◇ 1 proposal</span>
+          <span style="width:30px;height:30px;border-radius:9999px;background:#242428;border:1px solid #34343A;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#A8A8A4;">JD</span>
+        </div>
+        <!-- C.0 project header -->
+        <div style="flex:none;border-bottom:1px solid #242428;background:#0c0c0e;padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <span style="font-size:11px;font-weight:700;color:#74747A;">◎ Build client base <span style="color:#34343A;">/</span> Portfolio site</span>
+              <div style="display:flex;align-items:center;gap:11px;">
+                <h3 style="margin:0;font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Portfolio website</h3>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:4px 11px;"><span style="width:7px;height:7px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;margin-top:2px;">
+                <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Capacity <b style="color:#F4F4F2;">5h/day</b> <span style="color:#3DD68C;cursor:pointer;">edit</span></span>
+                <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Target <b style="color:#F4F4F2;">Aug 29</b></span>
+                <span style="font-size:12px;font-weight:700;color:#A8A8A4;">Progress <b style="color:#3DD68C;">62%</b></span>
+              </div>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:9px;">
+              <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:11px;padding:10px 15px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">+ Work package</button>
+              <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:10px 15px;cursor:pointer;">Edit project</button>
+              <button style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#A8A8A4;background:#242428;border:1px solid #34343A;border-radius:11px;padding:8px 13px;cursor:pointer;">⋯</button>
+            </div>
+          </div>
+          <!-- view toggle -->
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="display:inline-flex;background:#1A1A1D;border:1px solid #2E2E33;border-radius:12px;padding:4px;gap:3px;">
+              <button onClick="{{ setFlow }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ flowBtnBg }};color:{{ flowBtnFg }};">Flow</button>
+              <button onClick="{{ setTimeline }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ tlBtnBg }};color:{{ tlBtnFg }};">Timeline</button>
+              <button onClick="{{ setTable }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;background:{{ tableBtnBg }};color:{{ tableBtnFg }};">Table</button>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:#74747A;">{{ viewHint }}</span>
+            <button onClick="{{ toggleSheet }}" style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:10px;padding:8px 13px;cursor:pointer;">{{ sheetBtnLabel }}</button>
+          </div>
+        </div>
+
+        <!-- body: view + sheet -->
+        <div style="flex:1;display:flex;min-height:0;">
+          <!-- view region -->
+          <div style="flex:1;min-width:0;position:relative;background:#0E0E10;overflow:auto;">
+
+            <!-- FLOW -->
+            <sc-if value="{{ isFlow }}" hint-placeholder-val="{{ true }}">
+              <div style="position:relative;width:840px;height:540px;margin:18px auto;background-image:radial-gradient(#1d1d22 1px,transparent 1px);background-size:22px 22px;">
+                <svg width="840" height="540" style="position:absolute;inset:0;overflow:visible;">
+                  <path d="M170,96 L300,96" stroke="#3DD68C" stroke-width="3" fill="none"></path>
+                  <path d="M450,96 C540,96 540,150 600,158" stroke="#3DD68C" stroke-width="3" fill="none"></path>
+                  <path d="M170,96 C235,96 235,272 300,272" stroke="#3a3a40" stroke-width="2" fill="none"></path>
+                  <path d="M450,272 C540,272 540,200 600,182" stroke="#3a3a40" stroke-width="2" fill="none"></path>
+                  <path d="M375,128 C375,260 375,300 375,372" stroke="#E0A33E" stroke-width="2" stroke-dasharray="6 6" fill="none"></path>
+                </svg>
+                <!-- critical path badge -->
+                <span style="position:absolute;left:200px;top:64px;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#3DD68C;background:#0E0E10;padding:1px 6px;">critical path →</span>
+                <!-- Design & content (done) -->
+                <div style="position:absolute;left:20px;top:64px;width:150px;background:#16352A;border:1.5px solid #3DD68C;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;color:#3DD68C;">✓ DONE</span>
+                  <span style="font-size:13px;font-weight:800;color:#F4F4F2;line-height:16px;">Design &amp; content</span>
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;color:#A8E9C8;">4 tasks · 8h</span>
+                </div>
+                <!-- Build & ship (selected, in-progress) -->
+                <div style="position:absolute;left:300px;top:60px;width:150px;background:#15233a;border:2px solid #5B9DFF;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 0 4px rgba(91,157,255,.16);">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;color:#9cc3ff;"><span style="width:7px;height:7px;border-radius:9999px;background:#5B9DFF;"></span>IN PROGRESS</span>
+                  <span style="font-size:13px;font-weight:800;color:#F4F4F2;line-height:16px;">Build &amp; ship</span>
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;color:#9cc3ff;">3 tasks · 6h</span>
+                  <span style="position:absolute;right:-6px;top:50%;width:11px;height:11px;border-radius:9999px;background:#5B9DFF;border:2px solid #0E0E10;cursor:crosshair;"></span>
+                </div>
+                <!-- Case studies (open) -->
+                <div style="position:absolute;left:300px;top:240px;width:150px;background:#1A1A1D;border:1.5px solid #45454C;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;color:#A8A8A4;"><span style="width:7px;height:7px;border-radius:9999px;border:2px solid #74747A;"></span>OPEN</span>
+                  <span style="font-size:13px;font-weight:800;color:#F4F4F2;line-height:16px;">Case studies</span>
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">2 tasks · 4h</span>
+                </div>
+                <!-- Outreach setup (blocked) -->
+                <div style="position:absolute;left:300px;top:368px;width:150px;background:#2a2012;border:1.5px solid #E0A33E;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:6px;">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;color:#E0A33E;">△ BLOCKED</span>
+                  <span style="font-size:13px;font-weight:800;color:#F4F4F2;line-height:16px;">Outreach setup</span>
+                  <span style="font-family:ui-monospace,monospace;font-size:10px;color:#c9923a;">waits on Build</span>
+                </div>
+                <!-- Milestone landmark -->
+                <div style="position:absolute;left:600px;top:128px;width:64px;height:64px;border-radius:16px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(-45deg);font-size:24px;">🚩</span></div>
+                <span style="position:absolute;left:580px;top:198px;width:104px;text-align:center;font-size:11px;font-weight:800;color:#A78BFA;">Milestone “Site live”</span>
+                <!-- canvas controls -->
+                <div style="position:absolute;right:14px;bottom:14px;display:flex;gap:7px;">
+                  <span style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;border-radius:9px;padding:7px 11px;cursor:pointer;">Fit view</span>
+                  <span style="display:flex;background:#1A1A1D;border:1px solid #2E2E33;border-radius:9px;overflow:hidden;"><span style="padding:7px 11px;font-size:13px;font-weight:800;color:#A8A8A4;cursor:pointer;">−</span><span style="width:1px;background:#2E2E33;"></span><span style="padding:7px 11px;font-size:13px;font-weight:800;color:#A8A8A4;cursor:pointer;">+</span></span>
+                </div>
+                <span style="position:absolute;left:14px;bottom:14px;font-size:11px;font-weight:700;color:#52525a;">Drag from a node's handle to connect · select a node to edit it</span>
+              </div>
+            </sc-if>
+
+            <!-- TIMELINE -->
+            <sc-if value="{{ isTimeline }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:18px 22px;display:flex;flex-direction:column;gap:0;min-width:720px;">
+                <!-- axis -->
+                <div style="display:flex;align-items:center;border-bottom:1px solid #242428;padding-bottom:8px;margin-bottom:6px;">
+                  <span style="width:150px;flex:none;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#74747A;">Work package</span>
+                  <div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);">
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Thu</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Fri</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:800;color:#3DD68C;text-align:center;">Sat</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Mon</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Tue</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Wed</span>
+                    <span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-align:center;">Thu</span>
+                  </div>
+                </div>
+                <!-- rows -->
+                <div style="position:relative;display:flex;flex-direction:column;gap:10px;padding-top:6px;">
+                  <!-- today line -->
+                  <div style="position:absolute;left:calc(150px + (100% - 150px) * 0.357);top:0;bottom:0;width:2px;background:#3DD68C;opacity:.5;"></div>
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:12px;font-weight:800;color:#F4F4F2;">Design &amp; content</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:1 / span 2;height:26px;border-radius:8px;background:#16352A;border:1px solid #3DD68C;display:flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;color:#3DD68C;">✓ Done</div></div></div>
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:12px;font-weight:800;color:#F4F4F2;">Build &amp; ship</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:3 / span 2;height:26px;border-radius:8px;background:#15233a;border:1px solid #5B9DFF;display:flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;color:#9cc3ff;">In progress</div></div></div>
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:12px;font-weight:800;color:#F4F4F2;">Case studies</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:4 / span 2;height:26px;border-radius:8px;background:#242428;border:1px solid #45454C;display:flex;align-items:center;padding:0 9px;font-size:10px;font-weight:700;color:#A8A8A4;">Open</div></div></div>
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:12px;font-weight:800;color:#F4F4F2;">Outreach setup</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:5 / span 2;height:26px;border-radius:8px;background:#2a2012;border:1px dashed #E0A33E;display:flex;align-items:center;padding:0 9px;font-size:10px;font-weight:800;color:#E0A33E;">△ Blocked</div></div></div>
+                  <!-- milestone marker row -->
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:11px;font-weight:800;color:#A78BFA;">🚩 Site live</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:5;display:flex;justify-content:center;"><span style="width:18px;height:18px;border-radius:5px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;"></span></div></div></div>
+                  <!-- time-fixed -->
+                  <div style="display:flex;align-items:center;"><span style="width:150px;flex:none;font-size:12px;font-weight:800;color:#F4F4F2;">Mentor call ◆</span><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);align-items:center;"><div style="grid-column:3;height:26px;border-radius:8px;background:#1A1A1D;border:1.5px solid #45454C;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#A8A8A4;">◆ pinned</div></div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:18px;border-top:1px solid #242428;padding-top:14px;">
+                  <span style="font-size:11px;font-weight:700;color:#52525a;">Drag a flexible bar to reschedule — it proposes a change, never silently rewrites.</span>
+                  <span style="margin-left:auto;display:inline-flex;background:#1A1A1D;border:1px solid #2E2E33;border-radius:9px;overflow:hidden;"><span style="padding:7px 12px;font-size:11px;font-weight:800;color:#74747A;cursor:pointer;">Day</span><span style="padding:7px 12px;font-size:11px;font-weight:800;color:#F4F4F2;background:#242428;cursor:pointer;">Week</span><span style="padding:7px 12px;font-size:11px;font-weight:800;color:#74747A;cursor:pointer;">Month</span></span>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- TABLE -->
+            <sc-if value="{{ isTable }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:18px 22px;min-width:720px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                  <span style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:9px;padding:7px 12px;cursor:pointer;">Group by milestone</span>
+                  <span style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:9px;padding:7px 12px;cursor:pointer;">Filter: open only</span>
+                </div>
+                <div style="border:1px solid #242428;border-radius:13px;overflow:hidden;">
+                  <!-- head -->
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#1A1A1D;border-bottom:1px solid #242428;">
+                    <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Title</span>
+                    <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Milestone</span>
+                    <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Estimate</span>
+                    <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Fixed</span>
+                    <span style="padding:11px 14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#74747A;">Status</span>
+                  </div>
+                  <!-- WP row 1 (expanded) -->
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0E0E10;border-bottom:1px solid #1c1c20;align-items:center;">
+                    <span style="padding:12px 14px;font-size:13px;font-weight:800;color:#F4F4F2;">▾ Design &amp; content</span>
+                    <span style="padding:12px 14px;font-size:12px;font-weight:700;color:#A8A8A4;">Site live</span>
+                    <span style="padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#A8A8A4;">8h</span>
+                    <span style="padding:12px 14px;font-size:12px;color:#74747A;">—</span>
+                    <span style="padding:12px 14px;"><span style="font-size:10px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 9px;">✓ Done</span></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0c0c0e;border-bottom:1px solid #1c1c20;align-items:center;"><span style="padding:10px 14px 10px 34px;font-size:12px;font-weight:600;color:#A8A8A4;">Collect 3 reference sites</span><span style="padding:10px 14px;font-size:11px;color:#74747A;">—</span><span style="padding:10px 14px;font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">0.5h</span><span style="padding:10px 14px;font-size:11px;color:#74747A;">—</span><span style="padding:10px 14px;"><span style="font-size:9px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 8px;">✓</span></span></div>
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0c0c0e;border-bottom:1px solid #1c1c20;align-items:center;"><span style="padding:10px 14px 10px 34px;font-size:12px;font-weight:600;color:#A8A8A4;">Outline portfolio structure</span><span style="padding:10px 14px;font-size:11px;color:#74747A;">—</span><span style="padding:10px 14px;font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">low</span><span style="padding:10px 14px;font-size:11px;color:#74747A;">—</span><span style="padding:10px 14px;"><span style="font-size:9px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 8px;">✓</span></span></div>
+                  <!-- WP row 2 -->
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0E0E10;border-bottom:1px solid #1c1c20;align-items:center;">
+                    <span style="padding:12px 14px;font-size:13px;font-weight:800;color:#F4F4F2;">▸ Build &amp; ship</span>
+                    <span style="padding:12px 14px;font-size:12px;font-weight:700;color:#A8A8A4;">Site live</span>
+                    <span style="padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#A8A8A4;">6h</span>
+                    <span style="padding:12px 14px;font-size:12px;color:#74747A;">—</span>
+                    <span style="padding:12px 14px;"><span style="font-size:10px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:3px 9px;">In progress</span></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0E0E10;border-bottom:1px solid #1c1c20;align-items:center;">
+                    <span style="padding:12px 14px;font-size:13px;font-weight:800;color:#F4F4F2;">▸ Case studies</span>
+                    <span style="padding:12px 14px;font-size:12px;font-weight:700;color:#A8A8A4;">Site live</span>
+                    <span style="padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#A8A8A4;">4h</span>
+                    <span style="padding:12px 14px;font-size:12px;color:#74747A;">—</span>
+                    <span style="padding:12px 14px;"><span style="font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:3px 9px;">Open</span></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:2.4fr 1.2fr 0.8fr 0.7fr 1fr;background:#0E0E10;align-items:center;">
+                    <span style="padding:12px 14px;font-size:13px;font-weight:800;color:#F4F4F2;">▸ Outreach setup</span>
+                    <span style="padding:12px 14px;font-size:12px;color:#74747A;">—</span>
+                    <span style="padding:12px 14px;font-family:ui-monospace,monospace;font-size:12px;color:#A8A8A4;">3h</span>
+                    <span style="padding:12px 14px;font-size:12px;color:#A8A8A4;">◆</span>
+                    <span style="padding:12px 14px;"><span style="font-size:10px;font-weight:700;color:#E0A33E;background:#3a2c12;border-radius:9999px;padding:3px 9px;">△ Blocked</span></span>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- WP SHEET -->
+          <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ true }}">
+            <aside style="width:372px;flex:none;border-left:1px solid #242428;background:#121214;display:flex;flex-direction:column;">
+              <div style="padding:18px 20px;border-bottom:1px solid #242428;display:flex;flex-direction:column;gap:13px;">
+                <div style="display:flex;align-items:center;gap:9px;">
+                  <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Work package</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:3px 9px;"><span style="width:6px;height:6px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+                  <span onClick="{{ toggleSheet }}" style="margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A8A8A4;cursor:pointer;">✕</span>
+                </div>
+                <input value="Build &amp; ship" style="font-family:'Nunito',sans-serif;background:#0E0E10;border:1px solid #2E2E33;border-radius:11px;padding:11px 13px;font-size:17px;font-weight:800;color:#F4F4F2;" />
+                <div style="display:flex;flex-wrap:wrap;gap:7px;">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#A78BFA;background:#272040;border-radius:9px;padding:6px 10px;">🚩 Site live</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9px;padding:6px 10px;">⏱ 6h</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border:1px solid #34343A;border-radius:9px;padding:5px 10px;">◆ time-fixed</span>
+                </div>
+              </div>
+              <!-- to-do list -->
+              <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:9px;">
+                <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">To-do list · 3 tasks</span>
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:11px;background:#16352A;border:1px solid #2bbd7c;border-radius:11px;">
+                  <span style="width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;margin-top:1px;">✓</span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:4px;"><span style="font-size:13px;font-weight:700;color:#A8E9C8;text-decoration:line-through;">Scaffold the site</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#2c8a55;">3h</span></div>
+                  <span style="color:#74747A;font-size:13px;cursor:grab;">⠿</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;">
+                  <span style="width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;margin-top:1px;cursor:pointer;"></span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                    <span style="font-size:13px;font-weight:700;color:#F4F4F2;">Build the project pages</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                      <span style="font-family:ui-monospace,monospace;font-size:10px;color:#A8A8A4;background:#242428;border-radius:6px;padding:2px 7px;">2h</span>
+                      <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:6px;padding:2px 7px;">↳ after Scaffold</span>
+                    </div>
+                  </div>
+                  <span style="color:#74747A;font-size:13px;cursor:grab;">⠿</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:9px;padding:11px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:11px;">
+                  <span style="width:18px;height:18px;border-radius:6px;border:2px solid #45454C;flex:none;margin-top:1px;cursor:pointer;"></span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                    <span style="font-size:13px;font-weight:700;color:#F4F4F2;">Deploy &amp; connect domain <span style="color:#A8A8A4;">◆</span></span>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                      <span style="font-family:ui-monospace,monospace;font-size:10px;color:#A8A8A4;background:#242428;border-radius:6px;padding:2px 7px;">1h</span>
+                      <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#A8A8A4;background:#1A1A1D;border:1px solid #45454C;border-radius:6px;padding:2px 7px;">◆ Jun 17</span>
+                    </div>
+                  </div>
+                  <span style="color:#74747A;font-size:13px;cursor:grab;">⠿</span>
+                </div>
+                <span style="font-size:12px;font-weight:800;color:#3DD68C;cursor:pointer;padding:3px;">+ Add task</span>
+                <!-- replan note -->
+                <div style="margin-top:6px;display:flex;align-items:flex-start;gap:8px;background:#1c1830;border:1px solid #3a2f63;border-radius:11px;padding:11px;"><span style="color:#A78BFA;font-size:13px;">ⓘ</span><span style="font-size:11px;font-weight:600;line-height:16px;color:#cdbdfb;">Adding work mid-flight feeds a <b style="color:#A78BFA;">replan proposal</b> — confirmed days never change silently.</span></div>
+              </div>
+              <!-- footer -->
+              <div style="border-top:1px solid #242428;padding:14px 18px;display:flex;align-items:center;gap:9px;">
+                <button onClick="{{ toggleSheet }}" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:11px 18px;cursor:pointer;">Close</button>
+                <button style="margin-left:auto;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#d98a8a;background:transparent;border:1px solid #3a2424;border-radius:11px;padding:11px 14px;cursor:pointer;">Delete work package</button>
+              </div>
+            </aside>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== D · ROADMAP ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">D</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">Roadmap · the full path + replan review</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 24px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">The whole day-granular path, and where the <b style="color:#A8A8A4;">detect → analyze → propose → approve</b> loop is resolved. Slippage reads as recovery, never failure — calm and dashed, never red.</p>
+
+  <div style="max-width:1340px;margin:0 auto 64px;display:flex;flex-direction:column;gap:11px;">
+    <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">D.1 THE PATH + D.2 REPLAN REVIEW (drawer open)</span>
+    <div style="display:flex;background:#0E0E10;border:1px solid #242428;border-radius:20px;overflow:hidden;min-height:860px;">
+      <!-- sidebar -->
+      <aside style="width:230px;flex:none;background:#121214;border-right:1px solid #242428;display:flex;flex-direction:column;padding:15px 11px;">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 7px 15px;"><span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:16px;flex:none;">▲</span><span style="font-size:15px;font-weight:900;color:#F4F4F2;">TodoMapp</span></div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;cursor:pointer;"><span>⌂</span>Home</div>
+        <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;background:#1A1A1D;border:1px solid #2E2E33;font-size:14px;font-weight:800;color:#F4F4F2;cursor:pointer;margin-top:3px;"><span>🗺</span>Roadmap<span style="margin-left:auto;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span></div>
+        <div style="height:1px;background:#242428;margin:13px 5px;"></div>
+        <div style="display:flex;align-items:center;padding:2px 8px 7px;"><span style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Goals</span><span style="margin-left:auto;width:21px;height:21px;border-radius:6px;background:#1F2A24;color:#3DD68C;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;">+</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;"><span style="font-size:9px;color:#74747A;">▾</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Build client base</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;"><span style="color:#74747A;">▸</span><span style="flex:1;">Portfolio site</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:6px 8px 6px 27px;border-radius:9px;font-size:13px;font-weight:700;color:#A8A8A4;"><span style="color:#74747A;">▸</span><span style="flex:1;">Outreach</span></div>
+        <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:3px;border-radius:9px;font-size:13px;font-weight:800;color:#F4F4F2;"><span style="font-size:9px;color:#74747A;">▸</span><span style="color:#3DD68C;">◎</span><span style="flex:1;">Get fit</span></div>
+        <div style="margin-top:auto;display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;font-size:14px;font-weight:700;color:#A8A8A4;"><span>⚙</span>Settings</div>
+      </aside>
+      <!-- main -->
+      <div style="flex:1;display:flex;min-width:0;">
+        <!-- path column -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+          <!-- header -->
+          <div style="flex:none;border-bottom:1px solid #242428;background:#0c0c0e;padding:18px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <h3 style="margin:0;font-size:22px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Roadmap</h3>
+            <span style="font-size:12px;font-weight:700;color:#74747A;">Portfolio site · 8 days ahead</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;padding:8px 12px;cursor:pointer;">◎ All goals ▾</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#A8A8A4;background:#1A1A1D;border:1px solid #2E2E33;border-radius:10px;padding:8px 12px;cursor:pointer;">📅 Jun 11–20 ▾</span>
+              <button style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:10px;padding:9px 14px;cursor:pointer;box-shadow:0 3px 0 #2aa86c;">Propose more days</button>
+            </div>
+          </div>
+          <!-- legend -->
+          <div style="flex:none;display:flex;flex-wrap:wrap;gap:7px;padding:13px 24px;border-bottom:1px solid #242428;">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#3DD68C;"><span style="width:11px;height:11px;border-radius:9999px;background:#3DD68C;"></span>Completed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A8A8A4;"><span style="width:11px;height:11px;border-radius:9999px;border:2px solid #45454C;"></span>Confirmed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A78BFA;"><span style="width:11px;height:11px;border-radius:9999px;background:#A78BFA;"></span>Proposed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#9a9a96;"><span style="width:11px;height:11px;border-radius:9999px;border:1.5px dashed #74747A;"></span>Slipped</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A8A8A4;">🔒 Locked</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#A78BFA;">🚩 Milestone</span>
+          </div>
+          <!-- path -->
+          <div style="flex:1;overflow-y:auto;padding:22px 24px;position:relative;">
+            <div style="position:relative;display:flex;flex-direction:column;gap:14px;padding-left:30px;">
+              <!-- spine -->
+              <div style="position:absolute;left:42px;top:10px;bottom:10px;width:3px;background:linear-gradient(#3DD68C 0,#3DD68C 22%,#34343A 22%,#34343A 48%,#A78BFA 48%,#A78BFA 70%,#45454C 70%);border-radius:9999px;"></div>
+
+              <!-- Thu completed -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;font-size:12px;color:#3DD68C;flex:none;z-index:1;">✓</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #16352A;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Thu Jun 11</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">Reference sites · structure</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 9px;">✓ Done · +30</span></div>
+              </div>
+              <!-- Fri completed -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#16352A;border:2px solid #3DD68C;display:flex;align-items:center;justify-content:center;font-size:12px;color:#3DD68C;flex:none;z-index:1;">✓</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #16352A;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Fri Jun 12</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">Wireframe · copy pass</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:3px 9px;">✓ Done · +20</span></div>
+              </div>
+              <!-- Today -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:30px;height:30px;border-radius:9999px;background:#0E0E10;border:3px solid #3DD68C;box-shadow:0 0 0 4px #16352A;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9px;font-weight:700;color:#3DD68C;flex:none;z-index:1;margin-left:-2px;">4/6</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:13px 15px;background:#16221C;border:1.5px solid #3DD68C;border-radius:13px;"><span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#3DD68C;">You are here</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Sat Jun 13</span><span style="font-size:12px;font-weight:600;color:#A8E9C8;">Case study draft · outline · mentor email</span><span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:11px;color:#3DD68C;">4/6 · 3.5h</span></div>
+              </div>
+              <!-- Mon confirmed -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#1A1A1D;border:2px solid #45454C;display:flex;align-items:center;justify-content:center;font-size:11px;color:#74747A;flex:none;z-index:1;">○</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #242428;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Mon Jun 15</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">Build project pages · 5h</span><span style="margin-left:auto;display:flex;gap:6px;"><span style="font-size:10px;font-weight:700;color:#F4F4F2;background:#2E2E33;border-radius:9999px;padding:3px 9px;">Confirmed</span><span style="font-size:11px;color:#74747A;cursor:pointer;">⌄</span></span></div>
+              </div>
+              <!-- Tue milestone -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:30px;height:30px;border-radius:8px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;flex:none;z-index:1;margin-left:-2px;"><span style="transform:rotate(-45deg);font-size:13px;">🚩</span></span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:13px 15px;background:#1c1830;border:1.5px solid #A78BFA;border-radius:13px;"><span style="font-size:14px;font-weight:900;color:#A78BFA;">🚩 Milestone — “Site live”</span><span style="font-size:12px;font-weight:600;color:#cdbdfb;">projected Tue Jun 16</span><span style="margin-left:auto;font-size:10px;font-weight:700;color:#A78BFA;background:#272040;border-radius:9999px;padding:3px 9px;">landmark</span></div>
+              </div>
+              <!-- Wed proposed -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#1c1830;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;font-size:12px;color:#A78BFA;flex:none;z-index:1;">◇</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #3a2f63;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Wed Jun 17</span><span style="font-size:12px;font-weight:600;color:#cdbdfb;">Deploy · domain · QA</span><span style="margin-left:auto;display:flex;align-items:center;gap:7px;"><span style="font-size:10px;font-weight:700;color:#A78BFA;background:#272040;border-radius:9999px;padding:3px 9px;">◇ Proposed</span><button style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:8px;padding:6px 11px;cursor:pointer;box-shadow:0 2px 0 #7c5cfc;">Confirm</button></span></div>
+              </div>
+              <!-- Thu slipped -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#0E0E10;border:2px dashed #74747A;display:flex;align-items:center;justify-content:center;font-size:11px;color:#9a9a96;flex:none;z-index:1;">◌</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#0E0E10;border:1.5px dashed #45454C;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#A8A8A4;">Thu Jun 18</span><span style="font-size:12px;font-weight:600;color:#9a9a96;">Slipped from Wed — pick it back up</span><span style="margin-left:auto;display:flex;gap:6px;"><span style="font-size:10px;font-weight:700;color:#9a9a96;background:#1A1A1D;border:1px dashed #45454C;border-radius:9999px;padding:2px 9px;">◌ Slipped</span><span style="font-size:11px;font-weight:800;color:#3DD68C;cursor:pointer;">Adjust</span></span></div>
+              </div>
+              <!-- Fri locked -->
+              <div style="display:flex;align-items:center;gap:16px;position:relative;">
+                <span style="width:26px;height:26px;border-radius:9999px;background:#1A1A1D;border:2px solid #45454C;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none;z-index:1;">🔒</span>
+                <div style="flex:1;display:flex;align-items:center;gap:11px;padding:11px 14px;background:#121214;border:1px solid #242428;border-radius:13px;"><span style="font-size:13px;font-weight:800;color:#F4F4F2;">Fri Jun 19</span><span style="font-size:12px;font-weight:600;color:#A8A8A4;">First 3 outreach emails ◆</span><span style="margin-left:auto;display:flex;gap:6px;"><span style="font-size:10px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:3px 9px;">🔒 Locked</span><span style="font-size:11px;font-weight:800;color:#A8A8A4;cursor:pointer;">Unlock</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- D.2 replan drawer -->
+        <aside style="width:392px;flex:none;border-left:1px solid #242428;background:#0c0c0e;display:flex;flex-direction:column;">
+          <div style="padding:18px 20px;border-bottom:1px solid #242428;display:flex;align-items:center;gap:9px;">
+            <span style="font-size:13px;font-weight:900;color:#F4F4F2;">Replan proposal</span>
+            <span style="font-size:10px;font-weight:800;color:#A78BFA;background:#272040;border-radius:9999px;padding:3px 9px;">◇ pending</span>
+            <span style="margin-left:auto;width:26px;height:26px;border-radius:8px;border:1px solid #2E2E33;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A8A8A4;cursor:pointer;">✕</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:18px;">
+            <!-- headline -->
+            <div style="background:#1c1830;border:1px solid #3a2f63;border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#A78BFA;">Steering, not failure</span>
+              <span style="font-size:15px;font-weight:800;line-height:21px;color:#F4F4F2;text-wrap:pretty;">Push 3 tasks forward one day; milestone moves Fri → Mon.</span>
+            </div>
+            <!-- moves -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Moves · 3 tasks</span>
+              <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:#121214;border:1px solid #242428;border-radius:11px;"><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Build project pages</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">Sun</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#A78BFA;">Mon</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:#121214;border:1px solid #242428;border-radius:11px;"><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">Deploy &amp; domain</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">Mon</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#A78BFA;">Tue</span></div>
+              <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:#121214;border:1px solid #242428;border-radius:11px;"><span style="flex:1;font-size:12px;font-weight:700;color:#F4F4F2;">QA pass</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;">Tue</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#A78BFA;">Wed</span></div>
+            </div>
+            <!-- milestone impact -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Milestone impact</span>
+              <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:#121214;border:1px solid #3a2f63;border-radius:11px;"><span style="font-size:13px;">🚩</span><span style="flex:1;font-size:12px;font-weight:800;color:#F4F4F2;">Site live</span><span style="font-family:ui-monospace,monospace;font-size:10px;color:#74747A;text-decoration:line-through;">Fri 13</span><span style="color:#A78BFA;font-weight:900;">→</span><span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#A78BFA;">Mon 16</span></div>
+            </div>
+            <!-- time-fixed conflicts -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <span style="font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#E0A33E;">◆ Time-fixed conflict · 1</span>
+              <div style="background:#2a2012;border:1px solid #5a4420;border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:10px;">
+                <span style="font-size:12px;font-weight:700;line-height:17px;color:#f0d29a;text-wrap:pretty;"><b style="color:#F4F4F2;">Mentor call</b> is pinned to Tue 2pm but the move would collide. It's never auto-moved — you decide:</span>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <button style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#0E0E10;background:#E0A33E;border:none;border-radius:9px;padding:9px;cursor:pointer;text-align:left;padding-left:13px;">Prioritize today</button>
+                  <button style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#f0d29a;background:transparent;border:1px solid #5a4420;border-radius:9px;padding:9px;cursor:pointer;text-align:left;padding-left:13px;">Descope</button>
+                  <button style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#f0d29a;background:transparent;border:1px solid #5a4420;border-radius:9px;padding:9px;cursor:pointer;text-align:left;padding-left:13px;">Renegotiate date</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- footer -->
+          <div style="border-top:1px solid #242428;padding:14px 20px;display:flex;flex-direction:column;gap:8px;">
+            <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#3DD68C;border:none;border-radius:12px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;">Approve</button>
+            <div style="display:flex;gap:8px;">
+              <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#F4F4F2;background:#242428;border:1px solid #34343A;border-radius:11px;padding:11px;cursor:pointer;">Edit then approve</button>
+              <button style="flex:1;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:#A8A8A4;background:transparent;border:1px solid #2E2E33;border-radius:11px;padding:11px;cursor:pointer;">Reject</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== E · CELEBRATION ===================== -->
+  <div style="max-width:1340px;margin:0 auto 20px;display:flex;align-items:center;gap:14px;">
+    <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;color:#52525a;">E</span>
+    <span style="font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#A8A8A4;">Milestone Celebration · the dialog</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+  <p style="max-width:1340px;margin:0 auto 24px;font-size:14px;line-height:21px;font-weight:600;color:#74747A;">Fires when the last work package in a milestone's set completes. Present but lighter than mobile — a recap, the points awarded, and what's next.</p>
+
+  <div style="max-width:1340px;margin:0 auto 50px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+    <!-- DARK dialog -->
+    <div style="display:flex;flex-direction:column;gap:11px;">
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">E · DARK</span>
+      <div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid #242428;background:#0E0E10;height:540px;display:flex;align-items:center;justify-content:center;">
+        <!-- dimmed backdrop hint -->
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,#101013 0 22px,#0d0d0f 22px 44px);opacity:.7;"></div>
+        <div style="position:absolute;inset:0;background:rgba(8,8,10,.72);backdrop-filter:blur(2px);"></div>
+        <!-- dialog -->
+        <div style="position:relative;width:360px;background:#16161A;border:1px solid #2E2E33;border-radius:20px;padding:0 0 22px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden;">
+          <!-- confetti band -->
+          <div style="position:relative;height:120px;background:linear-gradient(#1c1830,#16161A);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <span style="position:absolute;left:34px;top:24px;width:9px;height:9px;border-radius:2px;background:#3DD68C;transform:rotate(20deg);"></span>
+            <span style="position:absolute;left:90px;top:50px;width:7px;height:7px;border-radius:9999px;background:#A78BFA;"></span>
+            <span style="position:absolute;left:300px;top:30px;width:10px;height:10px;border-radius:2px;background:#A78BFA;transform:rotate(40deg);"></span>
+            <span style="position:absolute;left:260px;top:66px;width:7px;height:7px;border-radius:9999px;background:#3DD68C;"></span>
+            <span style="position:absolute;left:150px;top:18px;width:8px;height:8px;border-radius:2px;background:#5B9DFF;transform:rotate(15deg);"></span>
+            <span style="position:absolute;left:210px;top:14px;width:7px;height:7px;border-radius:9999px;background:#E0A33E;"></span>
+            <span style="width:74px;height:74px;border-radius:20px;transform:rotate(45deg);background:#272040;border:2px solid #A78BFA;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px rgba(167,139,250,.12);"><span style="transform:rotate(-45deg);font-size:34px;">🚩</span></span>
+          </div>
+          <div style="padding:6px 24px 0;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#A78BFA;">Milestone reached</span>
+              <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#F4F4F2;">Site live 🎉</span>
+            </div>
+            <!-- recap -->
+            <div style="width:100%;background:#121214;border:1px solid #242428;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#A8E9C8;"><span style="width:18px;height:18px;border-radius:6px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">✓</span><span style="flex:1;text-align:left;">2 work packages · 7 tasks done</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#A8A8A4;"><span style="width:18px;height:18px;border-radius:6px;background:#242428;display:flex;align-items:center;justify-content:center;font-size:11px;">⏱</span><span style="flex:1;text-align:left;">18 hours over 5 days</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;color:#3DD68C;"><span style="width:18px;height:18px;border-radius:6px;background:#16352A;display:flex;align-items:center;justify-content:center;font-size:11px;">★</span><span style="flex:1;text-align:left;">+150 bonus points awarded</span></div>
+            </div>
+            <!-- what's next -->
+            <div style="width:100%;background:#1c1830;border:1px solid #3a2f63;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;text-align:left;"><span style="font-size:18px;">🚩</span><div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#A78BFA;">Next landmark</span><span style="font-size:13px;font-weight:800;color:#F4F4F2;">First 5 clients · ~3 weeks</span></div></div>
+            <!-- buttons -->
+            <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:2px;">
+              <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#0E0E10;background:#A78BFA;border:none;border-radius:13px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #7c5cfc;">See what's next →</button>
+              <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#A8A8A4;background:transparent;border:none;border-radius:11px;padding:8px;cursor:pointer;">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIGHT dialog -->
+    <div style="display:flex;flex-direction:column;gap:11px;">
+      <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.1em;color:#52525a;">E · LIGHT</span>
+      <div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid #242428;background:#EFEFEC;height:540px;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,#eaeae7 0 22px,#f1f1ef 22px 44px);opacity:.8;"></div>
+        <div style="position:absolute;inset:0;background:rgba(40,40,44,.32);backdrop-filter:blur(2px);"></div>
+        <div style="position:relative;width:360px;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:20px;padding:0 0 22px;box-shadow:0 30px 80px rgba(17,17,17,.25);overflow:hidden;">
+          <div style="position:relative;height:120px;background:linear-gradient(#F4F0FE,#FFFFFF);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <span style="position:absolute;left:34px;top:24px;width:9px;height:9px;border-radius:2px;background:#1F9D55;transform:rotate(20deg);"></span>
+            <span style="position:absolute;left:90px;top:50px;width:7px;height:7px;border-radius:9999px;background:#7C5CFC;"></span>
+            <span style="position:absolute;left:300px;top:30px;width:10px;height:10px;border-radius:2px;background:#7C5CFC;transform:rotate(40deg);"></span>
+            <span style="position:absolute;left:260px;top:66px;width:7px;height:7px;border-radius:9999px;background:#1F9D55;"></span>
+            <span style="position:absolute;left:150px;top:18px;width:8px;height:8px;border-radius:2px;background:#2D7FF9;transform:rotate(15deg);"></span>
+            <span style="position:absolute;left:210px;top:14px;width:7px;height:7px;border-radius:9999px;background:#C77A0A;"></span>
+            <span style="width:74px;height:74px;border-radius:20px;transform:rotate(45deg);background:#EEE9FE;border:2px solid #7C5CFC;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px rgba(124,92,252,.1);"><span style="transform:rotate(-45deg);font-size:34px;">🚩</span></span>
+          </div>
+          <div style="padding:6px 24px 0;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#6D4FE0;">Milestone reached</span>
+              <span style="font-size:24px;font-weight:900;letter-spacing:-.01em;color:#1A1A1A;">Site live 🎉</span>
+            </div>
+            <div style="width:100%;background:#FAFAF9;border:1px solid #E2E2DF;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:9px;">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#2c8a55;"><span style="width:18px;height:18px;border-radius:6px;background:#1F9D55;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">✓</span><span style="flex:1;text-align:left;">2 work packages · 7 tasks done</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#5C5C5A;"><span style="width:18px;height:18px;border-radius:6px;background:#F2F2F0;display:flex;align-items:center;justify-content:center;font-size:11px;">⏱</span><span style="flex:1;text-align:left;">18 hours over 5 days</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;color:#15803D;"><span style="width:18px;height:18px;border-radius:6px;background:#E4F5EC;display:flex;align-items:center;justify-content:center;font-size:11px;">★</span><span style="flex:1;text-align:left;">+150 bonus points awarded</span></div>
+            </div>
+            <div style="width:100%;background:#F4F0FE;border:1px solid #D9CCFD;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;text-align:left;"><span style="font-size:18px;">🚩</span><div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6D4FE0;">Next landmark</span><span style="font-size:13px;font-weight:800;color:#1A1A1A;">First 5 clients · ~3 weeks</span></div></div>
+            <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:2px;">
+              <button style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#FFFFFF;background:#7C5CFC;border:none;border-radius:13px;padding:13px;cursor:pointer;box-shadow:0 4px 0 #5b3fe0;">See what's next →</button>
+              <button style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#8A8A87;background:transparent;border:none;border-radius:11px;padding:8px;cursor:pointer;">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="max-width:1340px;margin:0 auto;padding-top:30px;border-top:1px solid #242428;display:flex;align-items:center;gap:10px;">
+    <span style="width:24px;height:24px;border-radius:7px;background:#3DD68C;display:flex;align-items:center;justify-content:center;color:#0E0E10;font-weight:900;font-size:12px;">▲</span>
+    <span style="font-size:12px;font-weight:700;color:#74747A;">TodoMapp Web Workspace · all screens from <span style="font-family:ui-monospace,monospace;color:#A8A8A4;">web-screens.md</span> · Earned Momentum design system</span>
+  </div>
+
+  <!-- @@APPEND@@ -->
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { pdView:'flow', todayOpen:false, sheetOpen:true };
+  renderVals(){
+    const setView = (v) => () => this.setState({ pdView:v });
+    const v = this.state.pdView;
+    const onBg='#242428', onFg='#F4F4F2', offBg='transparent', offFg='#74747A';
+    const hints={ flow:'Dependency graph · drag node handles to connect', timeline:'Same data on a horizontal time axis', table:'At-a-glance · sortable & filterable' };
+    return {
+      pdView:v,
+      isFlow:v==='flow',
+      isTimeline:v==='timeline',
+      isTable:v==='table',
+      flowBtnBg:v==='flow'?onBg:offBg, flowBtnFg:v==='flow'?onFg:offFg,
+      tlBtnBg:v==='timeline'?onBg:offBg, tlBtnFg:v==='timeline'?onFg:offFg,
+      tableBtnBg:v==='table'?onBg:offBg, tableBtnFg:v==='table'?onFg:offFg,
+      viewHint:hints[v],
+      sheetBtnLabel:this.state.sheetOpen?'Hide sheet →':'← Show WP sheet',
+      setFlow:setView('flow'), setTimeline:setView('timeline'), setTable:setView('table'),
+      todayOpen:this.state.todayOpen, todayClosed:!this.state.todayOpen,
+      todayHint:this.state.todayOpen?'tap to collapse ▴':'tap to expand ▾',
+      toggleToday:()=>this.setState(s=>({todayOpen:!s.todayOpen})),
+      sheetOpen:this.state.sheetOpen, sheetClosed:!this.state.sheetOpen,
+      toggleSheet:()=>this.setState(s=>({sheetOpen:!s.sheetOpen})),
+    };
+  }
+}
+</script>
+<script>
+(async () => {
+  // Prepend so page-supplied @page / break rules (deck-stage's margin:0,
+  // author CSS) keep source-order precedence over the baseline.
+  const baseCss = document.createElement('style');
+  baseCss.textContent = "@media print {\n  @page { margin: 0.5cm; }\n  html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }\n  section, article, figure, table { break-inside: avoid; }\n  *, *::before, *::after {\n    animation-delay: -99s !important; animation-duration: .001s !important;\n    animation-iteration-count: 1 !important; animation-fill-mode: both !important;\n    animation-play-state: running !important; transition-duration: 0s !important;\n  }\n}";
+  document.head.prepend(baseCss);
+  if (document.readyState === 'loading') {
+    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+  let ds = document.querySelector('deck-stage');
+  // whenDefined never resolves when nothing registers the element, so only
+  // await it when a <deck-stage> tag exists (and race a timeout regardless).
+  if (ds && !customElements.get('deck-stage')) {
+    try {
+      await Promise.race([
+        customElements.whenDefined('deck-stage'),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    } catch (e) {}
+    ds = document.querySelector('deck-stage');
+  }
+  // dc-runtime assigns window.DCLogic at init and mounts into #dc-root on
+  // DOMContentLoaded; settle on that subtree so React has rendered before
+  // print(). Non-DC pages fall through to weighing body.
+  const isDc = !ds && 'DCLogic' in window;
+  const settleRoot = ds || (isDc ? document.getElementById('dc-root') : null) || document.body;
+  if (settleRoot) {
+    // Weigh only content children — skip script/style/template so inline
+    // Babel/CSS doesn't register as stable "content" before the framework
+    // has mounted anything.
+    const MEDIA = 'img,svg,canvas,video,picture,iframe,embed,object';
+    const weigh = () => {
+      let text = 0, media = 0;
+      for (const c of settleRoot.children) {
+        const t = c.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+        text += (c.textContent || '').trim().length;
+        media += c.querySelectorAll(MEDIA).length + (c.matches(MEDIA) ? 1 : 0);
+      }
+      return text + media * 100;
+    };
+    // "Non-zero and stable" alone is not sufficient to mean rendered: generic
+    // body can carry a static shell while async main content is pending, and
+    // #dc-root can carry the root DC's static text while child refs are still
+    // .sc-placeholder boxes. Gate generic on readyState 'complete', and never
+    // accept stability while a dc-runtime placeholder is present.
+    const isGeneric = settleRoot === document.body;
+    const deadline = Date.now() + 15000;
+    let last = -1, stable = 0;
+    while (Date.now() < deadline) {
+      const n = weigh();
+      const ready =
+        (!isGeneric || document.readyState === 'complete') &&
+        !settleRoot.querySelector('.sc-placeholder');
+      if (n > 0 && n === last && ready) { if (++stable >= 2) break; } else { stable = 0; }
+      last = n;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  try { await document.fonts.ready; } catch (e) {}
+  // Jump every animation to its end state so print() never captures a slide
+  // mid-entrance. Ordering matters: the 0s-transition style must be live
+  // BEFORE data-deck-active is set so attribute-keyed transitions don't
+  // start a (now-0s) run from the pre-active base.
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}';
+  document.head.appendChild(st);
+  for (const d of document.querySelectorAll('deck-stage')) {
+    for (const c of d.children) {
+      const t = c.tagName;
+      if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+      c.setAttribute('data-deck-active', '');
+    }
+  }
+  try {
+    const sweep = () => {
+      for (const a of document.getAnimations()) {
+        try { a.finish(); } catch (e) {
+          try { a.currentTime = (a.effect && a.effect.getComputedTiming().duration) || 0; a.pause(); } catch (e2) {}
+        }
+      }
+    };
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+  } catch (e) {}
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 200);
+})();
+</script>
+</body>
+</html>

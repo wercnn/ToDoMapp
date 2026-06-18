@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#0C0C0E; -webkit-font-smoothing:antialiased; }
+  #trailScroll::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:radial-gradient(140% 100% at 18% -10%,#14211b 0%,#0C0C0E 55%);padding:40px 40px 60px;font-family:'Nunito',sans-serif;color:#F4F4F2;display:flex;flex-direction:column;align-items:center;">
+
+  <!-- HEADER -->
+  <div style="width:100%;max-width:1100px;margin-bottom:26px;">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#74747A;font-weight:700;">TodoMapp · iOS Companion</span>
+      <span style="color:#34343A;">/</span>
+      <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.01em;color:#F4F4F2;">Roadmap — Game-level trail</h1>
+      <a href="Companion - Roadmap Variations.dc.html" style="margin-left:auto;text-decoration:none;font-size:11px;font-weight:700;color:#A8A8A4;border:1px solid #2E2E33;border-radius:9999px;padding:5px 12px;">← Variations</a>
+    </div>
+    <p style="margin:12px 0 0;font-size:14px;line-height:21px;color:#A8A8A4;max-width:660px;font-weight:600;text-wrap:pretty;">Interactive prototype. <b style="color:#F4F4F2;">Future is up, past is down</b> — scroll the trail. <b style="color:#F4F4F2;">Tap any day</b> and a compact card pops up beside it with that day's goals (across all projects). Past days show what got done vs. missed. <b style="color:#F4F4F2;">Tap anywhere else to close.</b></p>
+  </div>
+
+  <!-- PHONE -->
+  <x-import component="IOSDevice" from="./ios-frame.jsx" dark="true" hint-size="402px,874px">
+    <div style="height:100%;background:#0E0E10;font-family:'Nunito',sans-serif;display:flex;flex-direction:column;overflow:hidden;">
+
+      <!-- screen header -->
+      <div style="padding:54px 20px 12px;border-bottom:1px solid #1b1b1e;flex:none;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#74747A;">ROADMAP · GOAL</div>
+        <div style="font-size:20px;font-weight:800;color:#F4F4F2;margin-top:3px;letter-spacing:-0.01em;">Launch freelance practice</div>
+        <div style="font-size:12px;font-weight:600;color:#A8A8A4;margin-top:2px;">Tap a day for its goals · scroll for past &amp; future</div>
+      </div>
+
+      <!-- trail + popover -->
+      <div data-viewport="trail" style="position:relative;flex:1;overflow:hidden;">
+        <div id="trailScroll" style="height:100%;overflow-y:auto;">
+          <div style="{{ trailWrapStyle }}">
+            <div style="display:flex;flex-direction:column;align-items:center;padding:8px 0 14px;">
+              <sc-for list="{{ nodes }}" as="nd" hint-placeholder-count="7">
+                <sc-if value="{{ nd.isHint }}" hint-placeholder-val="{{ false }}">
+                  <div style="{{ nd.hintStyle }}">{{ nd.text }}</div>
+                </sc-if>
+                <sc-if value="{{ nd.isDay }}" hint-placeholder-val="{{ true }}">
+                  <div style="{{ nd.connectorStyle }}"></div>
+                  <button id="{{ nd.domId }}" data-daybtn data-day="{{ nd.dayId }}" onClick="{{ nd.select }}" style="{{ nd.bubbleStyle }}">{{ nd.glyph }}</button>
+                  <div style="{{ nd.captionStyle }}">{{ nd.caption }}</div>
+                </sc-if>
+                <sc-if value="{{ nd.isMilestone }}" hint-placeholder-val="{{ false }}">
+                  <div style="{{ nd.connectorStyle }}"></div>
+                  <button data-daybtn data-day="{{ nd.dayId }}" onClick="{{ nd.select }}" style="{{ nd.bubbleStyle }}">★</button>
+                  <div style="{{ nd.captionStyle }}">{{ nd.caption }}</div>
+                </sc-if>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- anchored popover -->
+        <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+          <div data-popup="trail" style="{{ popStyle }}">
+            <div style="position:absolute;left:-7px;top:50%;width:14px;height:14px;background:#161619;border-left:1px solid #2E2E33;border-bottom:1px solid #2E2E33;transform:translateY(-50%) rotate(45deg);"></div>
+            <div style="position:relative;display:flex;flex-direction:column;max-height:62vh;">
+              <div style="display:flex;align-items:flex-start;gap:8px;padding:13px 13px 10px;border-bottom:1px solid #242428;flex:none;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:16px;font-weight:800;color:#F4F4F2;">{{ sel.label }}</div>
+                  <div style="font-size:11px;font-weight:600;color:#A8A8A4;margin-top:1px;line-height:15px;">{{ sel.date }}</div>
+                </div>
+                <span style="{{ sel.chipStyle }}">{{ sel.chipText }}</span>
+              </div>
+              <div style="overflow-y:auto;padding:11px 12px 13px;">
+                <sc-if value="{{ sel.isMilestone }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11.5px;font-weight:600;line-height:17px;color:#cdbdfb;background:#1c1830;border:1px solid #3a2f63;border-radius:11px;padding:10px;margin-bottom:11px;">Lights up when every work package below is done. <b style="color:#A78BFA;">Proposed</b> until you approve the days that feed it.</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <sc-for list="{{ sel.wps }}" as="wp" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:9px;padding:8px 9px;background:#1A1A1D;border:1px solid #242428;border-radius:10px;">
+                        <span style="width:18px;height:18px;flex:none;border-radius:6px;background:#1c1830;border:2px dashed #A78BFA;color:#A78BFA;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">◇</span>
+                        <span style="flex:1;font-size:13px;font-weight:700;color:#F4F4F2;line-height:17px;">{{ wp }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ sel.isDay }}" hint-placeholder-val="{{ true }}">
+                  <sc-for list="{{ sel.groups }}" as="grp" hint-placeholder-count="2">
+                    <div style="margin-bottom:11px;">
+                      <div style="font-size:9px;font-weight:800;letter-spacing:.07em;color:#74747A;margin-bottom:6px;">{{ grp.project }}</div>
+                      <div style="display:flex;flex-direction:column;gap:6px;">
+                        <sc-for list="{{ grp.tasks }}" as="tk" hint-placeholder-count="1">
+                          <div style="display:flex;align-items:center;gap:9px;padding:8px 9px;background:#1A1A1D;border:1px solid #242428;border-radius:10px;">
+                            <span style="{{ tk.markerStyle }}">{{ tk.glyph }}</span>
+                            <span style="{{ tk.titleStyle }}">{{ tk.title }}</span>
+                            <sc-if value="{{ tk.hasTag }}" hint-placeholder-val="{{ false }}"><span style="{{ tk.tagStyle }}">{{ tk.tag }}</span></sc-if>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </x-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { selected: null, popTop: 320 };
+
+  select(){ /* unused */ }
+  close(){ this.setState({ selected: null }); }
+
+  selectDay(id, e){
+    const vp = e.currentTarget.closest('[data-viewport]');
+    const r = e.currentTarget.getBoundingClientRect(), vr = vp.getBoundingClientRect();
+    const top = Math.max(140, Math.min(vr.height - 140, r.top - vr.top + r.height/2));
+    this.setState({ selected: id, popTop: top });
+  }
+
+  componentDidMount(){
+    const c = document.getElementById('trailScroll');
+    setTimeout(() => {
+      const t = document.getElementById('todayNode');
+      if (c && t){
+        const cR = c.getBoundingClientRect(), tR = t.getBoundingClientRect();
+        c.scrollTop += (tR.top - cR.top) - (c.clientHeight/2 - tR.height/2);
+      }
+    }, 160);
+
+    this._onDoc = (e) => {
+      if (this.state.selected == null) return;
+      const t = e.target;
+      if (t.closest && (t.closest('[data-popup="trail"]') || t.closest('[data-daybtn]'))) return;
+      this.setState({ selected: null });
+    };
+    document.addEventListener('click', this._onDoc);
+
+    this._reposition = () => {
+      const id = this.state.selected;
+      if (id == null) return;
+      const vp = document.querySelector('[data-viewport="trail"]');
+      const bb = vp && vp.querySelector('[data-day="' + id + '"]');
+      const pop = document.querySelector('[data-popup="trail"]');
+      if (vp && bb && pop){
+        const r = bb.getBoundingClientRect(), vr = vp.getBoundingClientRect();
+        const top = Math.max(140, Math.min(vr.height - 140, r.top - vr.top + r.height/2));
+        pop.style.top = top + 'px';
+      }
+    };
+    if (c) c.addEventListener('scroll', this._reposition, { passive:true });
+  }
+
+  componentWillUnmount(){
+    if (this._onDoc) document.removeEventListener('click', this._onDoc);
+    const c = document.getElementById('trailScroll');
+    if (c && this._reposition) c.removeEventListener('scroll', this._reposition);
+  }
+
+  renderVals(){
+    const NODES = [
+      { type:'hint', id:'h-top', text:'↑  LATER' },
+      { type:'day', id:16, n:16, date:'Tue · Jun 17', status:'proposed', tasks:[
+        { p:'Portfolio website', t:'Polish & QA pass', s:'proposed' } ] },
+      { type:'milestone', id:'ms', name:'Design phase', status:'proposed',
+        wps:['Case-study pages','The Work page','Visual polish & QA'] },
+      { type:'day', id:15, n:15, date:'Mon · Jun 16', status:'proposed', tasks:[
+        { p:'Portfolio website', t:'Case study #2 draft', s:'proposed' },
+        { p:'Acme (client)', t:'Present logo to client', s:'proposed' } ] },
+      { type:'day', id:14, n:14, date:'Sun · Jun 15', status:'proposed', tasks:[
+        { p:'Portfolio website', t:'Build the Work page', s:'proposed' },
+        { p:'Outreach', t:'Send 2 follow-up proposals', s:'proposed' } ] },
+      { type:'day', id:13, n:13, date:'Sat · Jun 14', status:'confirmed', tasks:[
+        { p:'Portfolio website', t:'Pick 6 portfolio shots', s:'confirmed' },
+        { p:'Acme (client)', t:'Logo concepts v2', s:'confirmed' } ] },
+      { type:'day', id:12, n:12, date:'Today · Jun 13', status:'today', tasks:[
+        { p:'Portfolio website', t:'Write case study #1 draft', s:'done' },
+        { p:'Portfolio website', t:'Wireframe the Work page', s:'todo' },
+        { p:'Outreach', t:'Reply to 3 prospects', s:'todo' } ] },
+      { type:'day', id:11, n:11, date:'Wed · Jun 11', status:'done', tasks:[
+        { p:'Portfolio website', t:'Case study outline', s:'done' },
+        { p:'Acme (client)', t:'Reply with timeline', s:'done' } ] },
+      { type:'day', id:10, n:10, date:'Tue · Jun 10', status:'done', tasks:[
+        { p:'Portfolio website', t:'Home page layout', s:'done' },
+        { p:'Acme (client)', t:'Kickoff + moodboard', s:'done' } ] },
+      { type:'day', id:9, n:9, date:'Mon · Jun 9', status:'slipped', tasks:[
+        { p:'Portfolio website', t:'Write the About copy', s:'done' },
+        { p:'Outreach', t:'Email first 5 leads', s:'missed' } ] },
+      { type:'day', id:8, n:8, date:'Sun · Jun 8', status:'done', tasks:[
+        { p:'Portfolio website', t:'Initialize the site repo', s:'done' },
+        { p:'Outreach', t:'Build lead list (20)', s:'done' } ] },
+      { type:'hint', id:'h-bot', text:'EARLIER  ↓' },
+    ];
+
+    const selId = this.state.selected;
+    const open = selId !== null && selId !== undefined;
+    const captionBase = { width:148, textAlign:'center', fontSize:11, marginTop:7, lineHeight:'15px', fontWeight:700 };
+
+    const connFor = (status) => {
+      if (status === 'proposed') return { width:0, height:30, borderLeft:'4px dashed #6d5cb0' };
+      if (status === 'confirmed') return { width:4, height:30, background:'#2E2E33', borderRadius:2 };
+      return { width:4, height:30, background:'#3DD68C', borderRadius:2 };
+    };
+
+    const bubbleFor = (status, n, selected) => {
+      const base = { width:54, height:54, borderRadius:9999, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Nunito',sans-serif", fontWeight:800, fontSize:18, cursor:'pointer', border:'none', flex:'none', padding:0, transition:'transform .15s ease' };
+      let glyph = String(n);
+      if (status === 'done'){ Object.assign(base, { background:'#3DD68C', color:'#0E0E10', boxShadow:'0 4px 0 #2aa86c' }); glyph='✓'; }
+      else if (status === 'today'){ Object.assign(base, { width:66, height:66, fontSize:23, background:'radial-gradient(circle at 50% 38%,#5fe3a4,#1f9d63)', color:'#0B2A1C', boxShadow:'0 5px 0 #167a45, 0 0 0 7px rgba(61,214,140,0.12)' }); }
+      else if (status === 'confirmed'){ Object.assign(base, { background:'#242428', color:'#A8A8A4', border:'2px solid #34343A' }); }
+      else if (status === 'proposed'){ Object.assign(base, { background:'#1c1830', color:'#A78BFA', border:'2px dashed #A78BFA' }); }
+      else if (status === 'slipped'){ Object.assign(base, { background:'#1A1A1D', color:'#A8A8A4', border:'2px dashed #5a5a62' }); }
+      if (selected){ base.boxShadow = (base.boxShadow ? base.boxShadow + ',' : '') + '0 0 0 4px rgba(244,244,242,0.22)'; base.transform = 'scale(1.05)'; }
+      return { base, glyph };
+    };
+
+    const nodes = NODES.map(nd => {
+      if (nd.type === 'hint'){
+        return { isHint:true, isDay:false, isMilestone:false, text:nd.text,
+          hintStyle:{ fontSize:10, fontWeight:800, letterSpacing:'.14em', color:'#5a5a60', padding:'8px 0' } };
+      }
+      const selected = selId === nd.id;
+      if (nd.type === 'milestone'){
+        return { isHint:false, isDay:false, isMilestone:true, dayId:nd.id, select:(e)=>this.selectDay(nd.id, e),
+          connectorStyle:{ width:0, height:30, borderLeft:'4px dashed #6d5cb0' },
+          bubbleStyle:{ width:62, height:62, borderRadius:18, display:'flex', alignItems:'center', justifyContent:'center', fontSize:29, color:'#A78BFA', background:'#1c1830', border:'2px solid #A78BFA', cursor:'pointer', flex:'none', fontFamily:"'Nunito',sans-serif", boxShadow: selected ? '0 0 0 4px rgba(167,139,250,0.30)' : '0 0 22px rgba(167,139,250,0.22)' },
+          caption: nd.name + ' · milestone',
+          captionStyle:{ ...captionBase, fontWeight:800, color:'#cdbdfb' } };
+      }
+      const count = nd.tasks.length;
+      const b = bubbleFor(nd.status, nd.n, selected);
+      const cap = (nd.status === 'today' ? 'Today' : nd.date) + ' · ' + count + (count === 1 ? ' goal' : ' goals');
+      return { isHint:false, isDay:true, isMilestone:false, dayId:nd.id, select:(e)=>this.selectDay(nd.id, e),
+        domId: nd.status === 'today' ? 'todayNode' : '',
+        connectorStyle: connFor(nd.status), bubbleStyle: b.base, glyph: b.glyph,
+        caption: cap, captionStyle:{ ...captionBase, color: nd.status === 'today' ? '#3DD68C' : '#8a8a88' } };
+    });
+
+    const chip = (fg, bg) => ({ fontSize:9, fontWeight:800, letterSpacing:'.06em', color:fg, background:bg, borderRadius:9999, padding:'4px 9px', whiteSpace:'nowrap', flex:'none' });
+
+    const taskDisp = (t) => {
+      const mBase = { width:21, height:21, borderRadius:7, flex:'none', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800 };
+      let markerStyle, glyph='', titleColor='#F4F4F2', strike=false, tag='', tagStyle=null;
+      if (t.s === 'done'){ markerStyle={ ...mBase, background:'#3DD68C', color:'#0E0E10' }; glyph='✓'; titleColor='#A8E9C8'; strike=true; }
+      else if (t.s === 'missed'){ markerStyle={ ...mBase, background:'transparent', border:'2px dashed #E0A33E' }; titleColor='#A8A8A4'; tag='Missed'; tagStyle=chip('#E0A33E','#33270f'); }
+      else if (t.s === 'todo'){ markerStyle={ ...mBase, background:'transparent', border:'2px solid #45454C' }; }
+      else if (t.s === 'confirmed'){ markerStyle={ ...mBase, background:'#242428', border:'2px solid #34343A' }; }
+      else { markerStyle={ ...mBase, background:'#1c1830', border:'2px dashed #A78BFA', color:'#A78BFA' }; glyph='◇'; }
+      return { markerStyle, glyph, title:t.t, hasTag: !!tag, tag, tagStyle,
+        titleStyle:{ flex:1, fontSize:13, fontWeight:700, color:titleColor, lineHeight:'17px', textDecoration: strike ? 'line-through' : 'none' } };
+    };
+
+    let sel = { isDay:false, isMilestone:false, label:'', date:'', chipText:'', chipStyle:{ display:'none' }, groups:[], wps:[] };
+    if (open){
+      const node = NODES.find(x => x.id === selId);
+      if (node && node.type === 'milestone'){
+        sel = { isDay:false, isMilestone:true, label:node.name, date:'Lights up when its work packages are done',
+          chipText:'◇ PROPOSED', chipStyle: chip('#A78BFA','#272040'), groups:[], wps:node.wps };
+      } else if (node){
+        const order = [], map = {};
+        node.tasks.forEach(t => { if (!map[t.p]){ map[t.p]=[]; order.push(t.p); } map[t.p].push(t); });
+        const groups = order.map(pj => ({ project:pj, tasks: map[pj].map(taskDisp) }));
+        const chips = {
+          done:['✓ COMPLETED', chip('#3DD68C','#16352A')],
+          today:['● TODAY', chip('#3DD68C','#16352A')],
+          confirmed:['CONFIRMED', chip('#A8A8A4','#242428')],
+          proposed:['◇ PROPOSED', chip('#A78BFA','#272040')],
+          slipped:['NEEDS RECOVERY', chip('#E0A33E','#33270f')],
+        };
+        const c = chips[node.status];
+        sel = { isDay:true, isMilestone:false, label:'Day ' + node.n, date:node.date, chipText:c[0], chipStyle:c[1], groups, wps:[] };
+      }
+    }
+
+    return {
+      nodes, sel, panelOpen: open, close: () => this.close(),
+      trailWrapStyle: { transition:'transform .4s cubic-bezier(.4,0,.2,1)', transform: open ? 'translateX(-72px)' : 'translateX(0)' },
+      popStyle: { position:'absolute', right:12, top:this.state.popTop, transform:'translateY(-50%)', width:218, background:'#161619', border:'1px solid #2E2E33', borderRadius:16, boxShadow:'0 16px 40px rgba(0,0,0,0.55)', zIndex:8 },
+    };
+  }
+}
+</script>
+</body>
+</html>

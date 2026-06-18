@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#16161A; -webkit-font-smoothing:antialiased; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#16161A;padding:44px 40px 80px;font-family:'Nunito',sans-serif;color:#F4F4F2;">
+
+  <!-- ============ PAGE HEADER ============ -->
+  <div style="max-width:1320px;margin:0 auto 34px;">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">TodoMapp</span>
+      <span style="color:#34343A;">/</span>
+      <h1 style="margin:0;font-size:30px;font-weight:900;letter-spacing:-0.02em;color:#F4F4F2;">Earned Momentum</h1>
+      <span style="font-size:11px;font-weight:800;color:#3DD68C;background:#16352A;border-radius:9999px;padding:5px 12px;">Primary design system</span>
+    </div>
+    <p style="margin:13px 0 0;font-size:15px;line-height:23px;font-weight:600;color:#A8A8A4;max-width:780px;text-wrap:pretty;">Duolingo-inflected and tactile — rounded, chunky, momentum you can feel. One system, two themes: surface-lightness carries elevation in dark; soft low-spread shadows carry it in light. Green is <span style="color:#3DD68C;">your reality</span>, lilac is <span style="color:#A78BFA;">what the system proposes</span>. Slippage is never red.</p>
+  </div>
+
+  <!-- ============ FOUNDATIONS ============ -->
+  <div style="max-width:1320px;margin:0 auto 14px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Foundations</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+
+  <div style="max-width:1320px;margin:0 auto 38px;display:grid;grid-template-columns:1.15fr 1fr;gap:16px;">
+
+    <!-- neutral ramps (both themes) -->
+    <div style="background:#1C1C20;border:1px solid #2A2A2E;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:16px;">
+      <span style="font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Neutral ramp · both themes</span>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <span style="font-size:11px;font-weight:800;color:#A8A8A4;">Dark — warm charcoal</span>
+        <div style="display:flex;gap:7px;">
+          <div style="flex:1;height:38px;border-radius:9px;background:#0E0E10;border:1px solid #2E2E33;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#1A1A1D;border:1px solid #2E2E33;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#242428;border:1px solid #2E2E33;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#2E2E33;border:1px solid #45454C;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#45454C;"></div>
+        </div>
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;">#0E0E10 → #45454C</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <span style="font-size:11px;font-weight:800;color:#A8A8A4;">Light — warm off-white</span>
+        <div style="display:flex;gap:7px;">
+          <div style="flex:1;height:38px;border-radius:9px;background:#FFFFFF;border:1px solid #E2E2DF;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#FAFAF9;border:1px solid #E2E2DF;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#F2F2F0;border:1px solid #E2E2DF;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#E8E8E6;border:1px solid #E2E2DF;"></div>
+          <div style="flex:1;height:38px;border-radius:9px;background:#CFCFCB;"></div>
+        </div>
+        <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:#74747A;">#FFFFFF → #CFCFCB</span>
+      </div>
+    </div>
+
+    <!-- two accents (both themes) -->
+    <div style="background:#1C1C20;border:1px solid #2A2A2E;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+      <span style="font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">The two-accent rule</span>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <div style="display:flex;align-items:center;gap:11px;">
+          <span style="width:30px;height:30px;border-radius:9px;background:#3DD68C;flex:none;"></span>
+          <span style="width:30px;height:30px;border-radius:9px;background:#1F9D55;flex:none;"></span>
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <span style="font-size:13px;font-weight:800;color:#F4F4F2;">Green — your reality</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">dark #3DD68C · light #1F9D55</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;">
+          <span style="width:30px;height:30px;border-radius:9px;background:#A78BFA;flex:none;"></span>
+          <span style="width:30px;height:30px;border-radius:9px;background:#7C5CFC;flex:none;"></span>
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <span style="font-size:13px;font-weight:800;color:#F4F4F2;">Lilac — the system proposes</span>
+            <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">dark #A78BFA · light #7C5CFC</span>
+          </div>
+        </div>
+      </div>
+      <span style="font-size:12px;font-weight:600;line-height:18px;color:#A8A8A4;">Confirming a proposal is, visually, <span style="color:#A78BFA;font-weight:800;">lilac</span> → <span style="color:#3DD68C;font-weight:800;">green</span>.</span>
+    </div>
+  </div>
+
+  <!-- type + shape -->
+  <div style="max-width:1320px;margin:0 auto 44px;display:grid;grid-template-columns:1.15fr 1fr;gap:16px;">
+    <!-- type scale -->
+    <div style="background:#1C1C20;border:1px solid #2A2A2E;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+      <span style="font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Type · Nunito</span>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <span style="font-size:34px;font-weight:900;letter-spacing:-0.02em;line-height:1;color:#F4F4F2;">Milestone reached</span>
+          <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;flex:none;">900 · 34/-2%</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <span style="font-size:20px;font-weight:800;color:#F4F4F2;">Portfolio website</span>
+          <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">800 · 20</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <span style="font-size:15px;font-weight:700;color:#F4F4F2;">Write the case-study draft and ship it.</span>
+          <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">700 · 15</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <span style="font-size:13px;font-weight:600;color:#A8A8A4;">Secondary — labels &amp; metadata</span>
+          <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">600 · 13</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:600;color:#74747A;">4h · +50 pts · 7-day streak</span>
+          <span style="font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">mono · metrics</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- shape & elevation -->
+    <div style="background:#1C1C20;border:1px solid #2A2A2E;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:16px;">
+      <span style="font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#74747A;">Shape &amp; depth</span>
+      <div style="display:flex;align-items:flex-end;gap:10px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <span style="width:46px;height:46px;border-radius:9px;background:#242428;border:1px solid #34343A;"></span>
+          <span style="font-family:ui-monospace,monospace;font-size:9px;font-weight:600;color:#74747A;">9</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <span style="width:46px;height:46px;border-radius:14px;background:#242428;border:1px solid #34343A;"></span>
+          <span style="font-family:ui-monospace,monospace;font-size:9px;font-weight:600;color:#74747A;">14</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <span style="width:46px;height:46px;border-radius:18px;background:#242428;border:1px solid #34343A;"></span>
+          <span style="font-family:ui-monospace,monospace;font-size:9px;font-weight:600;color:#74747A;">18</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <span style="width:46px;height:46px;border-radius:9999px;background:#242428;border:1px solid #34343A;"></span>
+          <span style="font-family:ui-monospace,monospace;font-size:9px;font-weight:600;color:#74747A;">full</span>
+        </div>
+      </div>
+      <span style="font-size:12px;font-weight:600;line-height:18px;color:#A8A8A4;">Chunky radii throughout. Primary buttons carry a <span style="color:#F4F4F2;font-weight:800;">3D bottom edge</span> that presses on tap.</span>
+    </div>
+  </div>
+
+  <!-- ============ COMPONENTS · DARK + LIGHT ============ -->
+  <div style="max-width:1320px;margin:0 auto 14px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:12px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#74747A;">Components · both themes</span>
+    <span style="flex:1;height:1px;background:#2A2A2E;"></span>
+  </div>
+
+  <div style="max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+
+    <!-- ================= DARK THEME ================= -->
+    <section data-screen-label="Dark theme" style="display:flex;flex-direction:column;background:#121214;border:1px solid #2A2A2E;border-radius:22px;overflow:hidden;">
+      <div style="padding:18px 22px;border-bottom:1px solid #242428;background:#0E0E10;display:flex;align-items:center;gap:10px;">
+        <span style="width:13px;height:13px;border-radius:9999px;background:#0E0E10;border:2px solid #45454C;"></span>
+        <h2 style="margin:0;font-size:17px;font-weight:900;letter-spacing:-0.01em;color:#F4F4F2;">Dark</h2>
+        <span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#74747A;">bg #0E0E10</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:26px;padding:24px;">
+
+        <!-- two-accent cards -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#74747A;font-weight:800;">Two-accent cards</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:#16352A;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#3DD68C;"><span style="width:11px;height:11px;border-radius:9999px;background:#3DD68C;"></span>Progress</span>
+              <span style="font-size:11px;line-height:16px;font-weight:600;color:#A8E9C8;">Done, streak, the path filled in.</span>
+              <span style="align-self:flex-start;font-size:11px;font-weight:800;color:#0E0E10;background:#3DD68C;border-radius:9999px;padding:3px 11px;">✓ Done</span>
+            </div>
+            <div style="background:#272040;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#A78BFA;"><span style="width:11px;height:11px;border-radius:9999px;background:#A78BFA;"></span>System</span>
+              <span style="font-size:11px;line-height:16px;font-weight:600;color:#cdbdfb;">Proposals, awaiting your call.</span>
+              <span style="align-self:flex-start;font-size:11px;font-weight:800;color:#0E0E10;background:#A78BFA;border-radius:9999px;padding:3px 11px;">◇ Proposed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- status tokens -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#74747A;font-weight:800;">Status tokens</span>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#A8A8A4;background:#242428;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;border:2px solid #74747A;"></span>Open</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#9cc3ff;background:#1b2f4d;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;background:#5B9DFF;"></span>In progress</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#E0A33E;background:#3a2c12;border-radius:9999px;padding:5px 11px;">△ Blocked</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#3DD68C;background:#16352A;border-radius:9999px;padding:5px 11px;">✓ Done</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#A78BFA;background:#272040;border-radius:9999px;padding:5px 11px;">◇ Proposed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#F4F4F2;background:#2E2E33;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;background:#F4F4F2;"></span>Confirmed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#9a9a96;background:#1A1A1D;border:1.5px dashed #45454C;border-radius:9999px;padding:4px 11px;">◌ Slipped</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#A8A8A4;background:#1A1A1D;border:1.5px solid #45454C;border-radius:9999px;padding:4px 11px;">◆ Time-fixed</span>
+          </div>
+          <span style="font-size:10px;font-weight:600;color:#74747A;line-height:15px;">Bold pills, glanceable at arm's length. Glyph + color stays colorblind-safe.</span>
+        </div>
+
+        <!-- task rows -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#74747A;font-weight:800;">Workspace · task &amp; day-steps</span>
+          <sc-if value="{{ todoD }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ toggleD }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:#1A1A1D;border:1px solid #2E2E33;border-radius:14px;cursor:pointer;">
+              <span style="width:22px;height:22px;border-radius:8px;border:2px solid #45454C;flex:none;"></span>
+              <span style="flex:1;font-size:14px;font-weight:700;color:#F4F4F2;">Write case study #1 draft</span>
+              <span style="font-family:ui-monospace,monospace;font-size:11px;color:#74747A;">2h</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ doneD }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ toggleD }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:#16352A;border:1px solid #2bbd7c;border-radius:14px;cursor:pointer;">
+              <span style="width:22px;height:22px;border-radius:8px;background:#3DD68C;color:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;">✓</span>
+              <span style="flex:1;font-size:14px;font-weight:700;color:#A8E9C8;text-decoration:line-through;">Write case study #1 draft</span>
+              <span style="font-size:11px;font-weight:800;color:#0E0E10;background:#3DD68C;border-radius:9999px;padding:2px 9px;">+10</span>
+            </div>
+          </sc-if>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px;">
+            <div style="background:#1c1830;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#A78BFA;">Tue · Proposed</span>
+              <span style="height:5px;border-radius:9999px;background:#3a2f63;"></span>
+              <span style="height:5px;width:70%;border-radius:9999px;background:#3a2f63;"></span>
+            </div>
+            <div style="background:#1A1A1D;border:1px solid #34343A;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#F4F4F2;">Wed · Confirmed</span>
+              <span style="height:5px;border-radius:9999px;background:#34343A;"></span>
+              <span style="height:5px;width:55%;border-radius:9999px;background:#34343A;"></span>
+            </div>
+            <div style="background:#16352A;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#3DD68C;">Mon · Done</span>
+              <span style="height:5px;border-radius:9999px;background:#3DD68C;"></span>
+              <span style="height:5px;border-radius:9999px;background:#3DD68C;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- companion -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#74747A;font-weight:800;">Companion · streak &amp; actions</span>
+          <div style="display:flex;align-items:center;gap:13px;background:#16352A;border-radius:16px;padding:14px 16px;">
+            <div style="width:52px;height:52px;border-radius:9999px;flex:none;background:conic-gradient(#3DD68C 252deg,#0e2b20 0);display:flex;align-items:center;justify-content:center;">
+              <div style="width:40px;height:40px;border-radius:9999px;background:#0E0E10;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#3DD68C;">7</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;">
+              <span style="font-size:15px;font-weight:800;color:#F4F4F2;">7-day streak 🔥</span>
+              <span style="font-size:11px;font-weight:600;color:#A8E9C8;">Engaged today · keep it alive</span>
+            </div>
+            <span style="margin-left:auto;font-size:22px;font-weight:800;color:#3DD68C;">320</span>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:3px;">
+            <button style="flex:1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#0E0E10;background:#3DD68C;border:none;border-radius:14px;padding:12px;cursor:pointer;box-shadow:0 4px 0 #2aa86c;" style-hover="background:#52e09b" style-active="transform:translateY(3px);box-shadow:0 1px 0 #2aa86c">Confirm</button>
+            <button style="flex:1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#0E0E10;background:#A78BFA;border:none;border-radius:14px;padding:12px;cursor:pointer;box-shadow:0 4px 0 #7c5cfc;" style-hover="background:#b79dfb" style-active="transform:translateY(3px);box-shadow:0 1px 0 #7c5cfc">Review</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= LIGHT THEME ================= -->
+    <section data-screen-label="Light theme" style="display:flex;flex-direction:column;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:22px;overflow:hidden;box-shadow:0 1px 2px rgba(17,17,17,0.04),0 6px 22px rgba(17,17,17,0.06);">
+      <div style="padding:18px 22px;border-bottom:1px solid #ECECEA;background:#FAFAF9;display:flex;align-items:center;gap:10px;">
+        <span style="width:13px;height:13px;border-radius:9999px;background:#FFFFFF;border:2px solid #CFCFCB;"></span>
+        <h2 style="margin:0;font-size:17px;font-weight:900;letter-spacing:-0.01em;color:#1A1A1A;">Light</h2>
+        <span style="margin-left:auto;font-family:ui-monospace,monospace;font-size:10px;font-weight:600;color:#8A8A87;">bg #EFEFEC</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:26px;padding:24px;background:#EFEFEC;">
+
+        <!-- two-accent cards -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A87;font-weight:800;">Two-accent cards</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:#E4F5EC;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#15803D;"><span style="width:11px;height:11px;border-radius:9999px;background:#1F9D55;"></span>Progress</span>
+              <span style="font-size:11px;line-height:16px;font-weight:600;color:#2c8a55;">Done, streak, the path filled in.</span>
+              <span style="align-self:flex-start;font-size:11px;font-weight:800;color:#FFFFFF;background:#1F9D55;border-radius:9999px;padding:3px 11px;">✓ Done</span>
+            </div>
+            <div style="background:#EEE9FE;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:7px;">
+              <span style="display:flex;align-items:center;gap:7px;font-size:14px;font-weight:800;color:#6D4FE0;"><span style="width:11px;height:11px;border-radius:9999px;background:#7C5CFC;"></span>System</span>
+              <span style="font-size:11px;line-height:16px;font-weight:600;color:#6d5cb0;">Proposals, awaiting your call.</span>
+              <span style="align-self:flex-start;font-size:11px;font-weight:800;color:#FFFFFF;background:#7C5CFC;border-radius:9999px;padding:3px 11px;">◇ Proposed</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- status tokens -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A87;font-weight:800;">Status tokens</span>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#5C5C5A;background:#E8E8E6;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;border:2px solid #8A8A87;"></span>Open</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#2D7FF9;background:#DCEAFF;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;background:#2D7FF9;"></span>In progress</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#C77A0A;background:#F8E8C8;border-radius:9999px;padding:5px 11px;">△ Blocked</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#15803D;background:#D8F0E2;border-radius:9999px;padding:5px 11px;">✓ Done</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6D4FE0;background:#E6DDFE;border-radius:9999px;padding:5px 11px;">◇ Proposed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#1A1A1A;background:#E8E8E6;border-radius:9999px;padding:5px 11px;"><span style="width:8px;height:8px;border-radius:9999px;background:#1A1A1A;"></span>Confirmed</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#8A8A87;background:#FFFFFF;border:1.5px dashed #CFCFCB;border-radius:9999px;padding:4px 11px;">◌ Slipped</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#5C5C5A;background:#FFFFFF;border:1.5px solid #CFCFCB;border-radius:9999px;padding:4px 11px;">◆ Time-fixed</span>
+          </div>
+          <span style="font-size:10px;font-weight:600;color:#8A8A87;line-height:15px;">Bold pills, glanceable at arm's length. Glyph + color stays colorblind-safe.</span>
+        </div>
+
+        <!-- task rows -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A87;font-weight:800;">Workspace · task &amp; day-steps</span>
+          <sc-if value="{{ todoL }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ toggleL }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:#FFFFFF;border:1px solid #E2E2DF;border-radius:14px;cursor:pointer;">
+              <span style="width:22px;height:22px;border-radius:8px;border:2px solid #CFCFCB;flex:none;"></span>
+              <span style="flex:1;font-size:14px;font-weight:700;color:#1A1A1A;">Write case study #1 draft</span>
+              <span style="font-family:ui-monospace,monospace;font-size:11px;color:#8A8A87;">2h</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ doneL }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ toggleL }}" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:#E4F5EC;border:1px solid #9bd9b6;border-radius:14px;cursor:pointer;">
+              <span style="width:22px;height:22px;border-radius:8px;background:#1F9D55;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;">✓</span>
+              <span style="flex:1;font-size:14px;font-weight:700;color:#2c8a55;text-decoration:line-through;">Write case study #1 draft</span>
+              <span style="font-size:11px;font-weight:800;color:#FFFFFF;background:#1F9D55;border-radius:9999px;padding:2px 9px;">+10</span>
+            </div>
+          </sc-if>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px;">
+            <div style="background:#F4F0FE;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#6D4FE0;">Tue · Proposed</span>
+              <span style="height:5px;border-radius:9999px;background:#D9CCFD;"></span>
+              <span style="height:5px;width:70%;border-radius:9999px;background:#D9CCFD;"></span>
+            </div>
+            <div style="background:#FFFFFF;border:1px solid #E2E2DF;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#1A1A1A;">Wed · Confirmed</span>
+              <span style="height:5px;border-radius:9999px;background:#E2E2DF;"></span>
+              <span style="height:5px;width:55%;border-radius:9999px;background:#E2E2DF;"></span>
+            </div>
+            <div style="background:#E4F5EC;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:10px;font-weight:800;color:#15803D;">Mon · Done</span>
+              <span style="height:5px;border-radius:9999px;background:#1F9D55;"></span>
+              <span style="height:5px;border-radius:9999px;background:#1F9D55;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- companion -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8A8A87;font-weight:800;">Companion · streak &amp; actions</span>
+          <div style="display:flex;align-items:center;gap:13px;background:#E4F5EC;border-radius:16px;padding:14px 16px;">
+            <div style="width:52px;height:52px;border-radius:9999px;flex:none;background:conic-gradient(#1F9D55 252deg,#c4e9d3 0);display:flex;align-items:center;justify-content:center;">
+              <div style="width:40px;height:40px;border-radius:9999px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#1F9D55;">7</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;">
+              <span style="font-size:15px;font-weight:800;color:#1A1A1A;">7-day streak 🔥</span>
+              <span style="font-size:11px;font-weight:600;color:#2c8a55;">Engaged today · keep it alive</span>
+            </div>
+            <span style="margin-left:auto;font-size:22px;font-weight:800;color:#1F9D55;">320</span>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:3px;">
+            <button style="flex:1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#FFFFFF;background:#1F9D55;border:none;border-radius:14px;padding:12px;cursor:pointer;box-shadow:0 4px 0 #167a41;" style-hover="background:#23ab5e" style-active="transform:translateY(3px);box-shadow:0 1px 0 #167a41">Confirm</button>
+            <button style="flex:1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#FFFFFF;background:#7C5CFC;border:none;border-radius:14px;padding:12px;cursor:pointer;box-shadow:0 4px 0 #5b3fe0;" style-hover="background:#8a6dfc" style-active="transform:translateY(3px);box-shadow:0 1px 0 #5b3fe0">Review</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { doneD:false, doneL:false };
+  renderVals(){
+    const t = (k) => () => this.setState(s => ({ [k]: !s[k] }));
+    return {
+      doneD:this.state.doneD, todoD:!this.state.doneD, toggleD:t('doneD'),
+      doneL:this.state.doneL, todoL:!this.state.doneL, toggleL:t('doneL'),
+    };
+  }
+}
+</script>
+</body>
+</html>
