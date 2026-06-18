@@ -18,7 +18,8 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from ?? "/home";
+  // Default to "/" so the entry gate routes to onboarding vs the shell.
+  const from = (location.state as { from?: string } | null)?.from ?? "/";
 
   if (!loading && session) return <Navigate to={from} replace />;
 

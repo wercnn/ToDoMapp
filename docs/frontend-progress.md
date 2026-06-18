@@ -5,9 +5,10 @@ Mirrors `docs/PROGRESS.md` (backend). Terse; **update at the end of each work se
 Design source of truth: `docs/design/project/` (TodoMapp Prototype = interactive prototype,
 Earned Momentum = design system, `uploads/web-screens.md` = screen-by-screen spec).
 
-_Last updated: 2026-06-18 — F0 (foundations) + F1 (login + shell + Home) built and
-**verified live** end-to-end against the local backend cross-origin. typecheck + build green
-both sides._
+_Last updated: 2026-06-18 — F0 + F1 + **F2 (Onboarding A1–A7)** built. F2's create-path AND
+the resume ladder are **verified live** cross-origin against the running /v1 (full HTTP walk +
+all-branch resume on a fresh user). typecheck + build green both sides; every onboarding module
+transforms clean through Vite. The visual browser click-through is the user's final confirm._
 
 ## Architecture (locked)
 - **Separate frontend project** (Option B), sibling folder `frontend/` in the same repo. Chosen
@@ -51,6 +52,43 @@ both sides._
     (`POST /tasks/{id}/complete|reopen` → invalidate), next-milestone card, pending-proposal nudge,
     goal cards (`GET /goals/{id}?include=progress`). Empty new-user state handled.
   - `App.tsx` routes (login public; shell guarded; /roadmap placeholder), `main.tsx` providers.
+- **F2 — Onboarding (A1–A7)** ✅ (the WBS create-path, Journey A — "ambition → roadmap")
+  - **Backend (additive only):** extended the pure `src/api-types.ts` barrel with the F2 DTOs —
+    `WorkPackage`, `Milestone`, `WorkPackageStatus`, `WorkPackageWith{Status,Tasks}`, `TaskWithBlocked`,
+    `MilestoneWithState`, `Task/WorkPackageDependency`, `ReplanProposal`, `CreateWorkPackageResult`,
+    `ProposedDay`, `ProjectWithProgress`. No `/v1` logic touched. (Also corrected the stale
+    "Phase 8 not built" note in `CLAUDE.md` — it's all built; `docs/PROGRESS.md` already said so.)
+  - **API client (`api/index.ts`):** added the create-path modules — goals(create/update/createProject/
+    listProjects), `projectsApi` (get/update/list WPs+milestones/create milestone/create WP),
+    `workPackagesApi` (listTasks/update/remove/createTask), `dependenciesApi` (create/remove WP+task edges),
+    `roadmapApi.propose`, `daysApi.confirm`, task/WP delete. `Estimation`/`TimeFixed` are discriminated
+    unions so a body structurally can't carry both estimate fields or an unpaired time-fixed flag.
+  - **Screens (`screens/onboarding/`):** `Onboarding` (resume gate + wizard), `useOnboardingResume`
+    (the ladder), `Stepper`, and `steps/` A1 Goal · A2 Project · A3 Breakdown · A4 Milestones&Deps ·
+    A5 Capacity · A6+A7 Roadmap(propose→confirm). Form primitives: `components/ui/input.tsx`
+    (Input/Textarea/Field), `fields.tsx` (segmented either/or `EstimateControl`, coupled `TimeFixedControl`),
+    `steps/ItemForm.tsx`, `steps/_chrome.tsx`, `lib/apiError.ts` (calm 422/409 messages).
+  - **Save-per-step + resumability:** every step commits via its real `/v1` write; a partial WBS is a
+    valid state. `useOnboardingResume` runs a ≤3-read ladder (roadmap→goals→projects) and drops a
+    returning user at the right step, REUSING existing entities (no duplicate goal/project). Entry gate
+    in `App.tsx` (`EntryGate` at `/`) routes never-confirmed users into `/onboarding`, else `/home`.
+  - **A2/A5 capacity (locked decision):** project created at A2 with `DEFAULT_CAPACITY_HOURS`; A5 PATCHes
+    the real value and shows it clearly as a "starting point — confirm or change", never a silent default.
+  - **Confirm-date gotcha:** A7 reads the date from the `/roadmap/propose` RESPONSE (earliest day),
+    never hardcoded — feeds `/days/{date}/confirm`.
+- **F2 verification (2026-06-18) — live HTTP against running `/v1`, cross-origin:**
+  - CORS preflight explicitly proven for **PATCH + DELETE** (A4/A5 + deletes): 204 + origin echo +
+    `Allow-Methods: GET,POST,PATCH,DELETE,OPTIONS`.
+  - **Full create-path walk** (real ES256 token, `Origin` header): A1→A7 all succeed; WP-create carries
+    no `replan_proposal` pre-confirm; **422 `unprocessable`** for both-estimates and time-fixed-no-date;
+    **409 `conflict`** "would create a dependency cycle"; propose→confirm using the **date from the propose
+    response** → `confirmed`; `/roadmap` reflects it; goal-delete cascade cleans up.
+  - **Resume ladder proven on a FRESH user across every branch:** empty→GOAL, +goal→PROJECT,
+    +project→BREAKDOWN, +WP/task (abandon)→BREAKDOWN (resumes, no restart), +propose→ROADMAP,
+    +confirm→COMPLETE; goal count stays 1 (no duplicate). Throwaway user deleted after.
+  - typecheck + `vite build` green both sides; all 15 onboarding modules transform clean via Vite dev.
+  - **Not yet done:** the visual browser click-through (no browser-drive tool here) — the data flow +
+    resume logic are proven at the HTTP level; the user runs the on-screen walk as final confirmation.
 - **Verification (2026-06-18):**
   - Frontend `tsc --noEmit` clean; `vite build` → static `dist/` (145 modules; `@api-types` resolved
     type-only, no server code in bundle). Backend `tsc --noEmit` clean with the two new files.
@@ -64,9 +102,9 @@ both sides._
 ## Roadmap (one line per phase)
 - **F0 — Foundations** ✅ — tokens, API client, auth, CORS, type-sharing, scaffold.
 - **F1 — Vertical slice** ✅ — login + app shell + Home on live `/v1`; cross-origin proven.
-- **F2 — Onboarding (A1–A7)** ⏳ NEXT — the WBS create-path (goal→project→breakdown→milestones&deps
-  →capacity→first roadmap). Save-per-step (each step commits via its `/v1` create call).
-- **F3 — Roadmap + replan** — path timeline + day drawer + replan proposal review/approve.
+- **F2 — Onboarding (A1–A7)** ✅ — the WBS create-path (goal→project→breakdown→milestones&deps
+  →capacity→first roadmap), save-per-step + resumable. Create-path + resume proven live cross-origin.
+- **F3 — Roadmap + replan** ⏳ NEXT — path timeline + day drawer + replan proposal review/approve.
   Timeline drag→reschedule emits a REPLAN PROPOSAL (never silent PATCH, Principle 1).
 - **F4 — Project Detail** — Table → Flow (React Flow, drag-to-connect, cycle 409 as calm message) →
   Timeline/Gantt + WP right-side sheet. Heaviest screen; code-split here.
@@ -79,6 +117,14 @@ both sides._
 - Light/dark theme toggle UI (tokens support both; no switcher control yet).
 - Bundle code-splitting (526 kB at F1; split at F4 when React Flow lands).
 - Onboarding for additional goals after first run (web-screens open Q #3).
+- **F2 scope cuts (intentional):** A4 dependencies are WP-level only and the drawn-edge list is
+  session-local — viewing/editing the FULL existing dependency graph + task-level edges is Project
+  Detail / Flow (F4). A4's "suggested orderings" assist is deferred (manual draw + calm cycle-409 ships).
+  A1/A2 Back-edit persists via PATCH; A3 items each commit on add. Editing an already-built WBS mid-flow
+  beyond A1/A2 is F4's job, not onboarding's.
+- **Test residue:** an empty `confirmed` 2026-06-18 day lingers in `walk@example.com` from a verification
+  walk (no day-delete endpoint; harmless — walk was already "complete" via its real 2026-06-15 day).
+  On the pre-launch cleanup list. For manual F2 testing use a FRESH signup (first-run is the onboarding path).
 
 ## Dev loop / ops notes
 - **Local loop:** run backend (`npm run dev` :3000) + `cd frontend && npm run dev` (:5173);

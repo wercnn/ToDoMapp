@@ -87,6 +87,9 @@ via staged-unblocking planner edges, day/plan-item reads & edits, pull-forward, 
 three `projected_date` consumers are live), and the companion/motivation reads (Phase 7 —
 `/me*`, stats, ⚡eng, devices, notif-prefs, points/rules, `/morning-brief` composite) are all
 built. `POST /me/devices` now provides real `device` rows, so only push certs are missing for
-real APNs (still stubbed behind `Notifier`). NOT built yet (all Phase 8): the WBS GET-one reads
-(`GET /goals|projects|work-packages|tasks/{id}`), WBS edit/delete (goal/project/WP/task PATCH+DELETE),
-milestones CRUD, and the goal/project progress roll-ups.
+real APNs (still stubbed behind `Notifier`). The WBS surface (Phase 8) is also built: the GET-one
+reads (`GET /goals|projects|work-packages|tasks/{id}`, with `?include=progress`/`tasks`/`blocked`),
+WBS edit/delete (goal/project/WP/task PATCH+DELETE via FK cascade), milestones CRUD (POST/PATCH/DELETE
+— DELETE ungroups WPs via `SET NULL`, never deletes work), and the goal/project progress roll-ups
+(`src/domain/progress.ts`). The full `/v1` API is built; see `docs/PROGRESS.md`. Web frontend
+build state lives in `docs/frontend-progress.md` (F0+F1 done; F2 onboarding in progress).

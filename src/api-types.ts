@@ -30,6 +30,8 @@ export type ProposalTrigger = "slippage" | "new_work_package" | "user_request";
 export type ProposalStatus = "pending" | "approved" | "edited_approved" | "rejected" | "expired";
 export type PointEventType = "task_completed" | "daily_goal_completed" | "milestone_achieved";
 export type WorkspaceRole = "owner";
+/** Derived (never stored) status of a work package (data-model §6). */
+export type WorkPackageStatus = "open" | "in_progress" | "done" | "blocked";
 
 /** ISO-8601 timestamp string (e.g. "2026-06-18T08:30:00.000Z"). */
 export type IsoTimestamp = string;
@@ -78,6 +80,35 @@ export interface Project {
   capacity_hours_per_day: NumericString;
   status: ProjectStatus;
   target_end_date: DateString | null;
+  completed_at: IsoTimestamp | null;
+  position: number;
+  created_at: IsoTimestamp;
+  updated_at: IsoTimestamp;
+}
+
+export interface Milestone {
+  id: string;
+  workspace_id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  achieved_at: IsoTimestamp | null;
+  position: number;
+  created_at: IsoTimestamp;
+  updated_at: IsoTimestamp;
+}
+
+export interface WorkPackage {
+  id: string;
+  workspace_id: string;
+  project_id: string;
+  milestone_id: string | null;
+  title: string;
+  description: string | null;
+  estimate_hours: NumericString | null;
+  difficulty: DifficultyLevel | null;
+  is_time_fixed: boolean;
+  fixed_date: DateString | null;
   completed_at: IsoTimestamp | null;
   position: number;
   created_at: IsoTimestamp;
@@ -136,6 +167,62 @@ export interface Progress {
 }
 
 export type GoalWithProgress = Goal & { progress: Progress };
+export type ProjectWithProgress = Project & { progress: Progress };
+
+/** GET /projects/{id}/work-packages — list with derived status. */
+export type WorkPackageWithStatus = WorkPackage & { derived_status: WorkPackageStatus };
+/** GET /work-packages/{id}?include=tasks */
+export type WorkPackageWithTasks = WorkPackage & { tasks: Task[] };
+/** GET /tasks/{id} and GET /work-packages/{id}/tasks — derived blocked flag. */
+export type TaskWithBlocked = Task & { blocked: boolean };
+
+/** GET /projects/{id}/milestones — list with derived achievement state + projected date. */
+export interface MilestoneWithState extends Milestone {
+  achieved: boolean;
+  projected_date: DateString | null;
+  wp_done: number;
+  wp_total: number;
+}
+
+/** A task→task or WP→WP finish-before edge (POST /task-dependencies, /work-package-dependencies). */
+export interface TaskDependency {
+  predecessor_task_id: string;
+  successor_task_id: string;
+  workspace_id: string;
+  created_at: IsoTimestamp;
+}
+export interface WorkPackageDependency {
+  predecessor_wp_id: string;
+  successor_wp_id: string;
+  workspace_id: string;
+  created_at: IsoTimestamp;
+}
+
+/** A replan proposal row (returned embedded in the WP-create envelope when confirmed days exist). */
+export interface ReplanProposal {
+  id: string;
+  workspace_id: string;
+  trigger: ProposalTrigger;
+  status: ProposalStatus;
+  summary: string;
+  created_at: IsoTimestamp;
+}
+
+/**
+ * POST /projects/{id}/work-packages. `replan_proposal` is present only when
+ * confirmed roadmap days already exist (mid-flight add) — never during onboarding,
+ * where WPs are created before any day is proposed.
+ */
+export interface CreateWorkPackageResult {
+  work_package: WorkPackage;
+  replan_proposal?: ReplanProposal;
+}
+
+/** One element of the POST /roadmap/propose response (status `proposed`). */
+export interface ProposedDay {
+  day: DailyPlanDay;
+  items: DailyPlanItem[];
+}
 
 /** A lightweight task reference embedded in roadmap/day reads. */
 export interface RoadmapTaskRef {

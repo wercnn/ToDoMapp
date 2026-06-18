@@ -7,15 +7,54 @@ import { apiRequest } from "./client";
 import type {
   BootstrapResult,
   CompleteTaskResult,
+  CreateWorkPackageResult,
   DayView,
+  DailyPlanDay,
+  DifficultyLevel,
   Goal,
+  GoalHorizon,
   GoalWithProgress,
   MeView,
+  Milestone,
+  MilestoneWithState,
   MorningBrief,
+  Project,
+  ProposedDay,
   Roadmap,
   StatsView,
   Task,
+  TaskDependency,
+  TaskWithBlocked,
+  WorkPackage,
+  WorkPackageDependency,
+  WorkPackageWithStatus,
 } from "@api-types";
+
+/**
+ * Estimation is either hours OR difficulty, never both (Decision #13 → 422).
+ * Modeled as a discriminated union so a request structurally can't carry both;
+ * the A3 form's segmented control maps directly onto these variants.
+ */
+export type Estimation =
+  | { estimate_hours: number; difficulty?: undefined }
+  | { difficulty: DifficultyLevel; estimate_hours?: undefined }
+  | { estimate_hours?: undefined; difficulty?: undefined };
+
+/** Time-fixed is paired: `is_time_fixed` true ⇒ `fixed_date` set (else 422). */
+export type TimeFixed = { is_time_fixed?: false } | { is_time_fixed: true; fixed_date: string };
+
+export type WorkPackageBody = {
+  title: string;
+  description?: string | null;
+  milestone_id?: string | null;
+} & Estimation &
+  TimeFixed;
+
+export type TaskBody = {
+  title: string;
+  notes?: string | null;
+} & Estimation &
+  TimeFixed;
 
 export const authApi = {
   /** POST /auth/bootstrap — idempotent first-login provisioning. */
@@ -40,19 +79,99 @@ export const goalsApi = {
       `/goals/${id}`,
       includeProgress ? { query: { include: "progress" } } : {},
     ),
+  /** POST /goals — A1. */
+  create: (body: { title: string; horizon: GoalHorizon; description?: string | null }) =>
+    apiRequest<Goal>("/goals", { method: "POST", body }),
+  /** PATCH /goals/{id} — A1 edit on resume/back (no duplicate create). */
+  update: (
+    id: string,
+    body: { title?: string; horizon?: GoalHorizon; description?: string | null },
+  ) => apiRequest<Goal>(`/goals/${id}`, { method: "PATCH", body }),
+  listProjects: (goalId: string) => apiRequest<Project[]>(`/goals/${goalId}/projects`),
+  /** POST /goals/{id}/projects — A2 (capacity defaulted here, PATCHed at A5). */
+  createProject: (
+    goalId: string,
+    body: {
+      title: string;
+      capacity_hours_per_day: number;
+      description?: string | null;
+      target_end_date?: string | null;
+    },
+  ) => apiRequest<Project>(`/goals/${goalId}/projects`, { method: "POST", body }),
+};
+
+export const projectsApi = {
+  get: (id: string) => apiRequest<Project>(`/projects/${id}`),
+  /** PATCH /projects/{id} — A5 sets the real capacity; also A2 edit on back. */
+  update: (
+    id: string,
+    body: {
+      title?: string;
+      description?: string | null;
+      capacity_hours_per_day?: number;
+      target_end_date?: string | null;
+    },
+  ) => apiRequest<Project>(`/projects/${id}`, { method: "PATCH", body }),
+  listWorkPackages: (projectId: string) =>
+    apiRequest<WorkPackageWithStatus[]>(`/projects/${projectId}/work-packages`),
+  listMilestones: (projectId: string) =>
+    apiRequest<MilestoneWithState[]>(`/projects/${projectId}/milestones`),
+  /** POST /projects/{id}/milestones — A4. */
+  createMilestone: (projectId: string, body: { title: string; description?: string | null }) =>
+    apiRequest<Milestone>(`/projects/${projectId}/milestones`, { method: "POST", body }),
+  /** POST /projects/{id}/work-packages — A3. Returns { work_package, replan_proposal? }. */
+  createWorkPackage: (projectId: string, body: WorkPackageBody) =>
+    apiRequest<CreateWorkPackageResult>(`/projects/${projectId}/work-packages`, {
+      method: "POST",
+      body,
+    }),
+};
+
+export const workPackagesApi = {
+  listTasks: (wpId: string) => apiRequest<TaskWithBlocked[]>(`/work-packages/${wpId}/tasks`),
+  /** PATCH /work-packages/{id} — A4 (re)assigns a WP to a milestone. */
+  update: (id: string, body: { milestone_id?: string | null }) =>
+    apiRequest<WorkPackage>(`/work-packages/${id}`, { method: "PATCH", body }),
+  /** DELETE /work-packages/{id} — A3 inline delete (cascades its tasks). */
+  remove: (id: string) => apiRequest<void>(`/work-packages/${id}`, { method: "DELETE" }),
+  /** POST /work-packages/{id}/tasks — A3. */
+  createTask: (wpId: string, body: TaskBody) =>
+    apiRequest<Task>(`/work-packages/${wpId}/tasks`, { method: "POST", body }),
+};
+
+export const dependenciesApi = {
+  /** POST /task-dependencies — A4 (409 on cycle). */
+  createTaskEdge: (body: { predecessor_task_id: string; successor_task_id: string }) =>
+    apiRequest<TaskDependency>("/task-dependencies", { method: "POST", body }),
+  /** POST /work-package-dependencies — A4 (409 on cycle). */
+  createWpEdge: (body: { predecessor_wp_id: string; successor_wp_id: string }) =>
+    apiRequest<WorkPackageDependency>("/work-package-dependencies", { method: "POST", body }),
+  /** DELETE /work-package-dependencies/{pred}/{succ} — undo a drawn edge. */
+  removeWpEdge: (predecessorWpId: string, successorWpId: string) =>
+    apiRequest<void>(`/work-package-dependencies/${predecessorWpId}/${successorWpId}`, {
+      method: "DELETE",
+    }),
 };
 
 export const roadmapApi = {
   get: (query?: { from?: string; to?: string; goal_id?: string }) =>
     apiRequest<Roadmap>("/roadmap", { query }),
+  /** POST /roadmap/propose — A6. Returns proposed days; the confirm date is read from this. */
+  propose: (body?: { horizon_days?: number; goal_id?: string }) =>
+    apiRequest<ProposedDay[]>("/roadmap/propose", { method: "POST", body: body ?? {} }),
 };
 
 export const daysApi = {
   get: (date: string) => apiRequest<DayView>(`/days/${date}`),
+  /** POST /days/{date}/confirm — A7. The date MUST come from the propose response. */
+  confirm: (date: string) =>
+    apiRequest<DailyPlanDay>(`/days/${date}/confirm`, { method: "POST" }),
 };
 
 export const tasksApi = {
   complete: (id: string) =>
     apiRequest<CompleteTaskResult>(`/tasks/${id}/complete`, { method: "POST" }),
   reopen: (id: string) => apiRequest<Task>(`/tasks/${id}/reopen`, { method: "POST" }),
+  /** DELETE /tasks/{id} — A3 inline delete. */
+  remove: (id: string) => apiRequest<void>(`/tasks/${id}`, { method: "DELETE" }),
 };
