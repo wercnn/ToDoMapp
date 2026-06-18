@@ -12,10 +12,10 @@
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Flag, RefreshCw } from "lucide-react";
 import { daysApi, roadmapApi } from "@/api";
 import type { ProposedDay } from "@api-types";
 import { calmMessage } from "@/lib/apiError";
-import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { StepHeader, InlineError } from "./_chrome";
 import type { StepProps } from "../types";
@@ -71,19 +71,6 @@ export function StepRoadmap({ ctx }: StepProps) {
       <InlineError message={propose.isError ? calmMessage(propose.error) : null} />
       <InlineError message={confirm.isError ? calmMessage(confirm.error) : null} />
 
-      {milestones.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {milestones.map((m) => (
-            <span
-              key={m.id}
-              className="inline-flex items-center gap-1.5 rounded-full bg-system-soft px-2.5 py-1 text-[11px] font-bold text-system"
-            >
-              🚩 {m.projected_date}
-            </span>
-          ))}
-        </div>
-      )}
-
       {busy && proposedDays.length === 0 && (
         <p className="rounded-[12px] border border-dashed border-border px-4 py-6 text-center text-sm font-semibold text-text-tertiary">
           Planning your days…
@@ -96,29 +83,45 @@ export function StepRoadmap({ ctx }: StepProps) {
         </p>
       )}
 
-      <div className="flex flex-col gap-2.5">
-        {proposedDays.map((d, i) => (
-          <div key={d.date} className="flex flex-col gap-2 rounded-[14px] border border-system/30 bg-surface-1 p-4">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-system-soft text-[12px] font-black text-system">
-                {i + 1}
-              </span>
-              <span className="text-[13px] font-extrabold">{d.date}</span>
-              <StatusPill status="proposed" className="ml-auto" />
-            </div>
-            <div className="flex flex-col gap-1 pl-9">
-              {d.items.length === 0 && (
-                <span className="text-[12px] font-semibold text-text-tertiary">Rest day</span>
-              )}
-              {d.items.map((it) => (
-                <span key={it.task_id} className="text-[13px] font-bold text-text-secondary">
-                  • {it.task?.title ?? "Task"}
-                </span>
-              ))}
-            </div>
+      {proposedDays.length > 0 && (
+        <div className="relative overflow-x-auto rounded-[18px] border border-border bg-bg p-5">
+          <div className="absolute left-10 right-10 top-[52px] h-1 rounded-full bg-system-soft" />
+          <div className="relative flex min-w-max items-start gap-5 pb-1">
+            {proposedDays.map((day, index) => {
+              const milestone = milestones.find((m) => m.projected_date === day.date);
+              return (
+                <div key={day.date} className="flex w-[160px] flex-col items-center gap-3">
+                  <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-system bg-system-soft font-mono text-sm font-black text-system shadow-[0_0_0_6px_var(--bg)]">
+                    {index + 1}
+                  </span>
+                  {milestone && (
+                    <span className="grid h-10 w-10 rotate-45 place-items-center rounded-[8px] border border-system bg-bg text-system">
+                      <Flag size={15} className="-rotate-45" />
+                    </span>
+                  )}
+                  <div className="w-full rounded-[12px] border border-system/30 bg-surface-1 p-3 text-center">
+                    <p className="font-mono text-xs font-black text-text-primary">{day.date}</p>
+                    <p className="mt-1 text-[11px] font-bold text-system">proposed day</p>
+                    <div className="mt-3 flex flex-col gap-1 text-left">
+                      {day.items.length === 0 && (
+                        <span className="truncate text-[11px] font-semibold text-text-tertiary">Rest day</span>
+                      )}
+                      {day.items.slice(0, 3).map((item) => (
+                        <span key={item.task_id} className="truncate text-[11px] font-bold text-text-secondary">
+                          {item.task?.title ?? "Task"}
+                        </span>
+                      ))}
+                      {day.items.length > 3 && (
+                        <span className="text-[11px] font-bold text-text-tertiary">+{day.items.length - 3} more</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <Button type="button" variant="ghost" onClick={ctx.back} disabled={busy || confirm.isPending}>
@@ -131,6 +134,7 @@ export function StepRoadmap({ ctx }: StepProps) {
             onClick={() => propose.mutate()}
             disabled={busy || confirm.isPending}
           >
+            <RefreshCw size={15} />
             Re-propose
           </Button>
           <Button

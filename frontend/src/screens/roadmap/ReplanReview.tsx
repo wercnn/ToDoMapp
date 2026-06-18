@@ -40,12 +40,23 @@ export function ReplanReview({
     enabled: proposalId != null,
   });
 
-  const changes = detail.data?.changes;
+  const rawChanges = detail.data?.changes;
+  const changes = rawChanges
+    ? {
+        moves: rawChanges.moves ?? [],
+        milestone_impacts: rawChanges.milestone_impacts ?? [],
+        time_fixed_conflicts: rawChanges.time_fixed_conflicts ?? [],
+        time_fixed_resolutions: rawChanges.time_fixed_resolutions,
+      }
+    : null;
+  const taskRefs = detail.data?.refs?.tasks ?? {};
+  const moves = changes?.moves ?? [];
+  const milestoneImpacts = changes?.milestone_impacts ?? [];
   const conflicts = changes?.time_fixed_conflicts ?? [];
   const nothingToChange =
     changes != null &&
-    changes.moves.length === 0 &&
-    changes.milestone_impacts.length === 0 &&
+    moves.length === 0 &&
+    milestoneImpacts.length === 0 &&
     conflicts.length === 0;
 
   // Only fully-decided conflicts count toward the gate (undefined = unresolved).
@@ -108,6 +119,7 @@ export function ReplanReview({
   }
 
   const busy = approve.isPending || reject.isPending;
+  const edited = excluded.size > 0 || Object.keys(definedDecisions).length > 0;
 
   return (
     <Sheet
@@ -115,7 +127,7 @@ export function ReplanReview({
       onClose={handleClose}
       width="max-w-lg"
       title="Review proposal"
-      subtitle={detail.data?.proposal.summary}
+      subtitle={detail.data?.proposal?.summary}
       footer={
         <div className="space-y-2">
           {error && <p className="text-xs font-semibold text-warning">{error}</p>}
@@ -129,7 +141,7 @@ export function ReplanReview({
               Reject
             </Button>
             <Button size="sm" onClick={() => approve.mutate()} disabled={busy || !ready}>
-              {approve.isPending ? "Applying…" : "Approve"}
+              {approve.isPending ? "Applying..." : edited ? "Edit then approve" : "Approve"}
             </Button>
           </div>
         </div>
@@ -148,45 +160,53 @@ export function ReplanReview({
       {changes && !nothingToChange && (
         <div className="space-y-6">
           {/* 1. Moves */}
-          <Section title="Reschedules" count={changes.moves.length}>
-            {changes.moves.length === 0 ? (
+          <Section title="Reschedules" count={moves.length}>
+            {moves.length === 0 ? (
               <Empty>No task moves.</Empty>
             ) : (
               <ul className="space-y-1.5">
-                {changes.moves.map((m) => (
-                  <li
-                    key={m.task_id}
-                    className="flex items-center gap-2 rounded-md border border-border bg-surface-1 px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!excluded.has(m.task_id)}
-                      onChange={() => toggleMove(m.task_id)}
-                      className="h-4 w-4 flex-none accent-[var(--accent-progress)]"
-                      aria-label="Include this move"
-                    />
-                    <span className="min-w-0 flex-1 truncate text-xs font-bold text-text-secondary">
-                      {m.task_id.slice(0, 8)}…
-                    </span>
-                    <span className="flex-none font-mono text-[11px] font-bold text-text-tertiary">
-                      {m.from_date ?? "—"} → {m.to_date ?? "removed"}
-                    </span>
-                  </li>
-                ))}
+                {moves.map((m) => {
+                  const task = taskRefs[m.task_id];
+                  return (
+                    <li
+                      key={m.task_id}
+                      className="flex items-center gap-2 rounded-md border border-border bg-surface-1 px-3 py-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!excluded.has(m.task_id)}
+                        onChange={() => toggleMove(m.task_id)}
+                        className="h-4 w-4 flex-none accent-[var(--accent-progress)]"
+                        aria-label="Include this move"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-xs font-bold text-text-secondary">
+                        {task?.title ?? m.task_id.slice(0, 8)}
+                        {task && (
+                          <span className="ml-1 font-semibold text-text-tertiary">
+                            · {task.project_title}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex-none font-mono text-[11px] font-bold text-text-tertiary">
+                        {m.from_date ?? "—"} → {m.to_date ?? "removed"}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Section>
 
           {/* 2. Milestone impacts — descriptive only */}
-          <Section title="Milestone impact" count={changes.milestone_impacts.length}>
+          <Section title="Milestone impact" count={milestoneImpacts.length}>
             <p className="mb-2 text-[11px] font-semibold text-text-tertiary">
               Projection — not committed. Confirming days is what moves a milestone.
             </p>
-            {changes.milestone_impacts.length === 0 ? (
+            {milestoneImpacts.length === 0 ? (
               <Empty>No milestone shifts.</Empty>
             ) : (
               <ul className="space-y-1.5">
-                {changes.milestone_impacts.map((ms) => (
+                {milestoneImpacts.map((ms) => (
                   <li
                     key={ms.milestone_id}
                     className="flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2"
@@ -210,13 +230,17 @@ export function ReplanReview({
             ) : (
               <div className="space-y-2">
                 {conflicts.map((c) => (
-                  <TimeFixedConflictControl
-                    key={c.task_id}
-                    conflict={c}
-                    onChange={(decision) =>
-                      setDecisions((prev) => ({ ...prev, [c.task_id]: decision }))
-                    }
-                  />
+                  <div key={c.task_id} className="space-y-1.5">
+                    <p className="truncate text-xs font-extrabold text-text-primary">
+                      {taskRefs[c.task_id]?.title ?? "Pinned task"}
+                    </p>
+                    <TimeFixedConflictControl
+                      conflict={c}
+                      onChange={(decision) =>
+                        setDecisions((prev) => ({ ...prev, [c.task_id]: decision }))
+                      }
+                    />
+                  </div>
                 ))}
               </div>
             )}

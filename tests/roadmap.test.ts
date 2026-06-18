@@ -270,6 +270,20 @@ describe("GET /roadmap", () => {
     const todayDay = roadmap.days.find((d) => d.date === today)!;
     expect(todayDay.projected).toBe(false);
     expect(todayDay.status).toBe("confirmed");
+    expect(todayDay.items[0]!.task).toMatchObject({
+      id: planned,
+      title: "T",
+      status: "todo",
+      project_id: projectId,
+      project_title: "P",
+      work_package_id: wp,
+      work_package_title: "WP",
+      estimate_hours: "2",
+      difficulty: null,
+      is_time_fixed: false,
+      fixed_date: null,
+      blocked: false,
+    });
 
     const projectedDays = roadmap.days.filter((d) => d.projected);
     expect(projectedDays.length).toBeGreaterThan(0);
@@ -352,9 +366,28 @@ describe("daily-planning edits", () => {
     const day = await db.insertInto("daily_plan_day")
       .values({ workspace_id: workspaceId, plan_date: today, status: "confirmed", confirmed_at: now })
       .returning("id").executeTakeFirstOrThrow();
+    const { projectId } = await addGoalProject(workspaceId, 8);
+    const wp = await addWp(workspaceId, projectId, null, 0);
+    const task = await addTask(workspaceId, wp, { estimate: 3 });
+    await db.insertInto("daily_plan_item").values({
+      workspace_id: workspaceId,
+      daily_plan_day_id: day.id,
+      item_type: "task",
+      task_id: task,
+      status: "planned",
+      origin: "user_added",
+      position: 0,
+    }).execute();
 
     const view = await getDay(db, ctx, today, now);
     expect(view.day.id).toBe(day.id);
+    expect(view.items[0]!.task).toMatchObject({
+      id: task,
+      project_id: projectId,
+      work_package_id: wp,
+      estimate_hours: "3",
+      blocked: false,
+    });
     const eng = await db.selectFrom("engagement_day").select("activity_date")
       .where("user_id", "=", userId).where("activity_date", "=", today).executeTakeFirst();
     expect(eng).toBeTruthy(); // ⚡eng on viewing today

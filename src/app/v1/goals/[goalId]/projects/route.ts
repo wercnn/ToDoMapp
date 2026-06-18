@@ -19,6 +19,7 @@ export const GET = handler(async (req: Request, context: Ctx) => {
   const params = new URL(req.url).searchParams;
   const projects = await listProjects(getDb(), ctx, goalId, {
     status: (params.get("status") as ProjectStatus) ?? undefined,
+    includeProgress: params.get("include") === "progress",
   });
   return json(projects);
 });

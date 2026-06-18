@@ -25,6 +25,7 @@ import type {
   ProjectWithProgress,
   ProposalStatus,
   ProposedDay,
+  PullForwardResult,
   ReplanChanges,
   ReplanProposal,
   ReplanProposalDetail,
@@ -95,7 +96,11 @@ export const goalsApi = {
     id: string,
     body: { title?: string; horizon?: GoalHorizon; description?: string | null },
   ) => apiRequest<Goal>(`/goals/${id}`, { method: "PATCH", body }),
-  listProjects: (goalId: string) => apiRequest<Project[]>(`/goals/${goalId}/projects`),
+  listProjects: (goalId: string, includeProgress = false) =>
+    apiRequest<(Project | ProjectWithProgress)[]>(
+      `/goals/${goalId}/projects`,
+      includeProgress ? { query: { include: "progress" } } : {},
+    ),
   /** POST /goals/{id}/projects — A2 (capacity defaulted here, PATCHed at A5). */
   createProject: (
     goalId: string,
@@ -155,6 +160,7 @@ export const workPackagesApi = {
       title?: string;
       description?: string | null;
       milestone_id?: string | null;
+      position?: number;
     } & Partial<Estimation> &
       Partial<TimeFixed>,
   ) => apiRequest<WorkPackage>(`/work-packages/${id}`, { method: "PATCH", body }),
@@ -248,6 +254,11 @@ export const tasksApi = {
   complete: (id: string) =>
     apiRequest<CompleteTaskResult>(`/tasks/${id}/complete`, { method: "POST" }),
   reopen: (id: string) => apiRequest<Task>(`/tasks/${id}/reopen`, { method: "POST" }),
+  pullForward: (id: string, toDate?: string) =>
+    apiRequest<PullForwardResult>(`/tasks/${id}/pull-forward`, {
+      method: "POST",
+      body: toDate ? { to_date: toDate } : {},
+    }),
   /**
    * PATCH /tasks/{id} — F4 sheet inline edit (title/notes/estimate/time-fixed/position).
    * `status`/`completed_at` are NOT editable here (use complete/reopen). Estimate/time-fixed

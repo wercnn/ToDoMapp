@@ -63,6 +63,10 @@ API-first; clients hold zero business logic.
 - `tests/` — DB-backed suites (run against the configured Supabase DB): `spine` (propose→confirm
   gate + create-path 422s + bootstrap idempotency), `completion`, `dependencies`, `flow`,
   `replan` (+ pure `replan-diff`), `jobs`, `roadmap`, `companion`.
+- `frontend/` — React + Vite web client. The design target is the dark "Earned Momentum" prototype
+  in `docs/design/project/TodoMapp Prototype.dc.html`; token mapping lives in
+  `frontend/src/styles/tokens.css`. Main screens: Shell/Home, Onboarding, Roadmap/Replan, Project
+  workbench, and Celebration.
 
 ## Commands
 - `npm run migrate` — apply pending SQL migrations (uses `DIRECT_URL`). `-- --status` to list.
@@ -79,17 +83,14 @@ API-first; clients hold zero business logic.
   is IPv6-only and unreachable from many networks/CI. Session mode still supports DDL + transactions.
 
 ## Build state
-See `docs/PROGRESS.md` for the live checklist. In short: the 8-endpoint vertical spine +
-the task-completion cascade are built and pass against Supabase. Dependencies, the flow
-diagram, the replanning pipeline (Phase 4), notifications & background jobs (Phase 5), the
-roadmap projection + daily-planning reads/edits (Phase 6 — `GET /roadmap` persisted∪projected
-via staged-unblocking planner edges, day/plan-item reads & edits, pull-forward, reopen; the
-three `projected_date` consumers are live), and the companion/motivation reads (Phase 7 —
-`/me*`, stats, ⚡eng, devices, notif-prefs, points/rules, `/morning-brief` composite) are all
-built. `POST /me/devices` now provides real `device` rows, so only push certs are missing for
-real APNs (still stubbed behind `Notifier`). The WBS surface (Phase 8) is also built: the GET-one
-reads (`GET /goals|projects|work-packages|tasks/{id}`, with `?include=progress`/`tasks`/`blocked`),
-WBS edit/delete (goal/project/WP/task PATCH+DELETE via FK cascade), milestones CRUD (POST/PATCH/DELETE
-— DELETE ungroups WPs via `SET NULL`, never deletes work), and the goal/project progress roll-ups
-(`src/domain/progress.ts`). The full `/v1` API is built; see `docs/PROGRESS.md`. Web frontend
-build state lives in `docs/frontend-progress.md` (F0+F1 done; F2 onboarding in progress).
+See `docs/PROGRESS.md` for the live checklist. In short: the full `/v1` API is built through
+Phase 8: vertical spine, completion cascade, dependencies, flow data, replanning, jobs, roadmap
+projection/day edits, companion/motivation reads, WBS CRUD, milestone CRUD, and progress roll-ups.
+Only real APNs delivery remains stubbed behind `Notifier`.
+
+The React/Vite web app has also had a prototype-parity pass against `TodoMapp Prototype.dc.html`.
+Current frontend state: Shell/Home has the expandable Today bar and WBS sidebar; Onboarding is the
+7-step Goal→Project→Milestone→Breakdown→Group→Capacity→Roadmap flow; Roadmap/Replan uses the
+horizontal path plus review drawer; Project workbench defaults to a WP-only Flow diagram with tasks
+shown in an inline right-side panel; Table/Timeline controls and Celebration styling were updated.
+Details live in `docs/ui-design-gap-updates.md`.

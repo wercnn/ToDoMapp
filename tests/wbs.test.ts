@@ -16,7 +16,7 @@ import type { AuthContext } from "@/auth/context";
 import { localDate } from "@/lib/dates";
 import { completeTask } from "@/domain/completion";
 import { getGoal, updateGoal, deleteGoal } from "@/domain/goals";
-import { getProject, updateProject, deleteProject } from "@/domain/projects";
+import { getProject, listProjects, updateProject, deleteProject } from "@/domain/projects";
 import { getWorkPackage, updateWorkPackage, deleteWorkPackage } from "@/domain/workPackages";
 import { getTask, updateTask, deleteTask } from "@/domain/tasks";
 import {
@@ -72,6 +72,10 @@ describe("Phase 8 — WBS edits/deletes + roll-ups", () => {
 
     const project = await getProject(db, ws.ctx, scenario.projectId, { includeProgress: true });
     expect("progress" in project).toBe(true);
+
+    const projects = await listProjects(db, ws.ctx, scenario.goalId, { includeProgress: true });
+    expect(projects).toHaveLength(1);
+    expect("progress" in projects[0]!).toBe(true);
 
     const wp = await getWorkPackage(db, ws.ctx, scenario.wp1Id, { includeTasks: true });
     expect("tasks" in wp && (wp as { tasks: unknown[] }).tasks.length).toBe(1);

@@ -18,6 +18,7 @@ import {
   createProposal,
   rejectProposal,
 } from "@/domain/replan/proposals";
+import { readTaskRefs } from "@/domain/roadmapRead";
 import type { Changes } from "@/domain/replan/types";
 import { createWorkPackage } from "@/domain/workPackages";
 import {
@@ -208,6 +209,20 @@ describe("replanning pipeline", () => {
       .where("activity_date", "=", today)
       .executeTakeFirst();
     expect(eng).toBeTruthy();
+  });
+
+  it("proposal task refs carry readable project/work-package context", async () => {
+    const refs = await readTaskRefs(db, ws.ctx, [scenario.t1Id]);
+    expect(refs.get(scenario.t1Id)).toMatchObject({
+      id: scenario.t1Id,
+      title: "Task T1",
+      project_id: scenario.projectId,
+      project_title: "Seed Project",
+      work_package_id: scenario.wp1Id,
+      work_package_title: "Work Package 1",
+      estimate_hours: "2",
+      blocked: false,
+    });
   });
 
   it("reject leaves the plan exactly as it was, and still counts as engagement", async () => {

@@ -3,8 +3,8 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
-_Last updated: 2026-06-14 — Phase 7 landed + a pre-Phase-8 consolidation/audit pass: spine
-guards added (8 new tests; 76 total) and audit findings actioned. All pass against Supabase._
+_Last updated: 2026-06-19 — backend API phases are complete, and the React/Vite web app
+received a prototype-parity pass against `docs/design/project/TodoMapp Prototype.dc.html`._
 
 ## Done
 - **Scaffold**: Next.js 15 App Router + TS + Kysely + pg; vitest; tsconfig/next config; `.env.example`.
@@ -196,6 +196,13 @@ guards added (8 new tests; 76 total) and audit findings actioned. All pass again
     create/list membership counts; **DELETE-milestone-ungroups (WPs survive, milestone_id null)**;
     **DELETE-goal cascades subtree but point ledger survives with task_id nulled**; DELETE happy/re-delete-404;
     progress roll-up correctness (2×2h tasks → 50% after one done, goal == project).
+- **Web app prototype parity pass (2026-06-19)**: the React/Vite frontend was aligned with the dark
+  "Earned Momentum" prototype. Additive API reads now return richer roadmap task refs, proposal
+  `refs.tasks`, project-list progress, and a frontend `tasksApi.pullForward` wrapper. UI updates landed
+  across Shell/Home (expandable Today bar + WBS sidebar), Onboarding (7-step flow), Roadmap/Replan
+  (horizontal path + inline day/proposal review), Project workbench (Flow default, WP-only graph, inline
+  right-side WP/task panel), Table/Timeline controls, and Celebration polish. See
+  `docs/ui-design-gap-updates.md` for the UI-specific summary.
 - **Persistent context**: `CLAUDE.md`, this file.
 
 ## Roadmap (one line per phase)
@@ -210,6 +217,9 @@ guards added (8 new tests; 76 total) and audit findings actioned. All pass again
   PATCH+DELETE for goal/project/work-package/task (deletes rely on the FK cascade; ledger survives via SET NULL),
   milestones CRUD (POST was NEW — only the achievement cascade pre-existed; DELETE ungroups WPs, never deletes work),
   and the shared progress roll-up (`src/domain/progress.ts`, task-count `percent_done`). 11 tests in `tests/wbs.test.ts`.
+- **Web frontend prototype parity** ✅ — React/Vite UI aligned to `TodoMapp Prototype.dc.html`: Shell/Home,
+  Onboarding, Roadmap/Replan, Project workbench, WP task side panel, and Celebration. Details in
+  `docs/ui-design-gap-updates.md`.
 
 ## Phase 4 — starting brief
 The replanning pipeline (api §11, foundation §4.4): detect → analyze → **propose** → approve.
@@ -238,9 +248,9 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 ## Not built yet (next up, post-review)
 - **Real APNs send** — `LogNotifier` stub today; the `ApnsNotifier` drop-in now only needs push certs
   (the `device` rows it ships to exist as of Phase 7 `POST /me/devices`).
-- **Phase 8 — WBS edits/deletes + roll-ups**: `GET`-one + `PATCH`/`DELETE` for goal/project/WP/task,
-  milestones CRUD (`/projects/{id}/milestones`, `PATCH`/`DELETE /milestones/{id}`), and the
-  goal/project `progress` roll-up endpoints.
+- **Automated browser verification** — frontend typecheck/tests/build pass, but `agent-browser` was not
+  installed locally, so browser automation was not run. Manual HTTP checks confirmed Vite and Next dev
+  servers start/respond.
 
 ## Open items / risks
 - **🐛 BUG (tracked, NOT fixed) — replan apply 409s on a stale `deferred` row on the target day

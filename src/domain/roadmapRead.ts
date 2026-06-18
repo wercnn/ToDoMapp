@@ -9,18 +9,28 @@
  * (Decision #8), so it records ⚡eng — the one write on this path, and a user action.
  */
 import type { Kysely } from "kysely";
-import type { Database, DailyPlanDay, DailyPlanItem, DayStatus } from "../db/types";
+import type { Database, DailyPlanDay, DailyPlanItem, DayStatus, DifficultyLevel, TaskStatus } from "../db/types";
 import type { AuthContext } from "../auth/context";
-import { withTransaction } from "../db/transaction";
+import { withTransaction, type Executor } from "../db/transaction";
 import { notFound } from "../lib/errors";
 import { localDate } from "../lib/dates";
 import { recordEngagement, refreshStats } from "./engagement";
 import { projectSchedule } from "./projection";
+import { getBlockedTaskIds } from "./blocked";
 
 export interface RoadmapTaskRef {
   id: string;
   title: string;
-  status: string;
+  status: TaskStatus;
+  project_id: string;
+  project_title: string;
+  work_package_id: string;
+  work_package_title: string;
+  estimate_hours: string | null;
+  difficulty: DifficultyLevel | null;
+  is_time_fixed: boolean;
+  fixed_date: string | null;
+  blocked: boolean;
 }
 
 export interface RoadmapItem {
@@ -53,6 +63,59 @@ export interface Roadmap {
   position: { today: string; current_streak: number };
 }
 
+export async function readTaskRefs(
+  db: Executor,
+  ctx: AuthContext,
+  taskIds: string[],
+): Promise<Map<string, RoadmapTaskRef>> {
+  const ids = [...new Set(taskIds.filter(Boolean))];
+  if (ids.length === 0) return new Map();
+
+  const [rows, blockedIds] = await Promise.all([
+    db
+      .selectFrom("task as t")
+      .innerJoin("work_package as wp", "wp.id", "t.work_package_id")
+      .innerJoin("project as p", "p.id", "wp.project_id")
+      .select([
+        "t.id as id",
+        "t.title as title",
+        "t.status as status",
+        "t.estimate_hours as estimate_hours",
+        "t.difficulty as difficulty",
+        "t.is_time_fixed as is_time_fixed",
+        "t.fixed_date as fixed_date",
+        "wp.id as work_package_id",
+        "wp.title as work_package_title",
+        "p.id as project_id",
+        "p.title as project_title",
+      ])
+      .where("t.workspace_id", "=", ctx.workspaceId)
+      .where("t.id", "in", ids)
+      .execute(),
+    getBlockedTaskIds(db, ctx),
+  ]);
+
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        id: row.id,
+        title: row.title,
+        status: row.status,
+        project_id: row.project_id,
+        project_title: row.project_title,
+        work_package_id: row.work_package_id,
+        work_package_title: row.work_package_title,
+        estimate_hours: row.estimate_hours,
+        difficulty: row.difficulty,
+        is_time_fixed: row.is_time_fixed,
+        fixed_date: row.fixed_date,
+        blocked: blockedIds.has(row.id),
+      },
+    ]),
+  );
+}
+
 export async function getRoadmap(
   db: Kysely<Database>,
   ctx: AuthContext,
@@ -74,22 +137,23 @@ export async function getRoadmap(
   const itemRows = dayIds.length
     ? await db
         .selectFrom("daily_plan_item as i")
-        .leftJoin("task as t", "t.id", "i.task_id")
         .select([
           "i.daily_plan_day_id as dayId",
           "i.task_id as taskId",
           "i.status as status",
           "i.origin as origin",
           "i.position as position",
-          "t.id as tId",
-          "t.title as tTitle",
-          "t.status as tStatus",
         ])
         .where("i.workspace_id", "=", ctx.workspaceId)
         .where("i.daily_plan_day_id", "in", dayIds)
         .orderBy("i.position")
         .execute()
     : [];
+  const persistedRefs = await readTaskRefs(
+    db,
+    ctx,
+    itemRows.map((row) => row.taskId).filter((id): id is string => id != null),
+  );
 
   // Slipped days don't "hold" their work — the same task is re-projected forward, so
   // it must NOT be deduped out of the projected region (it shows both historically on
@@ -102,7 +166,7 @@ export async function getRoadmap(
     const list = itemsByDay.get(r.dayId) ?? itemsByDay.set(r.dayId, []).get(r.dayId)!;
     list.push({
       task_id: r.taskId ?? "",
-      task: r.tId ? { id: r.tId, title: r.tTitle ?? "", status: r.tStatus ?? "" } : null,
+      task: r.taskId ? persistedRefs.get(r.taskId) ?? null : null,
       status: r.status,
       origin: r.origin,
       position: r.position,
@@ -138,15 +202,7 @@ export async function getRoadmap(
       if (!persistedPlannedTasks.has(it.taskId)) projectedTaskIds.add(it.taskId);
     }
   }
-  const taskRefs = projectedTaskIds.size
-    ? await db
-        .selectFrom("task")
-        .select(["id", "title", "status"])
-        .where("workspace_id", "=", ctx.workspaceId)
-        .where("id", "in", [...projectedTaskIds])
-        .execute()
-    : [];
-  const refById = new Map(taskRefs.map((t) => [t.id, t]));
+  const refById = await readTaskRefs(db, ctx, [...projectedTaskIds]);
 
   for (const d of draft) {
     if (lastPersisted && d.planDate <= lastPersisted) continue;
@@ -158,7 +214,7 @@ export async function getRoadmap(
       const ref = refById.get(it.taskId);
       items.push({
         task_id: it.taskId,
-        task: ref ? { id: ref.id, title: ref.title, status: ref.status } : null,
+        task: ref ?? null,
         status: "planned",
         origin: "proposed",
         position: position++,
@@ -229,21 +285,21 @@ export async function readDay(
 
   const rows = await db
     .selectFrom("daily_plan_item as i")
-    .leftJoin("task as t", "t.id", "i.task_id")
     .selectAll("i")
-    .select(["t.id as tId", "t.title as tTitle", "t.status as tStatus"])
     .where("i.workspace_id", "=", ctx.workspaceId)
     .where("i.daily_plan_day_id", "=", day.id)
     .orderBy("i.position")
     .execute();
+  const refs = await readTaskRefs(
+    db,
+    ctx,
+    rows.map((row) => row.task_id).filter((id): id is string => id != null),
+  );
 
-  const items = rows.map((r) => {
-    const { tId, tTitle, tStatus, ...item } = r;
-    return {
-      item: item as unknown as DailyPlanItem,
-      task: tId ? { id: tId, title: tTitle ?? "", status: tStatus ?? "" } : null,
-    };
-  });
+  const items = rows.map((item) => ({
+    item,
+    task: item.task_id ? refs.get(item.task_id) ?? null : null,
+  }));
 
   return { day, items };
 }

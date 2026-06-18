@@ -79,8 +79,8 @@ export async function listProjects(
   db: Kysely<Database>,
   ctx: AuthContext,
   goalId: string,
-  filters: { status?: ProjectStatus } = {},
-): Promise<Project[]> {
+  filters: { status?: ProjectStatus; includeProgress?: boolean } = {},
+): Promise<(Project | ProjectWithProgress)[]> {
   await assertGoalInWorkspace(db, ctx, goalId);
   let q = db
     .selectFrom("project")
@@ -88,7 +88,14 @@ export async function listProjects(
     .where("workspace_id", "=", ctx.workspaceId)
     .where("goal_id", "=", goalId);
   if (filters.status) q = q.where("status", "=", filters.status);
-  return q.orderBy("position").orderBy("created_at").execute();
+  const projects = await q.orderBy("position").orderBy("created_at").execute();
+  if (!filters.includeProgress) return projects;
+  return Promise.all(
+    projects.map(async (project) => ({
+      ...project,
+      progress: await computeProjectProgress(db, ctx, project.id),
+    })),
+  );
 }
 
 async function findProject(

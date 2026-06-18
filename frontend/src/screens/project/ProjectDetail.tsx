@@ -1,14 +1,13 @@
 /**
  * Project Detail (web-screens §C) — the workbench. One screen, three interchangeable
- * views of the same project (Table · Flow · Timeline) plus the right-side WP sheet
+ * views of the same project (Flow · Timeline · Table) plus the right-side WP panel
  * that opens from any view.
  *
- * View default is TABLE during F4 (cheapest/safest, built + verified first); it flips
- * to Flow-default once the Flow canvas is verified. The Flow view is React.lazy'd so
- * its heavy deps (React Flow + dagre) land in a separate chunk loaded only on demand.
+ * View default is Flow. The Flow view is React.lazy'd so its heavy deps
+ * (React Flow + dagre) land in a separate chunk loaded only on demand.
  *
  * Principle 1: no view silently mutates the plan. WP/task edits are explicit submits
- * (WP sheet); a mid-flight WP add surfaces a replan proposal (reviewed here via the
+ * (WP panel); a mid-flight WP add surfaces a replan proposal (reviewed here via the
  * reused ReplanReview); the Timeline's cross-day drag will emit a proposal too. The
  * proposal review state lives here so every view hands off to the one ReplanReview.
  */
@@ -22,6 +21,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReplanReview } from "@/screens/roadmap/ReplanReview";
 import { calmMessage } from "@/lib/apiError";
+import { cn } from "@/lib/utils";
 import { TableView } from "./TableView";
 import { TimelineView } from "./TimelineView";
 import { WorkPackageSheet } from "./WorkPackageSheet";
@@ -38,15 +38,15 @@ const FlowView = lazy(() => import("./FlowView"));
 
 type ViewKind = "table" | "flow" | "timeline";
 const VIEWS: { key: ViewKind; label: string }[] = [
-  { key: "table", label: "Table" },
   { key: "flow", label: "Flow" },
   { key: "timeline", label: "Timeline" },
+  { key: "table", label: "Table" },
 ];
 
 export function ProjectDetail() {
   const { projectId = "" } = useParams();
   const [params, setParams] = useSearchParams();
-  const view = (params.get("view") as ViewKind) || "table";
+  const view = (params.get("view") as ViewKind) || "flow";
   const setView = (v: ViewKind) => setParams((p) => {
     p.set("view", v);
     return p;
@@ -150,44 +150,45 @@ export function ProjectDetail() {
         </p>
       )}
 
-      {/* --- Active view --- */}
-      <div className="min-h-0 flex-1 overflow-auto p-6">
-        {view === "table" && <TableView projectId={projectId} onSelectWp={setSelectedWpId} />}
-        {view === "flow" && (
-          <ErrorBoundary
-            fallback={
-              <p className="p-6 text-sm font-bold text-warning">
-                Couldn’t load the flow canvas. Check your connection and try the Table view.
-              </p>
-            }
-          >
-            <Suspense
+      {/* --- Active view + inline WP panel --- */}
+      <div className="flex min-h-0 flex-1">
+        <div className={cn("min-w-0 flex-1 overflow-auto", view === "flow" ? "p-0" : "p-6")}>
+          {view === "table" && <TableView projectId={projectId} onSelectWp={setSelectedWpId} />}
+          {view === "flow" && (
+            <ErrorBoundary
               fallback={
-                <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>
+                <p className="p-6 text-sm font-bold text-warning">
+                  Couldn’t load the flow canvas. Check your connection and try the Table view.
+                </p>
               }
             >
-              <FlowView projectId={projectId} onSelectWp={setSelectedWpId} />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-        {view === "timeline" && (
-          <TimelineView
-            projectId={projectId}
-            onProposal={(id) => {
-              setNudge("A re-plan proposal was created — review it before it changes your plan.");
-              setReviewId(id);
-            }}
-          />
-        )}
-      </div>
+              <Suspense
+                fallback={
+                  <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>
+                }
+              >
+                <FlowView projectId={projectId} onSelectWp={setSelectedWpId} />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+          {view === "timeline" && (
+            <TimelineView
+              projectId={projectId}
+              onProposal={(id) => {
+                setNudge("A re-plan proposal was created — review it before it changes your plan.");
+                setReviewId(id);
+              }}
+            />
+          )}
+        </div>
 
-      {/* --- WP sheet (any view) --- */}
-      <WorkPackageSheet
-        projectId={projectId}
-        workPackage={selectedWp}
-        milestones={ms}
-        onClose={() => setSelectedWpId(null)}
-      />
+        <WorkPackageSheet
+          projectId={projectId}
+          workPackage={selectedWp}
+          milestones={ms}
+          onClose={() => setSelectedWpId(null)}
+        />
+      </div>
 
       {/* --- Add WP (mid-flight → maybe a proposal) --- */}
       <AddWorkPackageSheet

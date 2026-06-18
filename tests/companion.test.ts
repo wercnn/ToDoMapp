@@ -189,6 +189,15 @@ describe("morning-brief", () => {
 
     expect(brief.today).not.toBeNull();
     expect(brief.today!.items).toHaveLength(2);
+    expect(brief.today!.items[0]!.task).toMatchObject({
+      id: scenario.t1Id,
+      project_id: scenario.projectId,
+      project_title: "Seed Project",
+      work_package_id: scenario.wp1Id,
+      work_package_title: "Work Package 1",
+      estimate_hours: "2",
+      blocked: false,
+    });
     // points AND streak — the brief surfaces both (api §4.6).
     expect(brief.stats.total_points).toBe(0);
     expect(brief.stats.current_streak).toBe(1); // opening the brief recorded eng

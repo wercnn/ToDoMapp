@@ -286,6 +286,7 @@ export interface ReplanChanges {
 export interface ReplanProposalDetail {
   proposal: ReplanProposal;
   changes: ReplanChanges;
+  refs: { tasks: Record<string, RoadmapTaskRef> };
 }
 
 /** POST /replan-proposals/{id}/approve — the resolved proposal + what the apply step wrote. */
@@ -314,7 +315,16 @@ export interface ProposedDay {
 export interface RoadmapTaskRef {
   id: string;
   title: string;
-  status: string;
+  status: TaskStatus;
+  project_id: string;
+  project_title: string;
+  work_package_id: string;
+  work_package_title: string;
+  estimate_hours: NumericString | null;
+  difficulty: DifficultyLevel | null;
+  is_time_fixed: boolean;
+  fixed_date: DateString | null;
+  blocked: boolean;
 }
 
 /** GET /me */
@@ -393,6 +403,12 @@ export interface CompleteTaskResult {
   points_awarded: number;
   day_completed?: { daily_plan_day_id: string; plan_date: DateString; points_awarded: number };
   milestone_achieved?: { milestone_id: string; title: string; points_awarded: number };
+}
+
+/** POST /tasks/{id}/pull-forward */
+export interface PullForwardResult {
+  item: DailyPlanItem;
+  day: DailyPlanDay;
 }
 
 // ---- Errors ----------------------------------------------------------------

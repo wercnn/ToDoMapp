@@ -14,8 +14,9 @@ import { Stepper } from "./Stepper";
 import type { WizardCtx } from "./types";
 import { StepGoal } from "./steps/StepGoal";
 import { StepProject } from "./steps/StepProject";
+import { StepFirstMilestone } from "./steps/StepFirstMilestone";
 import { StepBreakdown } from "./steps/StepBreakdown";
-import { StepMilestones } from "./steps/StepMilestones";
+import { StepGroup } from "./steps/StepGroup";
 import { StepCapacity } from "./steps/StepCapacity";
 import { StepRoadmap } from "./steps/StepRoadmap";
 
@@ -56,7 +57,7 @@ function Wizard({ initial }: { initial: OnboardingResume }) {
     initialProject: initial.project,
     setGoalId,
     setProjectId,
-    next: () => setStep((s) => Math.min(s + 1, 5)),
+    next: () => setStep((s) => Math.min(s + 1, 6)),
     back: () => setStep((s) => Math.max(s - 1, 0)),
     finish: () => {
       // The whole app reads change once a day is confirmed — refetch on landing.
@@ -68,8 +69,9 @@ function Wizard({ initial }: { initial: OnboardingResume }) {
   const steps = [
     <StepGoal ctx={ctx} />,
     <StepProject ctx={ctx} />,
+    <StepFirstMilestone ctx={ctx} />,
     <StepBreakdown ctx={ctx} />,
-    <StepMilestones ctx={ctx} />,
+    <StepGroup ctx={ctx} />,
     <StepCapacity ctx={ctx} />,
     <StepRoadmap ctx={ctx} />,
   ];

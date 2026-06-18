@@ -23,7 +23,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Flag } from "lucide-react";
+import { ArrowRight, Flag, Sparkles } from "lucide-react";
 import { morningBriefApi } from "@/api";
 import { Button } from "@/components/ui/button";
 
@@ -108,56 +108,67 @@ function CelebrationDialog({ win, onClose }: { win: MilestoneWin; onClose: () =>
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative w-full max-w-sm overflow-hidden rounded-[22px] border border-progress/40 bg-surface-1 p-7 text-center shadow-2xl [animation:celebrate_800ms_cubic-bezier(0.16,1,0.3,1)]">
-        {/* glyph + color (never color alone) */}
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-progress text-on-accent [animation:pop_600ms_ease-out]">
-          <Flag size={30} strokeWidth={2.5} />
+      <div className="relative w-full max-w-[430px] overflow-hidden rounded-[18px] border border-system/50 bg-surface-1 p-6 shadow-2xl [animation:celebrate_800ms_cubic-bezier(0.16,1,0.3,1)]">
+        <Confetti />
+
+        <div className="relative mx-auto mb-4 grid h-20 w-20 place-items-center">
+          <span className="absolute h-16 w-16 rotate-45 rounded-[12px] border border-system bg-system-soft" />
+          <span className="relative grid h-12 w-12 place-items-center rounded-full bg-system text-on-accent [animation:pop_600ms_ease-out]">
+            <Flag size={24} strokeWidth={2.5} />
+          </span>
         </div>
 
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-progress">
+        <p className="text-center text-[11px] font-extrabold uppercase tracking-[0.16em] text-system">
           Milestone reached
         </p>
-        <h2 id="celebration-title" className="mt-1 text-2xl font-black leading-tight text-text-primary">
+        <h2 id="celebration-title" className="mt-1 text-center text-2xl font-black leading-tight text-text-primary">
           {win.title}
         </h2>
 
-        <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-progress-soft px-3.5 py-1.5 text-sm font-extrabold text-progress">
-          <span aria-hidden>✦</span> +{win.bonusPoints} points
-        </div>
-
         {stats && (
-          <div className="mt-5 flex items-center justify-center gap-6 border-t border-border pt-4">
-            <Stat value={String(stats.total_points)} label="total points" />
-            <Stat value={`${stats.current_streak} 🔥`} label="day streak" />
+          <div className="mt-5 grid gap-2 border-t border-border pt-4">
+            <RecapRow label="Bonus earned" value={`+${win.bonusPoints} points`} accent />
+            <RecapRow label="Total points" value={String(stats.total_points)} />
+            <RecapRow label="Current streak" value={`${stats.current_streak} days`} />
           </div>
         )}
 
-        <div className="mt-5 rounded-[14px] border border-border bg-bg px-4 py-3 text-left">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-system">What's next</p>
+        <div className="mt-5 rounded-[14px] border border-system/40 bg-system-soft px-4 py-3 text-left">
+          <p className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-system">
+            <Sparkles size={13} />
+            Next landmark
+          </p>
           {next ? (
-            <p className="mt-1 text-sm font-bold text-text-primary">
-              🚩 {next.title} · in {next.days_away} day{next.days_away === 1 ? "" : "s"}
-            </p>
+            <div className="mt-2 flex items-start gap-3">
+              <span className="grid h-9 w-9 rotate-45 place-items-center rounded-[8px] border border-system bg-bg">
+                <Flag size={14} className="-rotate-45 text-system" />
+              </span>
+              <p className="min-w-0 flex-1 text-sm font-bold text-text-primary">
+                {next.title}
+                <span className="block text-xs font-semibold text-system">
+                  {next.projected_date} · in {next.days_away} day{next.days_away === 1 ? "" : "s"}
+                </span>
+              </p>
+            </div>
           ) : (
             <p className="mt-1 text-sm font-semibold text-text-secondary">
-              No milestones ahead — you've cleared the path. Time to set the next one.
+              No milestones ahead. Set the next landmark when you are ready.
             </p>
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <Button ref={closeRef} variant="outline" size="sm" onClick={onClose}>
+            Close
+          </Button>
           <Button
-            variant="outline"
             size="sm"
             onClick={() => {
               onClose();
               navigate("/roadmap");
             }}
           >
-            View roadmap
-          </Button>
-          <Button ref={closeRef} size="sm" onClick={onClose}>
-            Keep going
+            See what's next <ArrowRight size={14} />
           </Button>
         </div>
       </div>
@@ -165,11 +176,32 @@ function CelebrationDialog({ win, onClose }: { win: MilestoneWin; onClose: () =>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function RecapRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex flex-col items-center">
-      <span className="font-mono text-lg font-black text-text-primary">{value}</span>
-      <span className="text-[10px] font-bold text-text-tertiary">{label}</span>
+    <div className="flex items-center justify-between gap-3 rounded-[10px] border border-border bg-bg px-3 py-2">
+      <span className="text-xs font-bold text-text-tertiary">{label}</span>
+      <span className={accent ? "font-mono text-sm font-black text-progress" : "font-mono text-sm font-black text-text-primary"}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Confetti() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      {Array.from({ length: 14 }).map((_, index) => (
+        <span
+          key={index}
+          className="absolute h-1.5 w-1.5 rounded-[2px] [animation:celebrate_800ms_cubic-bezier(0.16,1,0.3,1)]"
+          style={{
+            left: `${8 + ((index * 17) % 84)}%`,
+            top: `${8 + ((index * 23) % 36)}%`,
+            background: index % 3 === 0 ? "var(--accent-progress)" : index % 3 === 1 ? "var(--accent-system)" : "var(--warning)",
+            transform: `rotate(${index * 21}deg)`,
+          }}
+        />
+      ))}
     </div>
   );
 }

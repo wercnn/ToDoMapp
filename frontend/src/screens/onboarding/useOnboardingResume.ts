@@ -20,16 +20,17 @@
  * A1/A2 prefill from the found goal/project so Back-edit persists via PATCH.
  */
 import { useQuery } from "@tanstack/react-query";
-import { goalsApi, roadmapApi } from "@/api";
+import { goalsApi, projectsApi, roadmapApi } from "@/api";
 import type { Goal, Project } from "@api-types";
 
 export const STEP = {
   GOAL: 0,
   PROJECT: 1,
-  BREAKDOWN: 2,
-  MILESTONES: 3,
-  CAPACITY: 4,
-  ROADMAP: 5,
+  MILESTONE: 2,
+  BREAKDOWN: 3,
+  GROUP: 4,
+  CAPACITY: 5,
+  ROADMAP: 6,
 } as const;
 
 export interface OnboardingResume {
@@ -65,6 +66,10 @@ async function detect(): Promise<OnboardingResume> {
 
   if (hasProposedDay) {
     return { complete: false, step: STEP.ROADMAP, goal, project };
+  }
+  const milestones = await projectsApi.listMilestones(project.id);
+  if (milestones.length === 0) {
+    return { complete: false, step: STEP.MILESTONE, goal, project };
   }
   // Project exists but nothing proposed yet → resume at the breakdown and let the
   // user walk forward through the optional milestone/capacity steps.

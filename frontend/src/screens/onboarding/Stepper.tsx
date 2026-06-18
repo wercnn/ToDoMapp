@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils";
 export const STEP_LABELS = [
   "Goal",
   "Project",
+  "Milestone",
   "Breakdown",
-  "Milestones",
+  "Group",
   "Capacity",
   "Roadmap",
 ] as const;
