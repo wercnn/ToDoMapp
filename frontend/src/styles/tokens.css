@@ -1,0 +1,68 @@
+/*
+ * Design tokens — the "Earned Momentum" system, translated ONCE from the design
+ * source (docs/design/project/Earned Momentum.dc.html + ui-ux-design-language.md)
+ * into semantic CSS variables. Components reference these vars (via Tailwind theme
+ * mapping in index.css), never raw hex. Dark is the default character; .light
+ * remaps the same semantic tokens. No component knows which theme it's in.
+ */
+
+:root,
+.dark {
+  /* Neutral ramp */
+  --bg: #0e0e10;
+  --surface-1: #1a1a1d;
+  --surface-2: #242428;
+  --surface-3: #2e2e33;
+  --border: #34343a;
+  --border-strong: #45454c;
+  --text-primary: #f4f4f2;
+  --text-secondary: #a8a8a4;
+  --text-tertiary: #74747a;
+
+  /* Two-accent rule */
+  --accent-progress: #3dd68c; /* green — your reality */
+  --accent-progress-soft: #16352a;
+  --accent-progress-press: #2aa86c; /* chunky-button bottom edge */
+  --accent-system: #a78bfa; /* lilac — the system proposes */
+  --accent-system-soft: #272040;
+  --accent-system-press: #7c5cfc;
+
+  /* Functional / feedback */
+  --info: #5b9dff;
+  --info-soft: #1b2f4d;
+  --warning: #e0a33e;
+  --warning-soft: #3a2c12;
+  --danger: #f2685c;
+  --focus-ring: #a78bfa;
+
+  /* On-accent foreground (text on a filled accent) */
+  --on-accent: #0e0e10;
+}
+
+.light {
+  --bg: #ffffff;
+  --surface-1: #fafaf9;
+  --surface-2: #f2f2f0;
+  --surface-3: #e8e8e6;
+  --border: #e2e2df;
+  --border-strong: #cfcfcb;
+  --text-primary: #1a1a1a;
+  --text-secondary: #5c5c5a;
+  --text-tertiary: #8a8a87;
+
+  --accent-progress: #1f9d55;
+  --accent-progress-soft: #e4f5ec;
+  --accent-progress-press: #167a41;
+  --accent-system: #7c5cfc;
+  --accent-system-soft: #eee9fe;
+  --accent-system-press: #5b3fe0;
+
+  --info: #2d7ff9;
+  --info-soft: #dceaff;
+  --warning: #c77a0a;
+  --warning-soft: #f8e8c8;
+  --danger: #d1463b;
+  --focus-ring: #7c5cfc;
+
+  --on-accent: #ffffff;
+}

@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Map semantic tokens → Tailwind v4 theme so utilities resolve to the vars:
+ *   bg-bg, bg-surface-1, text-text-secondary, text-progress, border-border, …
+ * Theme switching = remapping the vars (tokens.css), not the utilities.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --color-progress: var(--accent-progress);
+  --color-progress-soft: var(--accent-progress-soft);
+  --color-system: var(--accent-system);
+  --color-system-soft: var(--accent-system-soft);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+
+  --color-on-accent: var(--on-accent);
+
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Calm, token-driven scrollbars (matches the prototype). */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+/* Reward-gated motion; respect reduced-motion (design language §7). */
+@keyframes pop {
+  0% { transform: scale(0.94); }
+  55% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
