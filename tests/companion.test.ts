@@ -195,7 +195,7 @@ describe("morning-brief", () => {
       project_title: "Seed Project",
       work_package_id: scenario.wp1Id,
       work_package_title: "Work Package 1",
-      estimate_hours: "2",
+      estimate_hours: "2.00",
       blocked: false,
     });
     // points AND streak — the brief surfaces both (api §4.6).

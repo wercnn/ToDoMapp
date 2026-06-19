@@ -278,7 +278,7 @@ describe("GET /roadmap", () => {
       project_title: "P",
       work_package_id: wp,
       work_package_title: "WP",
-      estimate_hours: "2",
+      estimate_hours: "2.00",
       difficulty: null,
       is_time_fixed: false,
       fixed_date: null,
@@ -385,7 +385,7 @@ describe("daily-planning edits", () => {
       id: task,
       project_id: projectId,
       work_package_id: wp,
-      estimate_hours: "3",
+      estimate_hours: "3.00",
       blocked: false,
     });
     const eng = await db.selectFrom("engagement_day").select("activity_date")
