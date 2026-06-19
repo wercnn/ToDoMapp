@@ -14,15 +14,14 @@ import {
   Moon,
   Plus,
   RotateCcw,
-  Sparkles,
   Sun,
 } from "lucide-react";
-import { daysApi, morningBriefApi, planItemsApi, replanApi, roadmapApi, tasksApi } from "@/api";
+import { daysApi, morningBriefApi, planItemsApi, tasksApi } from "@/api";
 import { useSession } from "@/auth/session";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { deriveTodayProgress, selectRoadAhead } from "@/lib/planningDisplay";
+import { deriveTodayProgress } from "@/lib/planningDisplay";
 import { useAddableTasks } from "@/screens/roadmap/useAddableTasks";
 
 export function TopBar() {
@@ -41,15 +40,8 @@ export function TopBar() {
   const entries = brief.data?.today?.items ?? [];
   const taskIds = entries.map((entry) => entry.item.task_id).filter((id): id is string => id != null);
   const progress = deriveTodayProgress(entries);
-  const pending = brief.data?.pending_proposal;
   const stats = brief.data?.stats;
 
-  const roadmap = useQuery({
-    queryKey: ["roadmap", "topbar", today],
-    queryFn: () => roadmapApi.get(today ? { from: today } : undefined),
-    enabled: expanded && Boolean(today),
-    staleTime: 30_000,
-  });
   const addable = useAddableTasks(expanded && quickAddOpen, taskIds);
 
   const invalidateLive = () => {
@@ -77,23 +69,6 @@ export function TopBar() {
       invalidateLive();
     },
   });
-  const pullForward = useMutation({
-    mutationFn: (taskId: string) => tasksApi.pullForward(taskId, today),
-    onSuccess: invalidateLive,
-  });
-  const approveProposal = useMutation({
-    mutationFn: (proposalId: string) => replanApi.approve(proposalId),
-    onSuccess: invalidateLive,
-  });
-
-  const futureCandidates = selectRoadAhead(roadmap.data, today ?? "", 10)
-    .filter((day) => day.date !== today)
-    .flatMap((day) =>
-      day.items
-        .filter((item) => item.task && item.task.status === "todo" && !item.task.blocked)
-        .map((item) => ({ date: day.date, task: item.task! })),
-    )
-    .slice(0, 3);
 
   return (
     <header
@@ -121,17 +96,9 @@ export function TopBar() {
         >
           <ProgressRing done={progress.done} total={progress.total} percent={progress.percent} />
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-[0.16em] text-text-tertiary">
-                Today
-              </span>
-              {pending && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-system-soft px-2 py-0.5 text-[10px] font-black text-system">
-                  <span className="h-1.5 w-1.5 rounded-full bg-system [animation:pulse-soft_2.5s_ease-in-out_infinite]" />
-                  Proposal
-                </span>
-              )}
-            </div>
+            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-text-tertiary">
+              Today
+            </span>
             <p className="truncate text-sm font-extrabold text-text-primary">
               {progress.current?.title ?? (progress.total ? "All tasks complete" : "No tasks planned")}
             </p>
@@ -161,7 +128,7 @@ export function TopBar() {
       </div>
 
       {expanded && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 pb-4 md:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 pb-4">
           <div className="min-w-0 overflow-x-auto rounded-[12px] border border-border bg-surface-1 p-3">
             <div className="flex min-w-max items-center gap-2">
               {entries.length === 0 && (
@@ -248,57 +215,6 @@ export function TopBar() {
                 Open full day
                 <ArrowRight size={14} />
               </Button>
-            </div>
-          </div>
-
-          <div className="grid min-h-0 grid-rows-[auto_1fr] gap-2">
-            {pending ? (
-              <div className="flex items-center gap-2 rounded-[12px] border border-system/40 bg-system-soft px-3 py-2">
-                <Sparkles size={16} className="text-system" />
-                <span className="min-w-0 flex-1 truncate text-xs font-extrabold text-system">
-                  {pending.summary}
-                </span>
-                <Button
-                  size="sm"
-                  variant="system"
-                  onClick={() => approveProposal.mutate(pending.id)}
-                  disabled={approveProposal.isPending}
-                >
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => navigate(`/roadmap?proposal=${pending.id}`)}
-                >
-                  Review
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-[12px] border border-border bg-surface-1 px-3 py-2 text-xs font-bold text-text-tertiary">
-                No pending proposal
-              </div>
-            )}
-
-            <div className="flex min-h-0 gap-2 overflow-x-auto rounded-[12px] border border-border bg-surface-1 p-2">
-              {futureCandidates.length === 0 && (
-                <span className="px-1 py-1 text-xs font-bold text-text-tertiary">No pull-forward candidates.</span>
-              )}
-              {futureCandidates.map(({ date, task }) => (
-                <button
-                  key={`${date}:${task.id}`}
-                  type="button"
-                  disabled={pullForward.isPending}
-                  onClick={() => pullForward.mutate(task.id)}
-                  className="flex min-w-[150px] flex-col rounded-[9px] border border-border bg-bg px-2.5 py-2 text-left hover:border-progress/60"
-                >
-                  <span className="text-[10px] font-black uppercase tracking-wider text-text-tertiary">
-                    Pull forward
-                  </span>
-                  <span className="truncate text-xs font-extrabold text-text-primary">{task.title}</span>
-                  <span className="text-[10px] font-bold text-system">{date}</span>
-                </button>
-              ))}
             </div>
           </div>
         </div>

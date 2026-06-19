@@ -21,9 +21,11 @@ import { formatEstimate, taskStatusKind } from "./status";
 export function TableView({
   projectId,
   onSelectWp,
+  onSelectMilestone,
 }: {
   projectId: string;
   onSelectWp: (wpId: string) => void;
+  onSelectMilestone?: (milestoneId: string) => void;
 }) {
   const wps = useWorkPackages(projectId);
   const milestones = useMilestones(projectId);
@@ -98,7 +100,7 @@ export function TableView({
           </tr>
         </thead>
         <tbody>
-          {renderRows(rows, groupByMilestone, msTitle, onSelectWp)}
+          {renderRows(rows, groupByMilestone, msTitle, onSelectWp, onSelectMilestone)}
         </tbody>
       </table>
       {rows.length === 0 && (
@@ -136,6 +138,7 @@ function renderRows(
   grouped: boolean,
   msTitle: Map<string, string>,
   onSelectWp: (wpId: string) => void,
+  onSelectMilestone?: (milestoneId: string) => void,
 ) {
   if (!grouped) {
     return rows.map((wp) => (
@@ -149,24 +152,39 @@ function renderRows(
   }
   const groups = new Map<string, WorkPackageWithStatus[]>();
   for (const wp of rows) {
-    const key = wp.milestone_id ? msTitle.get(wp.milestone_id) ?? "Milestone" : "No milestone";
+    const key = wp.milestone_id ?? "none";
     (groups.get(key) ?? groups.set(key, []).get(key)!).push(wp);
   }
-  return [...groups.entries()].flatMap(([title, group]) => [
-    <tr key={`group-${title}`} className="border-b border-border bg-surface-2/70">
-      <td colSpan={6} className="px-3 py-2 text-xs font-black uppercase tracking-wider text-system">
-        {title}
-      </td>
-    </tr>,
-    ...group.map((wp) => (
-      <WpRow
-        key={wp.id}
-        wp={wp}
-        milestoneTitle={wp.milestone_id ? msTitle.get(wp.milestone_id) : undefined}
-        onSelect={() => onSelectWp(wp.id)}
-      />
-    )),
-  ]);
+  return [...groups.entries()].flatMap(([key, group]) => {
+    const title = key === "none" ? "No milestone" : msTitle.get(key) ?? "Milestone";
+    const clickable = key !== "none" && onSelectMilestone;
+    return [
+      <tr key={`group-${key}`} className="border-b border-border bg-surface-2/70">
+        <td colSpan={6} className="px-3 py-2 text-xs font-black uppercase tracking-wider text-system">
+          {clickable ? (
+            <button
+              type="button"
+              onClick={() => onSelectMilestone!(key)}
+              className="inline-flex items-center gap-1.5 hover:underline"
+              title="Open milestone"
+            >
+              🚩 {title}
+            </button>
+          ) : (
+            title
+          )}
+        </td>
+      </tr>,
+      ...group.map((wp) => (
+        <WpRow
+          key={wp.id}
+          wp={wp}
+          milestoneTitle={wp.milestone_id ? msTitle.get(wp.milestone_id) : undefined}
+          onSelect={() => onSelectWp(wp.id)}
+        />
+      )),
+    ];
+  });
 }
 
 function WpRow({

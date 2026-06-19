@@ -175,26 +175,14 @@ export default function FlowView({
 
   return (
     <div className="flex h-full min-h-[620px] flex-col bg-bg">
-      {/* --- toolbar --- */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3">
-        {flow.data.next_milestone && (
-          <span className="inline-flex items-center gap-2 text-xs font-bold text-text-tertiary">
-            <span className="grid h-5 w-5 rotate-45 place-items-center rounded-[5px] border border-system bg-system-soft">
-              <span className="-rotate-45 text-[10px] text-system">◆</span>
-            </span>
-            Critical path to{" "}
-            <span className="text-text-secondary">{flow.data.next_milestone.title}</span>
-          </span>
-        )}
-        {selectedEdge && (
+      {/* --- toolbar (only when an edge is selected) --- */}
+      {selectedEdge && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3">
           <Button size="sm" variant="ghost" className="text-warning" onClick={onDeleteEdge}>
             Delete edge
           </Button>
-        )}
-        <span className="ml-auto text-[11px] font-semibold text-text-tertiary">
-          Work packages only. Click a package to inspect and edit its tasks in the side panel.
-        </span>
-      </div>
+        </div>
+      )}
 
       {notice && (
         <p className="rounded-[10px] bg-warning-soft px-3 py-2 text-xs font-bold text-warning">

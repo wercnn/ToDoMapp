@@ -203,40 +203,10 @@ export function WorkPackageSheet({
               </p>
             )}
 
-            {/* --- WP header fields --- */}
-            <div className="flex flex-col gap-4">
-              <Field label="Title">
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-              </Field>
-              <Field label="Milestone">
-                <select
-                  value={milestoneId}
-                  onChange={(e) => setMilestoneId(e.target.value)}
-                  className="w-full rounded-[11px] border border-border bg-bg px-4 py-3 text-[15px] font-bold text-text-primary outline-none focus:border-progress"
-                >
-                  <option value="">No milestone</option>
-                  {milestones.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.title}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Estimate">
-                <EstimateControl value={estimate} onChange={setEstimate} />
-              </Field>
-              <Field label="Scheduling">
-                <TimeFixedControl value={timeFixed} onChange={setTimeFixed} />
-              </Field>
-              <Field label="Description">
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-              </Field>
-            </div>
-
-            {/* --- Task list --- */}
-            <div className="mt-6 border-t border-border pt-4">
+            {/* --- Task list — the WP IS a to-do list, so it leads --- */}
+            <div>
               <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-text-tertiary">
-                Tasks
+                To-do list · {tasks.data?.length ?? 0}
               </h3>
               {tasks.isLoading && (
                 <p className="text-xs font-semibold text-text-tertiary">Loading tasks…</p>
@@ -274,6 +244,39 @@ export function WorkPackageSheet({
                   }
                 />
               )}
+            </div>
+
+            {/* --- WP detail fields, below the list --- */}
+            <div className="mt-6 flex flex-col gap-4 border-t border-border pt-4">
+              <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-text-tertiary">
+                Work package details
+              </h3>
+              <Field label="Title">
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              </Field>
+              <Field label="Milestone">
+                <select
+                  value={milestoneId}
+                  onChange={(e) => setMilestoneId(e.target.value)}
+                  className="w-full rounded-[11px] border border-border bg-bg px-4 py-3 text-[15px] font-bold text-text-primary outline-none focus:border-progress"
+                >
+                  <option value="">No milestone</option>
+                  {milestones.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Estimate">
+                <EstimateControl value={estimate} onChange={setEstimate} />
+              </Field>
+              <Field label="Scheduling">
+                <TimeFixedControl value={timeFixed} onChange={setTimeFixed} />
+              </Field>
+              <Field label="Description">
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+              </Field>
             </div>
           </>
         )}

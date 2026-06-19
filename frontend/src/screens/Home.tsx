@@ -2,6 +2,7 @@
  * Home dashboard in the prototype shape: grouped daily work, road-ahead path,
  * goal progress, and an attention card for pending replans / next landmark.
  */
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarClock, Check, Clock3, Flag, RotateCcw, Sparkles } from "lucide-react";
@@ -14,7 +15,9 @@ import { Skeleton } from "@/components/Skeleton";
 import { Button } from "@/components/ui/button";
 import { calmMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
-import { deriveTodayProgress, groupDayItems, selectRoadAhead } from "@/lib/planningDisplay";
+import { deriveTodayProgress, dayProgress, groupDayItems, isDayComplete } from "@/lib/planningDisplay";
+import { buildTimeline, type Entry } from "@/screens/roadmap/timeline";
+import { formatDay } from "@/screens/roadmap/dates";
 
 function taskStatusToPill(task: RoadmapTaskRef | null): StatusKind {
   if (!task) return "open";
@@ -26,6 +29,9 @@ export function Home() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { celebrate } = useCelebration();
+  // "In progress" is a presentation-only state (the API has no start-task verb): a
+  // first click marks a task in-progress locally, a second click completes it.
+  const [inProgress, setInProgress] = useState<Set<string>>(new Set());
   const brief = useQuery({ queryKey: ["morning-brief"], queryFn: morningBriefApi.get });
   const roadmap = useQuery({
     queryKey: ["roadmap", "home", brief.data?.position.today],
@@ -58,6 +64,27 @@ export function Home() {
       }
     },
   });
+  const clearInProgress = (taskId: string) =>
+    setInProgress((prev) => {
+      if (!prev.has(taskId)) return prev;
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
+  // Two-step advance: open → in progress (local) → done (API). Done tasks reopen.
+  const advance = (taskId: string, completed: boolean) => {
+    if (completed) {
+      clearInProgress(taskId);
+      toggle.mutate({ taskId, completed: true });
+      return;
+    }
+    if (inProgress.has(taskId)) {
+      clearInProgress(taskId);
+      toggle.mutate({ taskId, completed: false });
+      return;
+    }
+    setInProgress((prev) => new Set(prev).add(taskId));
+  };
   const defer = useMutation({
     mutationFn: (itemId: string) => planItemsApi.patch(itemId, { status: "deferred" }),
     onSuccess: invalidateLive,
@@ -89,7 +116,16 @@ export function Home() {
   const entries = data.today?.items ?? [];
   const progress = deriveTodayProgress(entries);
   const groups = groupDayItems(entries);
-  const roadAhead = selectRoadAhead(roadmap.data, data.position.today, 8);
+  const today = data.position.today;
+  const roadEntries = roadmap.data
+    ? buildTimeline(roadmap.data)
+        .entries.filter(
+          (entry) =>
+            entry.date >= today &&
+            (entry.kind === "milestone" || entry.day.items.length > 0 || entry.date === today),
+        )
+        .slice(0, 7)
+    : [];
 
   return (
     <div className="grid grid-cols-1 items-start gap-5 p-6 xl:grid-cols-[minmax(0,1.15fr)_430px]">
@@ -139,7 +175,8 @@ export function Home() {
                         key={entry.item.id}
                         entry={entry}
                         disabled={toggle.isPending || defer.isPending}
-                        onToggle={(taskId, completed) => toggle.mutate({ taskId, completed })}
+                        progressing={entry.item.task_id ? inProgress.has(entry.item.task_id) : false}
+                        onAdvance={advance}
                         onDefer={() => defer.mutate(entry.item.id)}
                       />
                     ))}
@@ -150,48 +187,30 @@ export function Home() {
           )}
         </div>
 
-        <section className="rounded-[14px] border border-border bg-surface-1 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-sm font-black">Road ahead</span>
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => navigate("/roadmap")}>
-              Full path
+        <section className="rounded-[14px] border border-border bg-surface-1 p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-sm font-black">The road ahead</span>
+            <span className="text-xs font-semibold text-text-tertiary">next {roadEntries.length} steps</span>
+            <Button size="sm" variant="secondary" className="ml-auto" onClick={() => navigate("/roadmap")}>
+              Open Roadmap
               <ArrowRight size={14} />
             </Button>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {roadAhead.map((day, index) => (
-              <button
-                key={day.date}
-                type="button"
-                onClick={() => navigate(`/roadmap?date=${day.date}`)}
-                className={cn(
-                  "flex min-w-[150px] flex-col rounded-[12px] border px-3 py-3 text-left transition-colors",
-                  index === 0 ? "border-progress/50 bg-progress-soft" : "border-border bg-bg hover:bg-surface-2",
-                )}
-              >
-                <span className="text-[10px] font-black uppercase tracking-wider text-text-tertiary">
-                  {day.projected ? "Projected" : day.status}
-                </span>
-                <span className="mt-1 font-mono text-sm font-black text-text-primary">{day.date}</span>
-                <span className="mt-2 text-xs font-bold text-text-secondary">{day.items.length} tasks</span>
-                <div className="mt-3 flex -space-x-1">
-                  {day.items.slice(0, 4).map((item) => (
-                    <span
-                      key={item.task_id}
-                      className={cn(
-                        "h-5 w-5 rounded-full border border-bg",
-                        item.task?.is_time_fixed ? "bg-warning" : "bg-system",
-                      )}
-                      title={item.task?.title}
-                    />
-                  ))}
-                </div>
-              </button>
-            ))}
-            {roadAhead.length === 0 && (
-              <p className="px-1 py-4 text-sm font-semibold text-text-tertiary">No projected days yet.</p>
-            )}
-          </div>
+          {roadEntries.length === 0 ? (
+            <p className="px-1 py-4 text-sm font-semibold text-text-tertiary">No projected days yet.</p>
+          ) : (
+            <div className="flex items-start gap-0 overflow-x-auto pb-1">
+              {roadEntries.map((entry, index) => (
+                <RoadNode
+                  key={entry.kind === "day" ? `d-${entry.date}` : `m-${entry.id}-${entry.date}`}
+                  entry={entry}
+                  today={today}
+                  showConnector={index > 0}
+                  onClick={() => navigate(`/roadmap?date=${entry.date}`)}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </section>
 
@@ -212,7 +231,8 @@ export function Home() {
 function TaskRow({
   entry,
   disabled,
-  onToggle,
+  progressing,
+  onAdvance,
   onDefer,
 }: {
   entry: MorningBrief["today"] extends infer T
@@ -223,34 +243,52 @@ function TaskRow({
       : never
     : never;
   disabled: boolean;
-  onToggle: (taskId: string, completed: boolean) => void;
+  progressing: boolean;
+  onAdvance: (taskId: string, completed: boolean) => void;
   onDefer: () => void;
 }) {
   const taskId = entry.item.task_id;
   const task = entry.task;
   const completed = entry.item.status === "completed";
+  const status: StatusKind = completed
+    ? "done"
+    : progressing && taskStatusToPill(task) === "open"
+      ? "in_progress"
+      : taskStatusToPill(task);
+  const act = () => taskId && onAdvance(taskId, completed);
+  const title = completed
+    ? "Reopen task"
+    : progressing
+      ? "Complete task"
+      : "Start task";
   return (
     <div
       className={cn(
-        "grid grid-cols-[32px_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-[12px] border px-3 py-3",
-        completed ? "border-progress/40 bg-progress-soft" : "border-border bg-bg",
+        "grid grid-cols-[32px_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-[12px] border px-3 py-3 transition-colors",
+        completed
+          ? "border-progress/40 bg-progress-soft"
+          : status === "in_progress"
+            ? "border-info/40 bg-info-soft"
+            : "border-border bg-bg",
       )}
     >
       <button
         type="button"
         disabled={!taskId || disabled}
-        onClick={() => taskId && onToggle(taskId, completed)}
+        onClick={act}
         className={cn(
           "flex h-8 w-8 items-center justify-center rounded-[9px] border text-xs font-black",
           completed
             ? "border-progress bg-progress text-on-accent"
-            : "border-border-strong text-text-tertiary hover:text-progress",
+            : status === "in_progress"
+              ? "border-info text-info"
+              : "border-border-strong text-text-tertiary hover:text-progress",
         )}
-        title={completed ? "Reopen task" : "Complete task"}
+        title={title}
       >
-        {completed ? <RotateCcw size={15} /> : <Check size={16} />}
+        {completed ? <RotateCcw size={15} /> : status === "in_progress" ? <Check size={16} /> : null}
       </button>
-      <div className="min-w-0">
+      <button type="button" disabled={!taskId || disabled} onClick={act} className="min-w-0 text-left">
         <p className={cn("truncate text-sm font-extrabold", completed && "text-progress line-through")}>
           {task?.title ?? "Task"}
         </p>
@@ -264,8 +302,8 @@ function TaskRow({
             </span>
           )}
         </div>
-      </div>
-      <StatusPill status={completed ? "done" : taskStatusToPill(task)} />
+      </button>
+      <StatusPill status={status} />
       <button
         type="button"
         disabled={disabled || completed}
@@ -276,6 +314,86 @@ function TaskRow({
         <Clock3 size={15} />
       </button>
     </div>
+  );
+}
+
+/** A single node on the Home "road ahead" path: a day circle or a milestone diamond. */
+function RoadNode({
+  entry,
+  today,
+  showConnector,
+  onClick,
+}: {
+  entry: Entry;
+  today: string;
+  showConnector: boolean;
+  onClick: () => void;
+}) {
+  const { weekday } = formatDay(entry.date);
+  const connector = showConnector ? (
+    <span className="mt-[26px] h-0.5 w-5 flex-none bg-surface-3" />
+  ) : null;
+
+  if (entry.kind === "milestone") {
+    return (
+      <>
+        {connector}
+        <button
+          type="button"
+          onClick={onClick}
+          className="flex w-[92px] flex-none flex-col items-center gap-2 text-center"
+        >
+          <span className="text-[10px] font-black text-system">{weekday}</span>
+          <span className="grid h-10 w-10 rotate-45 place-items-center rounded-[11px] border-2 border-system bg-system-soft">
+            <Flag size={15} className="-rotate-45 text-system" />
+          </span>
+          <span className="line-clamp-2 text-[9px] font-black leading-tight text-system">{entry.title}</span>
+        </button>
+      </>
+    );
+  }
+
+  const day = entry.day;
+  const isToday = day.date === today;
+  const complete = isDayComplete(day);
+  const { done, total } = dayProgress(day);
+
+  return (
+    <>
+      {connector}
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-[84px] flex-none flex-col items-center gap-2 text-center"
+      >
+        <span
+          className={cn(
+            "text-[10px] font-black",
+            isToday ? "text-text-primary" : complete ? "text-progress" : "text-text-secondary",
+          )}
+        >
+          {isToday ? "Today" : weekday}
+        </span>
+        {isToday ? (
+          <span className="grid h-11 w-11 place-items-center rounded-full border-[3px] border-progress bg-bg font-mono text-[10px] font-black text-progress shadow-[0_0_0_4px_var(--accent-progress-soft)]">
+            {total ? `${done}/${total}` : "–"}
+          </span>
+        ) : complete ? (
+          <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-progress bg-progress-soft text-progress">
+            <Check size={15} />
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "grid h-9 w-9 place-items-center rounded-full border-2 border-border-strong bg-surface-1 font-mono text-[11px] font-bold text-text-tertiary",
+              day.projected && "border-dashed",
+            )}
+          >
+            {total || ""}
+          </span>
+        )}
+      </button>
+    </>
   );
 }
 

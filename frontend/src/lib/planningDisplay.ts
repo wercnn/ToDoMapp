@@ -60,6 +60,19 @@ export function selectRoadAhead(roadmap: Roadmap | undefined, today: string, lim
     .slice(0, limit);
 }
 
+/** Done / total task counts for a single roadmap day (drives the day node ring). */
+export function dayProgress(day: RoadmapDay): { done: number; total: number } {
+  const total = day.items.length;
+  const done = day.items.filter((item) => item.status === "completed").length;
+  return { done, total };
+}
+
+/** A day is "complete" when it has tasks and every one is done. */
+export function isDayComplete(day: RoadmapDay): boolean {
+  const { done, total } = dayProgress(day);
+  return total > 0 && done === total;
+}
+
 export function mapProposalTaskRefs(detail: ReplanProposalDetail | undefined) {
   return detail?.refs?.tasks ?? {};
 }

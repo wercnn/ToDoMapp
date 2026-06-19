@@ -14,9 +14,10 @@
 import { Suspense, lazy, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Flag, Plus } from "lucide-react";
 import { projectsApi } from "@/api";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusPill } from "@/components/StatusPill";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ReplanReview } from "@/screens/roadmap/ReplanReview";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { TableView } from "./TableView";
 import { TimelineView } from "./TimelineView";
 import { WorkPackageSheet } from "./WorkPackageSheet";
+import { MilestoneSheet } from "./MilestoneSheet";
 import { AddWorkPackageSheet } from "./AddWorkPackageSheet";
 import {
   useProject,
@@ -59,9 +61,20 @@ export function ProjectDetail() {
   const workPackages = useWorkPackages(projectId);
 
   // Selection is by id so every view (Table row, Flow node) resolves to the same
-  // WorkPackageWithStatus from the shared cached list.
+  // WorkPackageWithStatus from the shared cached list. A WP and a milestone are
+  // mutually-exclusive right-panel views.
   const [selectedWpId, setSelectedWpId] = useState<string | null>(null);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const selectedWp = workPackages.data?.find((w) => w.id === selectedWpId) ?? null;
+  const selectedMilestone = milestones.data?.find((m) => m.id === selectedMilestoneId) ?? null;
+  const selectWp = (id: string) => {
+    setSelectedMilestoneId(null);
+    setSelectedWpId(id);
+  };
+  const selectMilestone = (id: string) => {
+    setSelectedWpId(null);
+    setSelectedMilestoneId(id);
+  };
   const [addOpen, setAddOpen] = useState(false);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [nudge, setNudge] = useState<string | null>(null);
@@ -80,49 +93,59 @@ export function ProjectDetail() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* --- Header (C.0) --- */}
-      <header className="flex flex-col gap-3 border-b border-border px-6 py-5">
-        <div className="flex items-start justify-between gap-4">
+      {/* --- Header (C.0) — thin, single horizontal row --- */}
+      <header className="flex flex-col gap-2.5 border-b border-border px-6 py-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <div className="min-w-0">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-text-tertiary">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-text-tertiary">
               {goal.data?.title ?? "Project"}
             </p>
-            <div className="mt-0.5 flex items-center gap-2.5">
-              <h1 className="truncate text-2xl font-black text-text-primary">{p.title}</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="truncate text-xl font-black text-text-primary">{p.title}</h1>
               <StatusPill status={p.status === "completed" ? "completed" : "in_progress"} />
             </div>
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus size={16} /> Work package
-          </Button>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-text-secondary">
-          <CapacityEditor
-            projectId={projectId}
-            value={Number(p.capacity_hours_per_day)}
-            onSaved={invalidate}
-            onError={setNudge}
-          />
-          {p.target_end_date && (
-            <span>
-              <span className="text-text-tertiary">Target end</span> {p.target_end_date}
-            </span>
-          )}
-          {"progress" in p && (
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-32 overflow-hidden rounded-full bg-surface-2">
-                <span
-                  className="block h-full rounded-full bg-progress"
-                  style={{ width: `${Math.round(p.progress.percent_done)}%` }}
-                />
-              </span>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs font-bold text-text-secondary">
+            <CapacityEditor
+              projectId={projectId}
+              value={Number(p.capacity_hours_per_day)}
+              onSaved={invalidate}
+              onError={setNudge}
+            />
+            {p.target_end_date && (
               <span>
-                {p.progress.tasks_done}/{p.progress.tasks_total} tasks ·{" "}
-                {Math.round(p.progress.percent_done)}%
+                <span className="text-text-tertiary">Target end</span> {p.target_end_date}
               </span>
-            </span>
-          )}
+            )}
+            {"progress" in p && (
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-24 overflow-hidden rounded-full bg-surface-2">
+                  <span
+                    className="block h-full rounded-full bg-progress"
+                    style={{ width: `${Math.round(p.progress.percent_done)}%` }}
+                  />
+                </span>
+                <span>
+                  {p.progress.tasks_done}/{p.progress.tasks_total} · {Math.round(p.progress.percent_done)}%
+                </span>
+              </span>
+            )}
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <AddMilestoneButton
+              projectId={projectId}
+              onCreated={(id) => {
+                invalidate();
+                selectMilestone(id);
+              }}
+              onError={setNudge}
+            />
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus size={15} /> Work package
+            </Button>
+          </div>
         </div>
 
         {/* --- View toggle (the key control) --- */}
@@ -153,7 +176,9 @@ export function ProjectDetail() {
       {/* --- Active view + inline WP panel --- */}
       <div className="flex min-h-0 flex-1">
         <div className={cn("min-w-0 flex-1 overflow-auto", view === "flow" ? "p-0" : "p-6")}>
-          {view === "table" && <TableView projectId={projectId} onSelectWp={setSelectedWpId} />}
+          {view === "table" && (
+            <TableView projectId={projectId} onSelectWp={selectWp} onSelectMilestone={selectMilestone} />
+          )}
           {view === "flow" && (
             <ErrorBoundary
               fallback={
@@ -167,7 +192,7 @@ export function ProjectDetail() {
                   <p className="p-6 text-sm font-bold text-text-tertiary">Loading flow canvas…</p>
                 }
               >
-                <FlowView projectId={projectId} onSelectWp={setSelectedWpId} />
+                <FlowView projectId={projectId} onSelectWp={selectWp} />
               </Suspense>
             </ErrorBoundary>
           )}
@@ -182,12 +207,22 @@ export function ProjectDetail() {
           )}
         </div>
 
-        <WorkPackageSheet
-          projectId={projectId}
-          workPackage={selectedWp}
-          milestones={ms}
-          onClose={() => setSelectedWpId(null)}
-        />
+        {selectedMilestone ? (
+          <MilestoneSheet
+            projectId={projectId}
+            milestone={selectedMilestone}
+            milestones={ms}
+            workPackages={workPackages.data ?? []}
+            onClose={() => setSelectedMilestoneId(null)}
+          />
+        ) : (
+          <WorkPackageSheet
+            projectId={projectId}
+            workPackage={selectedWp}
+            milestones={ms}
+            onClose={() => setSelectedWpId(null)}
+          />
+        )}
       </div>
 
       {/* --- Add WP (mid-flight → maybe a proposal) --- */}
@@ -247,5 +282,71 @@ function CapacityEditor({
       />
       <span className="text-text-tertiary">h/day</span>
     </span>
+  );
+}
+
+/**
+ * Add-milestone affordance in the project header (system/lilac). A milestone is a
+ * project-level landmark — it is intentionally NOT rendered on the flow canvas.
+ * Opens a tiny inline form; on submit creates the milestone and refreshes the lists.
+ */
+function AddMilestoneButton({
+  projectId,
+  onCreated,
+  onError,
+}: {
+  projectId: string;
+  onCreated: (milestoneId: string) => void;
+  onError: (m: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const create = useMutation({
+    mutationFn: () => projectsApi.createMilestone(projectId, { title: title.trim() }),
+    onSuccess: (milestone) => {
+      setTitle("");
+      setOpen(false);
+      onCreated(milestone.id);
+    },
+    onError: (e) => onError(calmMessage(e)),
+  });
+
+  return (
+    <div className="relative">
+      <Button size="sm" variant="system" onClick={() => setOpen((o) => !o)}>
+        <Flag size={14} /> Add milestone
+      </Button>
+      {open && (
+        <div className="absolute right-0 top-11 z-40 w-[260px] rounded-[12px] border border-border bg-bg p-3 shadow-xl">
+          <p className="mb-2 text-[11px] font-extrabold uppercase tracking-wider text-text-tertiary">
+            New milestone
+          </p>
+          <Input
+            autoFocus
+            value={title}
+            placeholder="Milestone title…"
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && title.trim()) create.mutate();
+              if (e.key === "Escape") setOpen(false);
+            }}
+            className="h-9 px-3 py-1.5 text-sm"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="system"
+              disabled={!title.trim() || create.isPending}
+              onClick={() => create.mutate()}
+            >
+              {create.isPending ? "Adding…" : "Add"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
