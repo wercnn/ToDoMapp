@@ -26,11 +26,173 @@ import type { Database, DailyPlanDay, DailyPlanItem } from "../../db/types";
 import type { AuthContext } from "../../auth/context";
 import { unprocessable } from "../../lib/errors";
 import { createConfirmedDay } from "../planDays";
-import type { Changes, TimeFixedResolution } from "./types";
+import type { Changes, SplitReport, TimeFixedResolution } from "./types";
 
 export interface ApplyResult {
   days: DailyPlanDay[];
   items: DailyPlanItem[];
+  split_task_id_map: Record<string, string>;
+}
+
+function splitVirtualIds(splitReports: SplitReport[]): Set<string> {
+  return new Set(splitReports.flatMap((r) => r.parts.map((p) => p.task_id)));
+}
+
+function validateSplitApproval(splitReports: SplitReport[], moves: Changes["moves"]): void {
+  const virtualIds = splitVirtualIds(splitReports);
+  const moveByTask = new Map(moves.map((m) => [m.task_id, m]));
+  for (const report of splitReports) {
+    const missing = report.parts.filter((p) => !moveByTask.get(p.task_id)?.to_date);
+    if (missing.length > 0) {
+      throw unprocessable(
+        `Split approval for task ${report.original_task_id} must include every split part.`,
+      );
+    }
+  }
+  for (const move of moves) {
+    if (move.task_id.includes("__part_") && !virtualIds.has(move.task_id)) {
+      throw unprocessable(`Unknown virtual split task ${move.task_id}.`);
+    }
+  }
+}
+
+async function materializeSplits(
+  trx: Transaction<Database>,
+  ctx: AuthContext,
+  splitReports: SplitReport[],
+  now: Date,
+): Promise<Record<string, string>> {
+  if (splitReports.length === 0) return {};
+
+  const originalIds = splitReports.map((r) => r.original_task_id);
+  const originals = await trx
+    .selectFrom("task")
+    .selectAll()
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("id", "in", originalIds)
+    .execute();
+  const originalById = new Map(originals.map((t) => [t.id, t]));
+  const splitTaskIdMap: Record<string, string> = {};
+  const firstPartByOriginal = new Map<string, string>();
+  const lastPartByOriginal = new Map<string, string>();
+
+  for (const report of splitReports) {
+    const original = originalById.get(report.original_task_id);
+    if (!original) throw unprocessable(`Original split task ${report.original_task_id} was not found.`);
+    if (original.replaced_at) {
+      throw unprocessable(`Original split task ${report.original_task_id} has already been replaced.`);
+    }
+
+    for (let i = 0; i < report.parts.length; i++) {
+      const part = report.parts[i]!;
+      const idx = i + 1;
+      const inserted = await trx
+        .insertInto("task")
+        .values({
+          workspace_id: ctx.workspaceId,
+          work_package_id: original.work_package_id,
+          title: part.title,
+          notes: original.notes,
+          estimate_hours: part.hours,
+          difficulty: null,
+          is_time_fixed: false,
+          fixed_date: null,
+          status: "todo",
+          original_task_id: original.id,
+          split_index: idx,
+          split_count: report.parts.length,
+          is_split_part: true,
+          position: original.position * 1000 + idx,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      splitTaskIdMap[part.task_id] = inserted.id;
+      if (idx === 1) firstPartByOriginal.set(original.id, inserted.id);
+      if (idx === report.parts.length) lastPartByOriginal.set(original.id, inserted.id);
+    }
+  }
+
+  const existingEdges = await trx
+    .selectFrom("task_dependency")
+    .select(["predecessor_task_id", "successor_task_id"])
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where((eb) =>
+      eb.or([
+        eb("predecessor_task_id", "in", originalIds),
+        eb("successor_task_id", "in", originalIds),
+      ]),
+    )
+    .execute();
+
+  if (existingEdges.length > 0) {
+    await trx
+      .deleteFrom("task_dependency")
+      .where("workspace_id", "=", ctx.workspaceId)
+      .where((eb) =>
+        eb.or([
+          eb("predecessor_task_id", "in", originalIds),
+          eb("successor_task_id", "in", originalIds),
+        ]),
+      )
+      .execute();
+  }
+
+  const newEdges: { workspace_id: string; predecessor_task_id: string; successor_task_id: string }[] = [];
+  for (const edge of existingEdges) {
+    const pred = lastPartByOriginal.get(edge.predecessor_task_id) ?? edge.predecessor_task_id;
+    const succ = firstPartByOriginal.get(edge.successor_task_id) ?? edge.successor_task_id;
+    if (pred !== succ) {
+      newEdges.push({
+        workspace_id: ctx.workspaceId,
+        predecessor_task_id: pred,
+        successor_task_id: succ,
+      });
+    }
+  }
+  for (const report of splitReports) {
+    for (let i = 0; i < report.parts.length - 1; i++) {
+      const pred = splitTaskIdMap[report.parts[i]!.task_id];
+      const succ = splitTaskIdMap[report.parts[i + 1]!.task_id];
+      if (pred && succ) {
+        newEdges.push({
+          workspace_id: ctx.workspaceId,
+          predecessor_task_id: pred,
+          successor_task_id: succ,
+        });
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const deduped = newEdges.filter((edge) => {
+    const key = `${edge.predecessor_task_id}->${edge.successor_task_id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (deduped.length > 0) {
+    await trx
+      .insertInto("task_dependency")
+      .values(deduped)
+      .onConflict((oc) => oc.columns(["predecessor_task_id", "successor_task_id"]).doNothing())
+      .execute();
+  }
+
+  await trx
+    .updateTable("daily_plan_item")
+    .set({ status: "deferred", updated_at: now })
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("task_id", "in", originalIds)
+    .where("status", "=", "planned")
+    .execute();
+
+  await trx
+    .updateTable("task")
+    .set({ replaced_at: now, updated_at: now })
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("id", "in", originalIds)
+    .execute();
+
+  return splitTaskIdMap;
 }
 
 export async function applyChanges(
@@ -41,12 +203,15 @@ export async function applyChanges(
 ): Promise<ApplyResult> {
   const ws = ctx.workspaceId;
   const moves = changes.moves ?? [];
+  const splitReports = changes.split_report ?? [];
+  validateSplitApproval(splitReports, moves);
+  const virtualIds = splitVirtualIds(splitReports);
   const resolutions = new Map<string, TimeFixedResolution>(
     (changes.time_fixed_resolutions ?? []).map((r) => [r.task_id, r]),
   );
 
   // --- Guard #4: time-fixed tasks in `moves` need an explicit choice. ---
-  const moveTaskIds = [...new Set(moves.map((m) => m.task_id))];
+  const moveTaskIds = [...new Set(moves.map((m) => m.task_id).filter((id) => !virtualIds.has(id)))];
   const tfRows = moveTaskIds.length
     ? await trx
         .selectFrom("task")
@@ -72,6 +237,18 @@ export async function applyChanges(
     if (m.from_date) touchedDates.add(m.from_date);
     if (m.to_date) touchedDates.add(m.to_date);
   }
+  if (splitReports.length > 0) {
+    const originalIds = splitReports.map((r) => r.original_task_id);
+    const splitSourceDays = await trx
+      .selectFrom("daily_plan_item as dpi")
+      .innerJoin("daily_plan_day as d", "d.id", "dpi.daily_plan_day_id")
+      .select("d.plan_date")
+      .where("dpi.workspace_id", "=", ws)
+      .where("dpi.task_id", "in", originalIds)
+      .where("dpi.status", "=", "planned")
+      .execute();
+    for (const row of splitSourceDays) touchedDates.add(row.plan_date);
+  }
   for (const r of resolutions.values()) {
     if (r.new_fixed_date) touchedDates.add(r.new_fixed_date);
   }
@@ -94,6 +271,7 @@ export async function applyChanges(
   const days: DailyPlanDay[] = [];
   const dayCache = new Map<string, DailyPlanDay>();
   const items: DailyPlanItem[] = [];
+  const splitTaskIdMap = await materializeSplits(trx, ctx, splitReports, now);
 
   const ensureDay = async (planDate: string): Promise<DailyPlanDay> => {
     const cached = dayCache.get(planDate);
@@ -111,19 +289,21 @@ export async function applyChanges(
   };
 
   for (const m of moves) {
+    const taskId = splitTaskIdMap[m.task_id] ?? m.task_id;
+    const isVirtualSplit = virtualIds.has(m.task_id);
     const res = resolutions.get(m.task_id);
-    const isTimeFixed = timeFixed.has(m.task_id);
+    const isTimeFixed = timeFixed.has(taskId);
 
     // prioritize: keep the commitment exactly where it is — no defer, no insert.
     if (isTimeFixed && res?.choice === "prioritize") continue;
 
     // Defer the old planned item on its original day.
-    if (m.from_date) {
+    if (m.from_date && !isVirtualSplit) {
       await trx
         .updateTable("daily_plan_item")
         .set({ status: "deferred", updated_at: now })
         .where("workspace_id", "=", ws)
-        .where("task_id", "=", m.task_id)
+        .where("task_id", "=", taskId)
         .where("status", "=", "planned")
         .where("daily_plan_day_id", "in", (qb) =>
           qb
@@ -148,7 +328,7 @@ export async function applyChanges(
         .updateTable("task")
         .set({ fixed_date: res.new_fixed_date, updated_at: now })
         .where("workspace_id", "=", ws)
-        .where("id", "=", m.task_id)
+        .where("id", "=", taskId)
         .execute();
       toDate = res.new_fixed_date;
     }
@@ -167,7 +347,7 @@ export async function applyChanges(
         workspace_id: ws,
         daily_plan_day_id: day.id,
         item_type: "task",
-        task_id: m.task_id,
+        task_id: taskId,
         status: "planned",
         origin: "replanned",
         position: Number(maxPos?.m ?? -1) + 1,
@@ -177,5 +357,5 @@ export async function applyChanges(
     items.push(item);
   }
 
-  return { days, items };
+  return { days, items, split_task_id_map: splitTaskIdMap };
 }

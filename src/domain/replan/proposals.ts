@@ -161,11 +161,11 @@ export async function approveProposal(
     const newStatus: ProposalStatus = edited ? "edited_approved" : "approved";
 
     // CLAIM first: the row-count assertion is the authoritative race guard.
-    const claimed = await trx
+    let claimed = await trx
       .updateTable("replan_proposal")
       .set({
         status: newStatus,
-        applied_changes: edited ? JSON.stringify(effective) : null,
+        applied_changes: null,
         resolved_by_user_id: ctx.userId,
         resolved_at: now,
       })
@@ -177,6 +177,18 @@ export async function approveProposal(
 
     // Now safe to mutate the plan (guards inside may throw 422 → full rollback).
     const applied = await applyChanges(trx, ctx, effective, now);
+    const appliedChanges: Changes = {
+      ...effective,
+      ...(Object.keys(applied.split_task_id_map).length > 0
+        ? { split_task_id_map: applied.split_task_id_map }
+        : {}),
+    };
+    claimed = await trx
+      .updateTable("replan_proposal")
+      .set({ applied_changes: JSON.stringify(appliedChanges) })
+      .where("id", "=", proposalId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
     // ⚡eng: engaging with the decision keeps the streak alive (Principle 3). No penalty events.
     await recordEngagement(trx, { userId: ctx.userId, workspaceId: ctx.workspaceId, localDate: today, now });

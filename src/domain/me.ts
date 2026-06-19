@@ -71,14 +71,24 @@ export async function updateMe(
 
 export type StatsView = Pick<
   Selectable<UserStatsTable>,
-  "total_points" | "current_streak" | "longest_streak" | "last_engaged_date"
+  | "total_points"
+  | "current_streak"
+  | "longest_streak"
+  | "last_engaged_date"
+  | "global_capacity_hours_per_day"
 >;
 
 /** GET /me/stats — single-row read of the denormalized cache (data-model §4.6). */
 export async function getStats(db: Kysely<Database>, ctx: AuthContext): Promise<StatsView> {
   const stats = await db
     .selectFrom("user_stats")
-    .select(["total_points", "current_streak", "longest_streak", "last_engaged_date"])
+    .select([
+      "total_points",
+      "current_streak",
+      "longest_streak",
+      "last_engaged_date",
+      "global_capacity_hours_per_day",
+    ])
     .where("user_id", "=", ctx.userId)
     .where("workspace_id", "=", ctx.workspaceId)
     .executeTakeFirst();

@@ -22,6 +22,7 @@ export async function getBlockedTaskIds(
     .select("td.successor_task_id as id")
     .where("td.workspace_id", "=", ctx.workspaceId)
     .where("pred.status", "<>", "done")
+    .where("pred.replaced_at", "is", null)
     .execute();
 
   const wpLevel = await db
@@ -31,6 +32,7 @@ export async function getBlockedTaskIds(
     .select("t.id as id")
     .where("wd.workspace_id", "=", ctx.workspaceId)
     .where("pred_wp.completed_at", "is", null)
+    .where("t.replaced_at", "is", null)
     .execute();
 
   return new Set([...taskLevel, ...wpLevel].map((r) => r.id));

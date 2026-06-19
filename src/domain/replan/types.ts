@@ -18,6 +18,11 @@ export interface Move {
   task_id: string;
   from_date: string | null;
   to_date: string | null;
+  task_title?: string;
+  original_task_id?: string | null;
+  split_index?: number | null;
+  split_count?: number | null;
+  delta_days?: number | null;
 }
 
 /**
@@ -46,6 +51,7 @@ export interface TimeFixedConflict {
   fixed_date: string | null;
   reason: string;
   options: TimeFixedOption[];
+  type?: string;
 }
 
 /** The user's explicit choice for a time-fixed conflict, supplied on edited approval. */
@@ -60,8 +66,32 @@ export interface Changes {
   moves: Move[];
   milestone_impacts: MilestoneImpact[];
   time_fixed_conflicts: TimeFixedConflict[];
+  insertions?: unknown[];
+  removed_or_unplanned?: unknown[];
+  unchanged_task_ids?: string[];
+  goal_impacts?: unknown[];
+  planning_conflicts?: unknown[];
+  warnings?: string[];
+  split_report?: SplitReport[];
+  split_task_id_map?: Record<string, string>;
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+export interface SplitPart {
+  task_id: string;
+  title: string;
+  hours: number;
+  to_date?: string | null;
+}
+
+export interface SplitReport {
+  original_task_id: string;
+  original_title: string;
+  original_hours: number;
+  max_chunk_hours: number;
+  split_count: number;
+  parts: SplitPart[];
 }
 
 export function emptyChanges(): Changes {
@@ -78,6 +108,48 @@ function optDate(v: unknown, field: string): string | null {
     throw badRequest(`${field} must be a 'YYYY-MM-DD' date or null`);
   }
   return v;
+}
+
+function optNum(v: unknown, field: string): number | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    throw badRequest(`${field} must be a number or null`);
+  }
+  return v;
+}
+
+function optString(v: unknown): string | undefined {
+  return typeof v === "string" ? v : undefined;
+}
+
+function parseSplitReport(input: unknown): SplitReport[] {
+  if (input == null) return [];
+  if (!Array.isArray(input)) throw badRequest("edits.split_report must be an array");
+  return input.map((r, i) => {
+    if (!isObj(r) || typeof r.original_task_id !== "string") {
+      throw badRequest(`edits.split_report[${i}].original_task_id is required`);
+    }
+    if (!Array.isArray(r.parts)) throw badRequest(`edits.split_report[${i}].parts must be an array`);
+    return {
+      original_task_id: r.original_task_id,
+      original_title: typeof r.original_title === "string" ? r.original_title : "",
+      original_hours: typeof r.original_hours === "number" ? r.original_hours : 0,
+      max_chunk_hours: typeof r.max_chunk_hours === "number" ? r.max_chunk_hours : 0,
+      split_count: typeof r.split_count === "number" ? r.split_count : r.parts.length,
+      parts: r.parts.map((p, j) => {
+        if (!isObj(p) || typeof p.task_id !== "string") {
+          throw badRequest(`edits.split_report[${i}].parts[${j}].task_id is required`);
+        }
+        return {
+          task_id: p.task_id,
+          title: typeof p.title === "string" ? p.title : p.task_id,
+          hours: typeof p.hours === "number" ? p.hours : 0,
+          to_date: optDate(p.to_date, `edits.split_report[${i}].parts[${j}].to_date`),
+        };
+      }),
+    };
+  });
 }
 
 /**
@@ -99,6 +171,16 @@ export function parseChanges(input: unknown): Changes {
       task_id: m.task_id,
       from_date: optDate(m.from_date, `edits.moves[${i}].from_date`),
       to_date: optDate(m.to_date, `edits.moves[${i}].to_date`),
+      task_title: optString(m.task_title),
+      original_task_id:
+        m.original_task_id === undefined || m.original_task_id === null
+          ? (m.original_task_id as null | undefined)
+          : typeof m.original_task_id === "string"
+            ? m.original_task_id
+            : undefined,
+      split_index: optNum(m.split_index, `edits.moves[${i}].split_index`) ?? undefined,
+      split_count: optNum(m.split_count, `edits.moves[${i}].split_count`) ?? undefined,
+      delta_days: optNum(m.delta_days, `edits.moves[${i}].delta_days`) ?? undefined,
     };
   });
 
@@ -130,6 +212,30 @@ export function parseChanges(input: unknown): Changes {
   const milestone_impacts: MilestoneImpact[] = Array.isArray(impactsIn)
     ? (impactsIn as MilestoneImpact[])
     : [];
+  const split_report = parseSplitReport(input.split_report);
+  const warnings =
+    Array.isArray(input.warnings) && input.warnings.every((w) => typeof w === "string")
+      ? (input.warnings as string[])
+      : undefined;
 
-  return { moves, milestone_impacts, time_fixed_conflicts, time_fixed_resolutions };
+  return {
+    moves,
+    milestone_impacts,
+    time_fixed_conflicts,
+    time_fixed_resolutions,
+    insertions: Array.isArray(input.insertions) ? input.insertions : undefined,
+    removed_or_unplanned: Array.isArray(input.removed_or_unplanned)
+      ? input.removed_or_unplanned
+      : undefined,
+    unchanged_task_ids: Array.isArray(input.unchanged_task_ids)
+      ? (input.unchanged_task_ids.filter((id) => typeof id === "string") as string[])
+      : undefined,
+    goal_impacts: Array.isArray(input.goal_impacts) ? input.goal_impacts : undefined,
+    planning_conflicts: Array.isArray(input.planning_conflicts) ? input.planning_conflicts : undefined,
+    warnings,
+    split_report,
+    split_task_id_map: isObj(input.split_task_id_map)
+      ? (input.split_task_id_map as Record<string, string>)
+      : undefined,
+  };
 }

@@ -382,4 +382,135 @@ describe("replanning pipeline", () => {
     expect(result.work_package).toBeTruthy();
     expect(result.replan_proposal).toBeUndefined();
   });
+
+  it("split proposal generation is read-only; approval materializes split tasks and rewires dependencies", async () => {
+    const wp = await db
+      .insertInto("work_package")
+      .values({
+        workspace_id: ws.workspaceId,
+        project_id: scenario.projectId,
+        milestone_id: scenario.milestoneId,
+        title: "Split WP",
+        estimate_hours: 12,
+        position: 5,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const prep = await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp.id,
+        title: "Prepare",
+        estimate_hours: 1,
+        position: 0,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const big = await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp.id,
+        title: "Large implementation",
+        estimate_hours: 10,
+        position: 1,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const review = await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp.id,
+        title: "Review",
+        estimate_hours: 1,
+        position: 2,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("task_dependency")
+      .values([
+        {
+          workspace_id: ws.workspaceId,
+          predecessor_task_id: prep.id,
+          successor_task_id: big.id,
+        },
+        {
+          workspace_id: ws.workspaceId,
+          predecessor_task_id: big.id,
+          successor_task_id: review.id,
+        },
+      ])
+      .execute();
+
+    const beforeTasks = await db
+      .selectFrom("task")
+      .select((eb) => eb.fn.countAll<string>().as("count"))
+      .where("workspace_id", "=", ws.workspaceId)
+      .executeTakeFirstOrThrow();
+    const proposal = await createProposal(db, ws.ctx, { trigger: "user_request", now });
+    const changes = proposal.changes as Changes;
+    expect(changes.split_report).toHaveLength(1);
+    expect(changes.split_report?.[0]?.original_task_id).toBe(big.id);
+
+    const afterGenerateTasks = await db
+      .selectFrom("task")
+      .select((eb) => eb.fn.countAll<string>().as("count"))
+      .where("workspace_id", "=", ws.workspaceId)
+      .executeTakeFirstOrThrow();
+    expect(afterGenerateTasks.count).toBe(beforeTasks.count);
+    expect(
+      await db
+        .selectFrom("task")
+        .select("id")
+        .where("workspace_id", "=", ws.workspaceId)
+        .where("original_task_id", "=", big.id)
+        .execute(),
+    ).toEqual([]);
+
+    const { applied } = await approveProposal(db, ws.ctx, proposal.id, { now });
+    expect(Object.keys(applied.split_task_id_map)).toHaveLength(2);
+
+    const original = await db
+      .selectFrom("task")
+      .select(["replaced_at"])
+      .where("id", "=", big.id)
+      .executeTakeFirstOrThrow();
+    expect(original.replaced_at).not.toBeNull();
+
+    const parts = await db
+      .selectFrom("task")
+      .select(["id", "title", "estimate_hours", "split_index", "split_count", "is_split_part"])
+      .where("workspace_id", "=", ws.workspaceId)
+      .where("original_task_id", "=", big.id)
+      .orderBy("split_index")
+      .execute();
+    expect(parts.map((p) => Number(p.estimate_hours))).toEqual([8, 2]);
+    expect(parts.every((p) => p.is_split_part && p.split_count === 2)).toBe(true);
+
+    const deps = await db
+      .selectFrom("task_dependency")
+      .select(["predecessor_task_id", "successor_task_id"])
+      .where("workspace_id", "=", ws.workspaceId)
+      .execute();
+    expect(deps).toContainEqual({
+      predecessor_task_id: prep.id,
+      successor_task_id: parts[0]!.id,
+    });
+    expect(deps).toContainEqual({
+      predecessor_task_id: parts[0]!.id,
+      successor_task_id: parts[1]!.id,
+    });
+    expect(deps).toContainEqual({
+      predecessor_task_id: parts[1]!.id,
+      successor_task_id: review.id,
+    });
+
+    for (const part of parts) {
+      const items = await planItems(part.id);
+      expect(items.some((i) => i.status === "planned" && i.origin === "replanned")).toBe(true);
+    }
+  });
 });

@@ -144,6 +144,7 @@ export async function getProjectFlow(
         .select(["id", "work_package_id", "title", "status", "estimate_hours", "difficulty"])
         .where("workspace_id", "=", ctx.workspaceId)
         .where("work_package_id", "in", wpIds)
+        .where("replaced_at", "is", null)
         .orderBy("position")
         .execute()
     : [];

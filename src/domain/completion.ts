@@ -93,6 +93,7 @@ export async function completeTask(
       .select("id")
       .where("work_package_id", "=", task.work_package_id)
       .where("status", "<>", "done")
+      .where("replaced_at", "is", null)
       .limit(1)
       .executeTakeFirst();
 

@@ -53,6 +53,7 @@ export async function proposeRoadmap(
     ])
     .where("t.workspace_id", "=", ctx.workspaceId)
     .where("t.status", "=", "todo")
+    .where("t.replaced_at", "is", null)
     .where("p.status", "=", "active")
     .where("wp.completed_at", "is", null);
   if (opts.goalId) candQ = candQ.where("p.goal_id", "=", opts.goalId);

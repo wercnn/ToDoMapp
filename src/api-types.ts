@@ -127,6 +127,11 @@ export interface Task {
   fixed_date: DateString | null;
   status: TaskStatus;
   completed_at: IsoTimestamp | null;
+  original_task_id: string | null;
+  split_index: number | null;
+  split_count: number | null;
+  is_split_part: boolean;
+  replaced_at: IsoTimestamp | null;
   position: number;
   created_at: IsoTimestamp;
   updated_at: IsoTimestamp;
@@ -245,6 +250,11 @@ export interface ReplanMove {
   task_id: string;
   from_date: DateString | null;
   to_date: DateString | null;
+  task_title?: string;
+  original_task_id?: string | null;
+  split_index?: number | null;
+  split_count?: number | null;
+  delta_days?: number | null;
 }
 
 /** A milestone projection shift — DESCRIPTIVE ONLY (projection, never committed). */
@@ -265,6 +275,59 @@ export interface TimeFixedConflict {
   options: TimeFixedOption[];
 }
 
+export interface ReplanInsertion {
+  task_id: string;
+  task_title: string;
+  to_date: DateString;
+  original_task_id?: string | null;
+  split_index?: number | null;
+  split_count?: number | null;
+}
+
+export interface ReplanRemovedOrUnplanned {
+  task_id: string;
+  task_title: string;
+  from_date: DateString;
+  original_task_id?: string | null;
+  split_index?: number | null;
+  split_count?: number | null;
+}
+
+export interface ReplanGoalImpact {
+  goal_id: string;
+  title: string;
+  from_projected_date: DateString | null;
+  to_projected_date: DateString | null;
+  delta_days: number | null;
+}
+
+export interface PlanningConflict {
+  type: string;
+  task_id?: string;
+  task_title?: string;
+  date?: DateString;
+  reason?: string;
+  suggestion?: string;
+  options?: string[];
+  [key: string]: unknown;
+}
+
+export interface TaskSplitPart {
+  task_id: string;
+  title: string;
+  hours: number;
+  to_date?: DateString | null;
+}
+
+export interface TaskSplitReport {
+  original_task_id: string;
+  original_title: string;
+  original_hours: number;
+  max_chunk_hours: number;
+  split_count: number;
+  parts: TaskSplitPart[];
+}
+
 /** The user's explicit choice for a conflict, supplied on edited approval. */
 export interface TimeFixedResolution {
   task_id: string;
@@ -278,6 +341,14 @@ export interface ReplanChanges {
   moves: ReplanMove[];
   milestone_impacts: ReplanMilestoneImpact[];
   time_fixed_conflicts: TimeFixedConflict[];
+  insertions?: ReplanInsertion[];
+  removed_or_unplanned?: ReplanRemovedOrUnplanned[];
+  unchanged_task_ids?: string[];
+  goal_impacts?: ReplanGoalImpact[];
+  planning_conflicts?: PlanningConflict[];
+  warnings?: string[];
+  split_report?: TaskSplitReport[];
+  split_task_id_map?: Record<string, string>;
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
 }
@@ -324,6 +395,11 @@ export interface RoadmapTaskRef {
   difficulty: DifficultyLevel | null;
   is_time_fixed: boolean;
   fixed_date: DateString | null;
+  original_task_id: string | null;
+  split_index: number | null;
+  split_count: number | null;
+  is_split_part: boolean;
+  replaced_at: IsoTimestamp | null;
   blocked: boolean;
 }
 
@@ -346,6 +422,7 @@ export interface StatsView {
   current_streak: number;
   longest_streak: number;
   last_engaged_date: DateString | null;
+  global_capacity_hours_per_day: NumericString;
 }
 
 /** GET /days/{date} */

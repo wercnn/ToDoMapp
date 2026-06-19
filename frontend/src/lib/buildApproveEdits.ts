@@ -110,6 +110,7 @@ export function buildApproveEdits(input: BuildApproveInput): BuildApproveResult 
   return {
     edited: true,
     edits: {
+      ...changes,
       moves,
       // (4) display-only sections passed through verbatim for a faithful applied_changes.
       milestone_impacts: changes.milestone_impacts ?? [],

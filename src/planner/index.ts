@@ -163,3 +163,4 @@ class SimpleFillPlanner implements Planner {
 export const planner: Planner = new SimpleFillPlanner();
 
 export type { Planner, PlannerInput, DraftDay, DraftDayItem, TaskEdge } from "./types";
+export * as replanPlanner from "./replan";

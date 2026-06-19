@@ -157,6 +157,7 @@ export async function listWorkPackages(
       .select(["work_package_id", "status"])
       .where("workspace_id", "=", ctx.workspaceId)
       .where("work_package_id", "in", wpIds)
+      .where("replaced_at", "is", null)
       .execute();
     for (const t of tasks) {
       const agg = taskAgg.get(t.work_package_id) ?? { total: 0, done: 0 };
@@ -172,6 +173,7 @@ export async function listWorkPackages(
       .selectFrom("task")
       .select(["id", "work_package_id"])
       .where("work_package_id", "in", wpIds)
+      .where("replaced_at", "is", null)
       .execute();
     for (const t of blockedTasks) {
       if (blocked.has(t.id)) blockedWpIds.add(t.work_package_id);
@@ -222,6 +224,7 @@ export async function getWorkPackage(
     .selectAll()
     .where("workspace_id", "=", ctx.workspaceId)
     .where("work_package_id", "=", wpId)
+    .where("replaced_at", "is", null)
     .orderBy("position")
     .orderBy("created_at")
     .execute();

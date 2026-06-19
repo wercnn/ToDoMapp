@@ -79,7 +79,8 @@ export async function listTasks(
     .selectFrom("task")
     .selectAll()
     .where("workspace_id", "=", ctx.workspaceId)
-    .where("work_package_id", "=", wpId);
+    .where("work_package_id", "=", wpId)
+    .where("replaced_at", "is", null);
   if (filters.status) q = q.where("status", "=", filters.status);
   const tasks = await q.orderBy("position").orderBy("created_at").execute();
 

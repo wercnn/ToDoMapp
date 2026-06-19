@@ -75,16 +75,26 @@ describe("dependency edges", () => {
   });
 
   it("creates a task→task edge and blocks the successor", async () => {
+    const b = await makeTask(ws.ctx, scenario.wp1Id, "B");
     const edge = await createTaskDependency(db, ws.ctx, {
       predecessor_task_id: scenario.t1Id,
-      successor_task_id: scenario.t2Id,
+      successor_task_id: b,
     });
     expect(edge.predecessor_task_id).toBe(scenario.t1Id);
-    expect(edge.successor_task_id).toBe(scenario.t2Id);
+    expect(edge.successor_task_id).toBe(b);
 
     const blocked = await getBlockedTaskIds(db, ws.ctx);
-    expect(blocked.has(scenario.t2Id)).toBe(true);
+    expect(blocked.has(b)).toBe(true);
     expect(blocked.has(scenario.t1Id)).toBe(false);
+  });
+
+  it("rejects a task dependency across work packages with 422", async () => {
+    await expectApiError(422, () =>
+      createTaskDependency(db, ws.ctx, {
+        predecessor_task_id: scenario.t1Id,
+        successor_task_id: scenario.t2Id,
+      }),
+    );
   });
 
   it("rejects a self-dependency with 422", async () => {
@@ -97,14 +107,15 @@ describe("dependency edges", () => {
   });
 
   it("rejects a duplicate edge via the PK (mapped to 409)", async () => {
+    const b = await makeTask(ws.ctx, scenario.wp1Id, "B");
     await createTaskDependency(db, ws.ctx, {
       predecessor_task_id: scenario.t1Id,
-      successor_task_id: scenario.t2Id,
+      successor_task_id: b,
     });
     try {
       await createTaskDependency(db, ws.ctx, {
         predecessor_task_id: scenario.t1Id,
-        successor_task_id: scenario.t2Id,
+        successor_task_id: b,
       });
       throw new Error("expected a duplicate-edge error");
     } catch (err) {
@@ -114,13 +125,14 @@ describe("dependency edges", () => {
   });
 
   it("rejects a direct 2-cycle with 409", async () => {
+    const b = await makeTask(ws.ctx, scenario.wp1Id, "B");
     await createTaskDependency(db, ws.ctx, {
       predecessor_task_id: scenario.t1Id,
-      successor_task_id: scenario.t2Id,
+      successor_task_id: b,
     });
     await expectApiError(409, () =>
       createTaskDependency(db, ws.ctx, {
-        predecessor_task_id: scenario.t2Id,
+        predecessor_task_id: b,
         successor_task_id: scenario.t1Id,
       }),
     );
@@ -174,6 +186,36 @@ describe("dependency edges", () => {
     const blocked = await getBlockedTaskIds(db, ws.ctx);
     expect(blocked.has(scenario.t2Id)).toBe(true);
     expect(blocked.has(scenario.t1Id)).toBe(false);
+  });
+
+  it("rejects a WP dependency across projects with 422", async () => {
+    const otherProject = await db
+      .insertInto("project")
+      .values({
+        workspace_id: ws.workspaceId,
+        goal_id: scenario.goalId,
+        title: "Other Project",
+        capacity_hours_per_day: 4,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const otherWp = await db
+      .insertInto("work_package")
+      .values({
+        workspace_id: ws.workspaceId,
+        project_id: otherProject.id,
+        title: "Other WP",
+        estimate_hours: 1,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await expectApiError(422, () =>
+      createWorkPackageDependency(db, ws.ctx, {
+        predecessor_wp_id: scenario.wp1Id,
+        successor_wp_id: otherWp.id,
+      }),
+    );
   });
 
   it("rejects a transitive WP cycle with 409", async () => {

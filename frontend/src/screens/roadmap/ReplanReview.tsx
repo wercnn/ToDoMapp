@@ -43,6 +43,7 @@ export function ReplanReview({
   const rawChanges = detail.data?.changes;
   const changes = rawChanges
     ? {
+        ...rawChanges,
         moves: rawChanges.moves ?? [],
         milestone_impacts: rawChanges.milestone_impacts ?? [],
         time_fixed_conflicts: rawChanges.time_fixed_conflicts ?? [],
@@ -180,7 +181,7 @@ export function ReplanReview({
                         aria-label="Include this move"
                       />
                       <span className="min-w-0 flex-1 truncate text-xs font-bold text-text-secondary">
-                        {task?.title ?? m.task_id.slice(0, 8)}
+                        {task?.title ?? m.task_title ?? m.task_id.slice(0, 8)}
                         {task && (
                           <span className="ml-1 font-semibold text-text-tertiary">
                             · {task.project_title}

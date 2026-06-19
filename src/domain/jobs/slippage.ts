@@ -74,7 +74,11 @@ export async function detectSlippageForUser(
   // Analyze BEFORE the write transaction: it's a heavy read and the 'slipped' flag
   // doesn't touch items, so the prospective diff is identical either way.
   const { summary, changes } = await analyzeReplan(db, ctx, { now });
-  const actionable = changes.moves.length > 0 || changes.time_fixed_conflicts.length > 0;
+  const actionable =
+    changes.moves.length > 0 ||
+    changes.time_fixed_conflicts.length > 0 ||
+    (changes.planning_conflicts?.length ?? 0) > 0 ||
+    (changes.split_report?.length ?? 0) > 0;
 
   return withTransaction(db, async (trx) => {
     await trx

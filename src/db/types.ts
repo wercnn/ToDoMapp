@@ -142,6 +142,11 @@ export interface TaskTable {
   fixed_date: DateString | null;
   status: Generated<TaskStatus>;
   completed_at: Timestamp | null;
+  original_task_id: string | null;
+  split_index: number | null;
+  split_count: number | null;
+  is_split_part: Generated<boolean>;
+  replaced_at: Timestamp | null;
   position: Generated<number>;
   created_at: GeneratedTimestamp;
   updated_at: GeneratedTimestamp;
@@ -230,6 +235,7 @@ export interface UserStatsTable {
   current_streak: Generated<number>;
   longest_streak: Generated<number>;
   last_engaged_date: DateString | null;
+  global_capacity_hours_per_day: Generated<Numeric>;
   updated_at: GeneratedTimestamp;
 }
 

@@ -75,6 +75,7 @@ export async function computeGoalProgress(
     .select(["t.status", "t.estimate_hours", "t.difficulty"])
     .where("t.workspace_id", "=", ctx.workspaceId)
     .where("p.goal_id", "=", goalId)
+    .where("t.replaced_at", "is", null)
     .execute();
   return rollup(rows);
 }
@@ -98,6 +99,7 @@ export async function computeProjectProgress(
     .select(["t.status", "t.estimate_hours", "t.difficulty"])
     .where("t.workspace_id", "=", ctx.workspaceId)
     .where("wp.project_id", "=", projectId)
+    .where("t.replaced_at", "is", null)
     .execute();
   return rollup(rows);
 }

@@ -30,6 +30,11 @@ export interface RoadmapTaskRef {
   difficulty: DifficultyLevel | null;
   is_time_fixed: boolean;
   fixed_date: string | null;
+  original_task_id: string | null;
+  split_index: number | null;
+  split_count: number | null;
+  is_split_part: boolean;
+  replaced_at: Date | string | null;
   blocked: boolean;
 }
 
@@ -84,6 +89,11 @@ export async function readTaskRefs(
         "t.difficulty as difficulty",
         "t.is_time_fixed as is_time_fixed",
         "t.fixed_date as fixed_date",
+        "t.original_task_id as original_task_id",
+        "t.split_index as split_index",
+        "t.split_count as split_count",
+        "t.is_split_part as is_split_part",
+        "t.replaced_at as replaced_at",
         "wp.id as work_package_id",
         "wp.title as work_package_title",
         "p.id as project_id",
@@ -110,6 +120,11 @@ export async function readTaskRefs(
         difficulty: row.difficulty,
         is_time_fixed: row.is_time_fixed,
         fixed_date: row.fixed_date,
+        original_task_id: row.original_task_id,
+        split_index: row.split_index,
+        split_count: row.split_count,
+        is_split_part: row.is_split_part,
+        replaced_at: row.replaced_at,
         blocked: blockedIds.has(row.id),
       },
     ]),

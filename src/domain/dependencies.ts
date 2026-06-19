@@ -92,6 +92,42 @@ async function assertNodesInWorkspace(
   }
 }
 
+async function assertTasksInSameWorkPackage(
+  trx: Executor,
+  workspaceId: string,
+  pred: string,
+  succ: string,
+): Promise<void> {
+  const rows = await trx
+    .selectFrom("task")
+    .select(["id", "work_package_id"])
+    .where("workspace_id", "=", workspaceId)
+    .where("id", "in", [pred, succ])
+    .execute();
+  const byId = new Map(rows.map((r) => [r.id, r.work_package_id]));
+  if (byId.get(pred) !== byId.get(succ)) {
+    throw unprocessable("Task dependencies must stay inside the same work package");
+  }
+}
+
+async function assertWorkPackagesInSameProject(
+  trx: Executor,
+  workspaceId: string,
+  pred: string,
+  succ: string,
+): Promise<void> {
+  const rows = await trx
+    .selectFrom("work_package")
+    .select(["id", "project_id"])
+    .where("workspace_id", "=", workspaceId)
+    .where("id", "in", [pred, succ])
+    .execute();
+  const byId = new Map(rows.map((r) => [r.id, r.project_id]));
+  if (byId.get(pred) !== byId.get(succ)) {
+    throw unprocessable("Work-package dependencies must stay inside the same project");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Task → task edges
 // ---------------------------------------------------------------------------
@@ -113,6 +149,7 @@ export async function createTaskDependency(
   return withTransaction(db, async (trx) => {
     await acquireEdgeLock(trx, ctx.workspaceId, LOCK_LEVEL_TASK);
     await assertNodesInWorkspace(trx, ctx.workspaceId, "task", [pred, succ]);
+    await assertTasksInSameWorkPackage(trx, ctx.workspaceId, pred, succ);
 
     const edges = await trx
       .selectFrom("task_dependency")
@@ -170,6 +207,7 @@ export async function createWorkPackageDependency(
   return withTransaction(db, async (trx) => {
     await acquireEdgeLock(trx, ctx.workspaceId, LOCK_LEVEL_WP);
     await assertNodesInWorkspace(trx, ctx.workspaceId, "work_package", [pred, succ]);
+    await assertWorkPackagesInSameProject(trx, ctx.workspaceId, pred, succ);
 
     const edges = await trx
       .selectFrom("work_package_dependency")

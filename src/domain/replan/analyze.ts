@@ -1,28 +1,25 @@
 /**
- * Replan ANALYZE — the diff producer (api §11, foundation §4.4 detect→analyze).
+ * Replan ANALYZE — DB state → pure planning state → stored proposal diff.
  *
- * Lives here, a sibling domain module, NOT inside the planner: diffing needs the
- * *current persisted plan* and time-fixed/locked/blocked state — all I/O — while
- * the planner interface stays a pure function (Decision #19). replan is a consumer
- * of `proposeDays` exactly as the roadmap service is: assemble a prospective input,
- * call the pure planner for the TARGET schedule, then diff it against the baseline.
- *
- * Structural guarantee enforced here: `computeDiff` NEVER emits a time-fixed task
- * into `moves`. Time-fixed work is pinned by the planner (from == to) and any
- * capacity collision is surfaced separately in `time_fixed_conflicts`.
+ * Proposal generation remains read-only: it loads the current roadmap/WBS, runs
+ * the pure `src/planner/replan` engine, and returns JSONB changes. Relational
+ * truth only changes in approve/apply.
  */
 import type { Executor } from "../../db/transaction";
 import type { WorkspaceContext } from "../../auth/context";
-import { addDays, localDate } from "../../lib/dates";
-import { planner } from "../../planner/index";
-import type { DraftDay } from "../../planner/types";
+import { localDate } from "../../lib/dates";
 import { resolveHours } from "../../planner/constants";
-import { getBlockedTaskIds } from "../blocked";
-import { projectMilestoneDates } from "../projection";
-import type { Changes, MilestoneImpact, Move, TimeFixedConflict } from "./types";
-import { emptyChanges } from "./types";
+import { createProposalDiff, planRoadmap } from "../../planner/replan";
+import type {
+  PlannerConfig,
+  PlanningState,
+  ReplanProposalDiff,
+  TaskSplitReport,
+} from "../../planner/replan";
+import type { DraftDay } from "../../planner/types";
+import type { Changes, MilestoneImpact, Move } from "./types";
 
-const DEFAULT_HORIZON_DAYS = 7;
+const DEFAULT_HORIZON_DAYS = 120;
 
 export interface ReplanScope {
   project_id?: string;
@@ -33,6 +30,8 @@ export interface AnalyzeOptions {
   scope?: ReplanScope;
   horizonDays?: number;
   now?: Date;
+  allowTaskSplitting?: boolean;
+  splitChunkHours?: number | null;
 }
 
 /** A currently-planned item (the diff baseline): which day a task sits on today. */
@@ -42,9 +41,8 @@ export interface BaselineItem {
 }
 
 /**
- * PURE diff: baseline (current planned items) vs target (planner output). Time-fixed
- * tasks are never emitted as moves — they are pinned, and collisions are reported by
- * the caller in `time_fixed_conflicts`. Exported for unit testing.
+ * PURE legacy diff helper retained for existing unit tests and callers. Time-fixed
+ * tasks are never emitted as moves.
  */
 export function computeDiff(
   baseline: BaselineItem[],
@@ -62,37 +60,330 @@ export function computeDiff(
   const moves: Move[] = [];
   const taskIds = new Set<string>([...fromByTask.keys(), ...toByTask.keys()]);
   for (const taskId of taskIds) {
-    if (timeFixedTaskIds.has(taskId)) continue; // pinned — never a move (the guarantee)
+    if (timeFixedTaskIds.has(taskId)) continue;
     const from = fromByTask.get(taskId) ?? null;
     const to = toByTask.get(taskId) ?? null;
-    if (from === to) continue; // unchanged
+    if (from === to) continue;
     moves.push({ task_id: taskId, from_date: from, to_date: to });
   }
-  // Stable order for a readable, deterministic diff.
   moves.sort((a, b) => (a.task_id < b.task_id ? -1 : a.task_id > b.task_id ? 1 : 0));
   return moves;
 }
 
 function summarize(changes: Changes): string {
-  const m = changes.moves.length;
-  const tf = changes.time_fixed_conflicts.length;
-  const ms = changes.milestone_impacts.length;
-  if (m === 0 && tf === 0 && ms === 0) {
+  const moves = changes.moves.length;
+  const conflicts = (changes.time_fixed_conflicts?.length ?? 0) + (changes.planning_conflicts?.length ?? 0);
+  const splits = changes.split_report?.length ?? 0;
+  const milestones = changes.milestone_impacts.length;
+  if (moves === 0 && conflicts === 0 && splits === 0 && milestones === 0) {
     return "No roadmap changes needed.";
   }
   const parts: string[] = [];
-  if (m > 0) parts.push(`Move ${m} task${m === 1 ? "" : "s"}`);
-  if (ms > 0) parts.push(`${ms} milestone${ms === 1 ? "" : "s"} shift`);
-  if (tf > 0) parts.push(`${tf} time-fixed conflict${tf === 1 ? "" : "s"} need a decision`);
+  if (moves > 0) parts.push(`Move ${moves} task${moves === 1 ? "" : "s"}`);
+  if (splits > 0) parts.push(`split ${splits} task${splits === 1 ? "" : "s"}`);
+  if (milestones > 0) parts.push(`${milestones} milestone${milestones === 1 ? "" : "s"} shift`);
+  if (conflicts > 0) parts.push(`${conflicts} conflict${conflicts === 1 ? "" : "s"} need review`);
   return parts.join("; ") + ".";
 }
 
-/**
- * Produce a `{ summary, changes }` diff for the current workspace state. Reads only
- * (accepts any Executor so it can run inside the WP-create transaction for the
- * `new_work_package` trigger). Trigger-agnostic — the Phase 5 slippage job calls the
- * same path with `trigger='slippage'`.
- */
+function splitReportToJson(report: TaskSplitReport[]): NonNullable<Changes["split_report"]> {
+  return report.map((r) => ({
+    original_task_id: r.originalTaskId,
+    original_title: r.originalTitle,
+    original_hours: r.originalHours,
+    max_chunk_hours: r.maxChunkHours,
+    split_count: r.splitCount,
+    parts: r.parts.map((p) => ({
+      task_id: p.taskId,
+      title: p.title,
+      hours: p.hours,
+      to_date: p.toDate ?? null,
+    })),
+  }));
+}
+
+function plannerDiffToChanges(diff: ReplanProposalDiff): Changes {
+  const milestone_impacts: MilestoneImpact[] = diff.milestone_impacts.map((m) => ({
+    milestone_id: m.milestone_id,
+    title: m.title,
+    from_projected_date: m.from_projected_date,
+    to_projected_date: m.to_projected_date,
+  }));
+  return {
+    moves: diff.moves,
+    milestone_impacts,
+    time_fixed_conflicts: diff.time_fixed_conflicts.map((c) => ({
+      ...(c as Record<string, unknown>),
+      task_id: String((c as Record<string, unknown>).task_id ?? ""),
+      fixed_date: ((c as Record<string, unknown>).fixed_date as string | null | undefined) ?? null,
+      reason: String((c as Record<string, unknown>).reason ?? "Time-fixed task needs review."),
+      options: ["prioritize", "descope", "renegotiate"],
+    })),
+    insertions: diff.insertions,
+    removed_or_unplanned: diff.removed_or_unplanned,
+    unchanged_task_ids: diff.unchanged_task_ids,
+    goal_impacts: diff.goal_impacts,
+    planning_conflicts: diff.planning_conflicts,
+    warnings: diff.warnings,
+    split_report: splitReportToJson(diff.split_report),
+  };
+}
+
+async function buildPlanningState(
+  db: Executor,
+  ctx: WorkspaceContext,
+  opts: { startDate: string; scope?: ReplanScope },
+): Promise<{ state: PlanningState; globalCapacityHoursPerDay: number }> {
+  const goals: PlanningState["goals"] = {};
+  const projects: PlanningState["projects"] = {};
+  const milestones: PlanningState["milestones"] = {};
+  const workPackages: PlanningState["workPackages"] = {};
+  const tasks: PlanningState["tasks"] = {};
+
+  const projectRows = await db
+    .selectFrom("project as p")
+    .innerJoin("goal as g", "g.id", "p.goal_id")
+    .select([
+      "p.id as id",
+      "p.goal_id as goalId",
+      "p.title as title",
+      "p.capacity_hours_per_day as capacityHours",
+      "p.target_end_date as targetEndDate",
+      "p.position as position",
+      "g.id as goalRowId",
+      "g.title as goalTitle",
+      "g.horizon as goalHorizon",
+      "g.position as goalPosition",
+    ])
+    .where("p.workspace_id", "=", ctx.workspaceId)
+    .where("p.status", "=", "active")
+    .execute();
+
+  for (const row of projectRows) {
+    goals[row.goalRowId] = {
+      id: row.goalRowId,
+      title: row.goalTitle,
+      horizon: row.goalHorizon,
+      position: row.goalPosition,
+    };
+    projects[row.id] = {
+      id: row.id,
+      goalId: row.goalId,
+      title: row.title,
+      capacityHoursPerDay: Number(row.capacityHours),
+      targetEndDate: row.targetEndDate,
+      position: row.position,
+      priority: row.position,
+    };
+  }
+
+  const projectIds = Object.keys(projects);
+  if (projectIds.length > 0) {
+    const msRows = await db
+      .selectFrom("milestone")
+      .select(["id", "project_id", "title", "position"])
+      .where("workspace_id", "=", ctx.workspaceId)
+      .where("project_id", "in", projectIds)
+      .execute();
+    for (const m of msRows) {
+      milestones[m.id] = { id: m.id, projectId: m.project_id, title: m.title, position: m.position };
+    }
+
+    const wpRows = await db
+      .selectFrom("work_package")
+      .select([
+        "id",
+        "project_id",
+        "title",
+        "milestone_id",
+        "estimate_hours",
+        "difficulty",
+        "is_time_fixed",
+        "fixed_date",
+        "position",
+      ])
+      .where("workspace_id", "=", ctx.workspaceId)
+      .where("project_id", "in", projectIds)
+      .execute();
+    for (const wp of wpRows) {
+      workPackages[wp.id] = {
+        id: wp.id,
+        projectId: wp.project_id,
+        title: wp.title,
+        milestoneId: wp.milestone_id,
+        estimateHours: resolveHours(
+          wp.estimate_hours != null ? Number(wp.estimate_hours) : null,
+          wp.difficulty,
+        ),
+        isTimeFixed: wp.is_time_fixed,
+        fixedDate: wp.fixed_date,
+        position: wp.position,
+        priority: wp.position,
+      };
+    }
+
+    const wpIds = Object.keys(workPackages);
+    if (wpIds.length > 0) {
+      const taskRows = await db
+        .selectFrom("task")
+        .select([
+          "id",
+          "work_package_id",
+          "title",
+          "estimate_hours",
+          "difficulty",
+          "status",
+          "is_time_fixed",
+          "fixed_date",
+          "position",
+          "original_task_id",
+          "split_index",
+          "split_count",
+          "is_split_part",
+          "replaced_at",
+        ])
+        .where("workspace_id", "=", ctx.workspaceId)
+        .where("work_package_id", "in", wpIds)
+        .where("replaced_at", "is", null)
+        .execute();
+      for (const task of taskRows) {
+        tasks[task.id] = {
+          id: task.id,
+          workPackageId: task.work_package_id,
+          title: task.title,
+          estimateHours: resolveHours(
+            task.estimate_hours != null ? Number(task.estimate_hours) : null,
+            task.difficulty,
+          ),
+          status: task.status,
+          isTimeFixed: task.is_time_fixed,
+          fixedDate: task.fixed_date,
+          position: task.position,
+          priority: task.position,
+          originalTaskId: task.original_task_id,
+          splitIndex: task.split_index,
+          splitCount: task.split_count,
+          isSplitPart: task.is_split_part,
+          replacedAt: task.replaced_at,
+        };
+      }
+    }
+  }
+
+  const taskIds = new Set(Object.keys(tasks));
+  const wpIds = new Set(Object.keys(workPackages));
+  let taskDependencies = (
+    await db
+      .selectFrom("task_dependency")
+      .select(["predecessor_task_id", "successor_task_id"])
+      .where("workspace_id", "=", ctx.workspaceId)
+      .execute()
+  )
+    .filter((d) => taskIds.has(d.predecessor_task_id) && taskIds.has(d.successor_task_id))
+    .map((d) => ({
+      predecessorTaskId: d.predecessor_task_id,
+      successorTaskId: d.successor_task_id,
+    }));
+
+  let workPackageDependencies = (
+    await db
+      .selectFrom("work_package_dependency")
+      .select(["predecessor_wp_id", "successor_wp_id"])
+      .where("workspace_id", "=", ctx.workspaceId)
+      .execute()
+  )
+    .filter((d) => wpIds.has(d.predecessor_wp_id) && wpIds.has(d.successor_wp_id))
+    .map((d) => ({
+      predecessorWpId: d.predecessor_wp_id,
+      successorWpId: d.successor_wp_id,
+    }));
+
+  const dayRows = await db
+    .selectFrom("daily_plan_day")
+    .select(["id", "plan_date", "status", "is_locked"])
+    .where("workspace_id", "=", ctx.workspaceId)
+    .execute();
+  const dayMeta: PlanningState["dayMeta"] = {};
+  const dayDateById = new Map<string, string>();
+  for (const day of dayRows) {
+    dayDateById.set(day.id, day.plan_date);
+    dayMeta[day.plan_date] = {
+      isLocked: day.is_locked,
+      isConfirmed: day.status === "confirmed" || day.status === "completed" || day.status === "slipped",
+    };
+  }
+
+  const itemRows = await db
+    .selectFrom("daily_plan_item")
+    .select(["daily_plan_day_id", "task_id", "position"])
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("status", "=", "planned")
+    .where("task_id", "is not", null)
+    .orderBy("position")
+    .execute();
+  const currentPlan: PlanningState["currentPlan"] = {};
+  for (const item of itemRows) {
+    if (!item.task_id || !tasks[item.task_id]) continue;
+    const date = dayDateById.get(item.daily_plan_day_id);
+    if (!date) continue;
+    (currentPlan[date] ??= []).push(item.task_id);
+  }
+
+  const frozenTaskIds = new Set<string>();
+  for (const [date, ids] of Object.entries(currentPlan)) {
+    for (const taskId of ids) {
+      const task = tasks[taskId];
+      const wp = task ? workPackages[task.workPackageId] : undefined;
+      if (!task || !wp) continue;
+      if (opts.scope?.project_id && wp.projectId !== opts.scope.project_id) frozenTaskIds.add(taskId);
+      if (date < opts.startDate) frozenTaskIds.add(taskId);
+    }
+  }
+
+  if (opts.scope?.project_id) {
+    for (const [taskId, task] of Object.entries(tasks)) {
+      const wp = workPackages[task.workPackageId];
+      if (wp && wp.projectId !== opts.scope.project_id && !frozenTaskIds.has(taskId)) {
+        delete tasks[taskId];
+      }
+    }
+    const scopedTaskIds = new Set(Object.keys(tasks));
+    taskDependencies = taskDependencies.filter(
+      (d) => scopedTaskIds.has(d.predecessorTaskId) && scopedTaskIds.has(d.successorTaskId),
+    );
+    const scopedWpIds = new Set(
+      Object.values(tasks).map((task) => task.workPackageId),
+    );
+    workPackageDependencies = workPackageDependencies.filter(
+      (d) => scopedWpIds.has(d.predecessorWpId) && scopedWpIds.has(d.successorWpId),
+    );
+  }
+
+  const stats = await db
+    .selectFrom("user_stats")
+    .select("global_capacity_hours_per_day")
+    .where("user_id", "=", ctx.userId)
+    .where("workspace_id", "=", ctx.workspaceId)
+    .executeTakeFirst();
+
+  return {
+    state: {
+      goals,
+      projects,
+      milestones,
+      workPackages,
+      tasks,
+      taskDependencies,
+      workPackageDependencies,
+      currentPlan,
+      dayMeta,
+      frozenTaskIds: [...frozenTaskIds],
+    },
+    globalCapacityHoursPerDay: Number(stats?.global_capacity_hours_per_day ?? 8),
+  };
+}
+
+/** Produce a read-only proposal diff for the current workspace state. */
 export async function analyzeReplan(
   db: Executor,
   ctx: WorkspaceContext,
@@ -101,158 +392,23 @@ export async function analyzeReplan(
   const now = opts.now ?? new Date();
   const startDate = opts.scope?.from_date ?? localDate(ctx.timezone, now);
   const horizonDays = opts.horizonDays ?? DEFAULT_HORIZON_DAYS;
-  const endDate = addDays(startDate, horizonDays - 1);
-  const projectFilter = opts.scope?.project_id;
+  const { state, globalCapacityHoursPerDay } = await buildPlanningState(db, ctx, {
+    startDate,
+    scope: opts.scope,
+  });
 
-  // --- Candidate tasks: open todo work in active projects. ---
-  let candQ = db
-    .selectFrom("task as t")
-    .innerJoin("work_package as wp", "wp.id", "t.work_package_id")
-    .innerJoin("project as p", "p.id", "wp.project_id")
-    .select([
-      "t.id as taskId",
-      "p.id as projectId",
-      "t.estimate_hours as estimateHours",
-      "t.difficulty as difficulty",
-      "t.is_time_fixed as isTimeFixed",
-      "t.fixed_date as fixedDate",
-      "t.position as position",
-      "wp.milestone_id as milestoneId",
-    ])
-    .where("t.workspace_id", "=", ctx.workspaceId)
-    .where("t.status", "=", "todo")
-    .where("p.status", "=", "active")
-    .where("wp.completed_at", "is", null);
-  if (projectFilter) candQ = candQ.where("p.id", "=", projectFilter);
-  const rows = await candQ.execute();
-
-  // Tasks pinned on LOCKED days are untouchable — exclude from candidates so the
-  // planner never reschedules them (invariant: locked days never proposed against).
-  const lockedRows = await db
-    .selectFrom("daily_plan_item as dpi")
-    .innerJoin("daily_plan_day as d", "d.id", "dpi.daily_plan_day_id")
-    .select("dpi.task_id as taskId")
-    .where("dpi.workspace_id", "=", ctx.workspaceId)
-    .where("dpi.status", "=", "planned")
-    .where("dpi.task_id", "is not", null)
-    .where("d.is_locked", "=", true)
-    .execute();
-  const lockedTaskIds = new Set(lockedRows.map((r) => r.taskId));
-
-  const blocked = await getBlockedTaskIds(db, ctx);
-
-  const candidates = rows
-    .filter((r) => !lockedTaskIds.has(r.taskId))
-    .map((r) => ({
-      taskId: r.taskId,
-      projectId: r.projectId,
-      hours: resolveHours(r.estimateHours != null ? Number(r.estimateHours) : null, r.difficulty),
-      isTimeFixed: r.isTimeFixed,
-      fixedDate: r.fixedDate,
-      blocked: blocked.has(r.taskId),
-      position: r.position,
-    }));
-
-  // --- Capacity (read here, passed to the pure planner as a parameter). ---
-  let capQ = db
-    .selectFrom("project")
-    .select(["id", "capacity_hours_per_day"])
-    .where("workspace_id", "=", ctx.workspaceId)
-    .where("status", "=", "active");
-  if (projectFilter) capQ = capQ.where("id", "=", projectFilter);
-  const capRows = await capQ.execute();
-  const capacities = capRows.map((c) => ({
-    projectId: c.id,
-    hoursPerDay: Number(c.capacity_hours_per_day),
-  }));
-  const capByProject = new Map(capacities.map((c) => [c.projectId, c.hoursPerDay]));
-
-  const target = planner.proposeDays({ startDate, horizonDays, candidates, capacities });
-
-  // --- Baseline: planned items on UNLOCKED days in the window (what may move). ---
-  let baseQ = db
-    .selectFrom("daily_plan_item as dpi")
-    .innerJoin("daily_plan_day as d", "d.id", "dpi.daily_plan_day_id")
-    .innerJoin("task as t", "t.id", "dpi.task_id")
-    .innerJoin("work_package as wp", "wp.id", "t.work_package_id")
-    .select(["dpi.task_id as taskId", "d.plan_date as planDate", "wp.project_id as projectId"])
-    .where("dpi.workspace_id", "=", ctx.workspaceId)
-    .where("dpi.status", "=", "planned")
-    .where("dpi.task_id", "is not", null)
-    .where("d.is_locked", "=", false)
-    .where("d.plan_date", ">=", startDate)
-    .where("d.plan_date", "<=", endDate);
-  if (projectFilter) baseQ = baseQ.where("wp.project_id", "=", projectFilter);
-  const baseRows = await baseQ.execute();
-  const baseline: BaselineItem[] = baseRows
-    .filter((r): r is typeof r & { taskId: string } => r.taskId !== null)
-    .map((r) => ({ taskId: r.taskId, planDate: r.planDate }));
-
-  const timeFixedTaskIds = new Set(rows.filter((r) => r.isTimeFixed).map((r) => r.taskId));
-  const moves = computeDiff(baseline, target, timeFixedTaskIds);
-
-  // --- Time-fixed conflicts: a pinned task whose fixed date is over capacity. ---
-  const usageByDateProject = new Map<string, number>();
-  const hoursByTask = new Map(candidates.map((c) => [c.taskId, c.hours]));
-  for (const day of target) {
-    for (const it of day.items) {
-      const key = `${day.planDate}|${it.projectId}`;
-      usageByDateProject.set(key, (usageByDateProject.get(key) ?? 0) + (hoursByTask.get(it.taskId) ?? 0));
-    }
-  }
-  const time_fixed_conflicts: TimeFixedConflict[] = [];
-  for (const c of candidates) {
-    if (!c.isTimeFixed || !c.fixedDate || c.blocked) continue;
-    const cap = capByProject.get(c.projectId) ?? 0;
-    const usage = usageByDateProject.get(`${c.fixedDate}|${c.projectId}`) ?? 0;
-    if (usage > cap) {
-      time_fixed_conflicts.push({
-        task_id: c.taskId,
-        fixed_date: c.fixedDate,
-        reason: `Fixed date ${c.fixedDate} is over capacity (${usage}h planned vs ${cap}h/day).`,
-        options: ["prioritize", "descope", "renegotiate"],
-      });
-    }
-  }
-
-  // --- Milestone impacts. `from` = the milestone's latest currently-PLANNED date
-  // (the present plan); `to` = its projected_date from the SHARED projection helper
-  // (data-model §6, computed live, never stored). Using the canonical projection —
-  // not a window-local heuristic — means the date a replan shows for a milestone is
-  // the SAME one GET /roadmap and the flow diagram show (they all call this helper).
-  const milestoneByTask = new Map(rows.map((r) => [r.taskId, r.milestoneId]));
-  const fromMs = new Map<string, string>();
-  const bump = (m: Map<string, string>, ms: string | null, date: string) => {
-    if (!ms) return;
-    const cur = m.get(ms);
-    if (!cur || date > cur) m.set(ms, date);
+  const config: PlannerConfig = {
+    today: startDate,
+    globalCapacityHoursPerDay,
+    horizonDays,
+    sameDayDependencies: true,
+    allowTaskSplitting: opts.allowTaskSplitting ?? true,
+    objective: "min_disruption",
+    splitChunkHours: opts.splitChunkHours ?? null,
   };
-  for (const b of baseline) bump(fromMs, milestoneByTask.get(b.taskId) ?? null, b.planDate);
 
-  const projectedDates = await projectMilestoneDates(db, ctx, { now });
-  const impactedMs = new Set<string>([...fromMs.keys(), ...projectedDates.keys()]);
-  const milestone_impacts: MilestoneImpact[] = [];
-  if (impactedMs.size > 0) {
-    const titles = await db
-      .selectFrom("milestone")
-      .select(["id", "title"])
-      .where("workspace_id", "=", ctx.workspaceId)
-      .where("id", "in", [...impactedMs])
-      .execute();
-    const titleById = new Map(titles.map((t) => [t.id, t.title]));
-    for (const ms of impactedMs) {
-      const from = fromMs.get(ms) ?? null;
-      const to = projectedDates.get(ms) ?? null;
-      if (from === to) continue;
-      milestone_impacts.push({
-        milestone_id: ms,
-        title: titleById.get(ms) ?? "",
-        from_projected_date: from,
-        to_projected_date: to,
-      });
-    }
-  }
-
-  const changes: Changes = { ...emptyChanges(), moves, milestone_impacts, time_fixed_conflicts };
+  const plan = planRoadmap(state, config);
+  const diff = createProposalDiff(state, plan);
+  const changes = plannerDiffToChanges(diff);
   return { summary: summarize(changes), changes };
 }
