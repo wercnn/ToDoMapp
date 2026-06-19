@@ -481,7 +481,7 @@ export async function analyzeReplan(
     horizonDays,
     sameDayDependencies: true,
     allowTaskSplitting: opts.allowTaskSplitting ?? true,
-    objective: "min_disruption",
+    objective: "earliest_completion",
     splitChunkHours: opts.splitChunkHours ?? null,
   };
 
