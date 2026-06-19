@@ -84,14 +84,20 @@ export async function projectSchedule(
   const persistedTaskDate = new Map<string, string>();
   for (const r of plannedRows) if (r.taskId) persistedTaskDate.set(r.taskId, r.planDate);
 
-  const lastDayRow = await db
+  // Project the remaining work starting at the first day on/after today that is NOT
+  // already persisted — the CONTIGUOUS confirmed prefix end, NOT the global max date.
+  // An isolated future confirmed day (e.g. one created by approving a single replanned
+  // day) must not yank the projection start forward and empty the days in between; the
+  // planner flows over it instead (its pinned task is excluded from `candidates`, so it
+  // keeps its committed date). For a normal contiguous prefix this is unchanged.
+  const dayDateRows = await db
     .selectFrom("daily_plan_day")
-    .select((e) => e.fn.max("plan_date").as("maxDate"))
+    .select("plan_date")
     .where("workspace_id", "=", ctx.workspaceId)
-    .executeTakeFirst();
-  const lastPersisted = (lastDayRow?.maxDate as string | null) ?? null;
-  const startDate =
-    lastPersisted && addDays(lastPersisted, 1) > today ? addDays(lastPersisted, 1) : today;
+    .execute();
+  const persistedDates = new Set(dayDateRows.map((r) => r.plan_date));
+  let startDate = today;
+  while (persistedDates.has(startDate)) startDate = addDays(startDate, 1);
 
   // --- Incomplete tasks in active projects (the work still to be scheduled). ---
   let candQ = db

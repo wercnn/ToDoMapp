@@ -117,6 +117,7 @@ export function Roadmap() {
         time_fixed_resolutions: input.time_fixed_resolutions,
       }),
     onSuccess: (detail) => {
+      seedReviewResult(qc, detail);
       invalidateRoadmapReview(qc);
       if (detail.proposal.status === "pending") {
         setActiveProposalId(detail.proposal.id);
@@ -132,6 +133,7 @@ export function Roadmap() {
     mutationFn: (input: { proposalId: string; date: string }) =>
       replanApi.rejectDay(input.proposalId, input.date),
     onSuccess: (detail) => {
+      seedReviewResult(qc, detail);
       invalidateRoadmapReview(qc);
       if (detail.proposal.status === "pending") {
         setActiveProposalId(detail.proposal.id);
@@ -301,6 +303,16 @@ export function Roadmap() {
       <DayDrawer date={openDate} onClose={() => setOpenDate(null)} today={today} />
     </div>
   );
+}
+
+/**
+ * Write the day-review response into the caches the screen reads BEFORE invalidating,
+ * so the approved/rejected arrangement shows immediately and the background refetch
+ * (now reflecting the persisted plan) reconciles without flipping back to the old plan.
+ */
+function seedReviewResult(qc: ReturnType<typeof useQueryClient>, detail: ReplanProposalDetail) {
+  qc.setQueryData(["replan-proposal", detail.proposal.id], detail);
+  if (detail.preview?.roadmap) qc.setQueryData(["roadmap", "all"], detail.preview.roadmap);
 }
 
 function invalidateRoadmapReview(qc: ReturnType<typeof useQueryClient>) {

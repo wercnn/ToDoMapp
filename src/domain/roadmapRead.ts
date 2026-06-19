@@ -199,19 +199,23 @@ export async function getRoadmap(
     items: itemsByDay.get(d.id) ?? [],
   }));
 
-  // --- Projection for everything beyond the last persisted day. ---
+  // --- Projection for everything not already persisted. ---
+  // The projection starts at the contiguous-prefix end (see projectSchedule). We MERGE
+  // its draft into the day list, deduping per task: a projected day that coincides with
+  // an existing persisted day (e.g. an approved/confirmed future day) gets its
+  // non-duplicate items APPENDED to that day rather than being skipped, so gap days fill
+  // in and nothing collapses past an isolated confirmed day. Per-task dedup
+  // (`persistedPlannedTasks`) still prevents double-listing a committed task.
   const { draft, milestoneDate } = await projectSchedule(db, ctx, {
     now,
     goalId: opts.goalId,
   });
-  const lastPersisted = persistedDays.length
-    ? persistedDays[persistedDays.length - 1]!.plan_date
-    : null;
+
+  const dayByDate = new Map(days.map((d) => [d.date, d] as const));
 
   // Task refs for projected items (titles/status), fetched once.
   const projectedTaskIds = new Set<string>();
   for (const d of draft) {
-    if (lastPersisted && d.planDate <= lastPersisted) continue;
     if (opts.to && d.planDate > opts.to) continue;
     for (const it of d.items) {
       if (!persistedPlannedTasks.has(it.taskId)) projectedTaskIds.add(it.taskId);
@@ -220,22 +224,29 @@ export async function getRoadmap(
   const refById = await readTaskRefs(db, ctx, [...projectedTaskIds]);
 
   for (const d of draft) {
-    if (lastPersisted && d.planDate <= lastPersisted) continue;
     if (opts.to && d.planDate > opts.to) continue;
-    const items: RoadmapItem[] = [];
-    let position = 0;
+    const existing = dayByDate.get(d.planDate);
+    const target: RoadmapDay = existing ?? {
+      date: d.planDate,
+      status: "projected",
+      is_locked: false,
+      projected: true,
+      items: [],
+    };
     for (const it of d.items) {
       if (persistedPlannedTasks.has(it.taskId)) continue; // already shown on a persisted day
-      const ref = refById.get(it.taskId);
-      items.push({
+      target.items.push({
         task_id: it.taskId,
-        task: ref ?? null,
+        task: refById.get(it.taskId) ?? null,
         status: "planned",
         origin: "proposed",
-        position: position++,
+        position: target.items.length,
       });
     }
-    if (items.length > 0) days.push({ date: d.planDate, status: "projected", is_locked: false, projected: true, items });
+    if (!existing && target.items.length > 0) {
+      days.push(target);
+      dayByDate.set(d.planDate, target);
+    }
   }
 
   days.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
