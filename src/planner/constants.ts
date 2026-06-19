@@ -13,7 +13,7 @@ export const DIFFICULTY_HOURS: Record<DifficultyLevel, number> = {
 };
 
 /** Tasks with neither an hours estimate nor a difficulty get this nominal load. */
-export const DEFAULT_TASK_HOURS = 1;
+export const DEFAULT_TASK_HOURS = 1.5;
 
 /** Resolve a task's nominal planning hours from its either/or estimate. */
 export function resolveHours(

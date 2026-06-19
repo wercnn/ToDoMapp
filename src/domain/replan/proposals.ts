@@ -19,6 +19,7 @@ import { recordEngagement, refreshStats } from "../engagement";
 import { analyzeReplan, type ReplanScope } from "./analyze";
 import { applyChanges, type ApplyResult } from "./apply";
 import { parseChanges, type Changes } from "./types";
+import { proposalHasDayDecisions } from "./dayReview";
 
 /** A newer pending proposal supersedes any older one (data-model §9.4). */
 async function expireOlderPending(
@@ -83,13 +84,20 @@ export async function hasPendingUserIntentProposal(
 export async function createProposal(
   db: Kysely<Database>,
   ctx: WorkspaceContext,
-  opts: { trigger: ProposalTrigger; scope?: ReplanScope; horizonDays?: number; now?: Date },
+  opts: {
+    trigger: ProposalTrigger;
+    scope?: ReplanScope;
+    horizonDays?: number;
+    now?: Date;
+    keepTodayTaskIds?: string[];
+  },
 ): Promise<ReplanProposal> {
   const now = opts.now ?? new Date();
   const { summary, changes } = await analyzeReplan(db, ctx, {
     scope: opts.scope,
     horizonDays: opts.horizonDays,
     now,
+    keepTodayTaskIds: opts.keepTodayTaskIds,
   });
   return withTransaction(db, (trx) =>
     createProposalInTx(trx, ctx, { trigger: opts.trigger, summary, changes, now }),
@@ -156,6 +164,9 @@ export async function approveProposal(
     if (existing.status !== "pending") {
       throw conflict(`Proposal is '${existing.status}', not 'pending' — cannot approve`);
     }
+    if (proposalHasDayDecisions(existing.changes as Changes)) {
+      throw conflict("Proposal has day-level decisions; continue review day by day.");
+    }
 
     const effective: Changes = editChanges ?? (existing.changes as Changes);
     const newStatus: ProposalStatus = edited ? "edited_approved" : "approved";
@@ -218,6 +229,9 @@ export async function rejectProposal(
     if (!existing) throw notFound("Proposal not found");
     if (existing.status !== "pending") {
       throw conflict(`Proposal is '${existing.status}', not 'pending' — cannot reject`);
+    }
+    if (proposalHasDayDecisions(existing.changes as Changes)) {
+      throw conflict("Proposal has day-level decisions; continue review day by day.");
     }
 
     const claimed = await trx

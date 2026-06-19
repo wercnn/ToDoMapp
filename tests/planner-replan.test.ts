@@ -181,6 +181,49 @@ describe("replan planner v1", () => {
     expect(plan.assignment.NEW).toBe(today);
   });
 
+  it("uses a lower global capacity override for today only", () => {
+    const state = baseState();
+    state.projects.P!.capacityHoursPerDay = 2;
+    state.tasks = {
+      A: task({ id: "A", workPackageId: "W1", estimateHours: 1, position: 0 }),
+      B: task({ id: "B", workPackageId: "W1", estimateHours: 1, position: 1 }),
+    };
+
+    const plan = planRoadmap(
+      state,
+      cfg({
+        globalCapacityHoursPerDay: 2,
+        globalCapacityHoursByDate: { [today]: 1 },
+      }),
+    );
+
+    expect(plan.assignment.A).toBe(today);
+    expect(plan.assignment.B).toBe("2026-06-20");
+    expect(plan.dayLoad[today]).toBe(1);
+  });
+
+  it("keeps selected today work frozen under the remaining-capacity override", () => {
+    const state = baseState();
+    state.projects.P!.capacityHoursPerDay = 2;
+    state.tasks = {
+      KEEP: task({ id: "KEEP", workPackageId: "W1", estimateHours: 1, position: 0 }),
+      MOVE: task({ id: "MOVE", workPackageId: "W1", estimateHours: 1, position: 1 }),
+    };
+    state.currentPlan = { [today]: ["KEEP", "MOVE"] };
+    state.frozenTaskIds = ["KEEP"];
+
+    const plan = planRoadmap(
+      state,
+      cfg({
+        globalCapacityHoursPerDay: 2,
+        globalCapacityHoursByDate: { [today]: 1 },
+      }),
+    );
+
+    expect(plan.assignment.KEEP).toBe(today);
+    expect(plan.assignment.MOVE).toBe("2026-06-20");
+  });
+
   it("does not move locked day items and surfaces dependency conflicts", () => {
     const state = baseState();
     state.tasks = {

@@ -74,8 +74,42 @@ export interface Changes {
   warnings?: string[];
   split_report?: SplitReport[];
   split_task_id_map?: Record<string, string>;
+  review_dates?: string[];
+  day_decisions?: DayDecision[];
+  rejected_dates?: string[];
+  kept_today_task_ids?: string[];
+  today_capacity?: TodayCapacity;
+  preview_days?: PreviewDay[];
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+export interface DayDecision {
+  date: string;
+  status: "approved" | "rejected";
+  decided_at: string;
+}
+
+export interface TodayCapacity {
+  date: string;
+  global_capacity_hours: number;
+  completed_hours: number;
+  remaining_hours: number;
+}
+
+export interface PreviewItem {
+  task_id: string;
+  status: string | null;
+  origin: string | null;
+  position: number;
+}
+
+export interface PreviewDay {
+  date: string;
+  status: string;
+  is_locked: boolean;
+  projected: boolean;
+  items: PreviewItem[];
 }
 
 export interface SplitPart {
@@ -150,6 +184,30 @@ function parseSplitReport(input: unknown): SplitReport[] {
       }),
     };
   });
+}
+
+function parseStringArray(input: unknown): string[] | undefined {
+  return Array.isArray(input)
+    ? (input.filter((value) => typeof value === "string") as string[])
+    : undefined;
+}
+
+function parseDayDecisions(input: unknown): DayDecision[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  return input
+    .filter((value): value is Record<string, unknown> => isObj(value))
+    .filter(
+      (value) =>
+        typeof value.date === "string" &&
+        isValidDateString(value.date) &&
+        (value.status === "approved" || value.status === "rejected") &&
+        typeof value.decided_at === "string",
+    )
+    .map((value) => ({
+      date: value.date as string,
+      status: value.status as "approved" | "rejected",
+      decided_at: value.decided_at as string,
+    }));
 }
 
 /**
@@ -237,5 +295,13 @@ export function parseChanges(input: unknown): Changes {
     split_task_id_map: isObj(input.split_task_id_map)
       ? (input.split_task_id_map as Record<string, string>)
       : undefined,
+    review_dates: parseStringArray(input.review_dates),
+    day_decisions: parseDayDecisions(input.day_decisions),
+    rejected_dates: parseStringArray(input.rejected_dates),
+    kept_today_task_ids: parseStringArray(input.kept_today_task_ids),
+    today_capacity: isObj(input.today_capacity)
+      ? (input.today_capacity as unknown as TodayCapacity)
+      : undefined,
+    preview_days: Array.isArray(input.preview_days) ? (input.preview_days as PreviewDay[]) : undefined,
   };
 }

@@ -17,7 +17,7 @@ import type {
   TaskSplitReport,
 } from "../../planner/replan";
 import type { DraftDay } from "../../planner/types";
-import type { Changes, MilestoneImpact, Move } from "./types";
+import type { Changes, MilestoneImpact, Move, TodayCapacity } from "./types";
 
 const DEFAULT_HORIZON_DAYS = 120;
 
@@ -32,6 +32,7 @@ export interface AnalyzeOptions {
   now?: Date;
   allowTaskSplitting?: boolean;
   splitChunkHours?: number | null;
+  keepTodayTaskIds?: string[];
 }
 
 /** A currently-planned item (the diff baseline): which day a task sits on today. */
@@ -132,8 +133,14 @@ function plannerDiffToChanges(diff: ReplanProposalDiff): Changes {
 async function buildPlanningState(
   db: Executor,
   ctx: WorkspaceContext,
-  opts: { startDate: string; scope?: ReplanScope },
-): Promise<{ state: PlanningState; globalCapacityHoursPerDay: number }> {
+  opts: { startDate: string; scope?: ReplanScope; keepTodayTaskIds?: string[] },
+): Promise<{
+  state: PlanningState;
+  globalCapacityHoursPerDay: number;
+  globalCapacityHoursByDate: Record<string, number>;
+  projectCapacityHoursByDate: Record<string, Record<string, number>>;
+  todayCapacity: TodayCapacity;
+}> {
   const goals: PlanningState["goals"] = {};
   const projects: PlanningState["projects"] = {};
   const milestones: PlanningState["milestones"] = {};
@@ -330,6 +337,7 @@ async function buildPlanningState(
   }
 
   const frozenTaskIds = new Set<string>();
+  const keepTodayTaskIds = new Set(opts.keepTodayTaskIds ?? []);
   for (const [date, ids] of Object.entries(currentPlan)) {
     for (const taskId of ids) {
       const task = tasks[taskId];
@@ -337,6 +345,8 @@ async function buildPlanningState(
       if (!task || !wp) continue;
       if (opts.scope?.project_id && wp.projectId !== opts.scope.project_id) frozenTaskIds.add(taskId);
       if (date < opts.startDate) frozenTaskIds.add(taskId);
+      if (stateDayFrozen(dayMeta[date], date, opts.startDate)) frozenTaskIds.add(taskId);
+      if (date === opts.startDate && keepTodayTaskIds.has(taskId)) frozenTaskIds.add(taskId);
     }
   }
 
@@ -365,6 +375,44 @@ async function buildPlanningState(
     .where("user_id", "=", ctx.userId)
     .where("workspace_id", "=", ctx.workspaceId)
     .executeTakeFirst();
+  const globalCapacityHoursPerDay = Number(stats?.global_capacity_hours_per_day ?? 8);
+
+  const completedToday = await db
+    .selectFrom("daily_plan_item as dpi")
+    .innerJoin("daily_plan_day as d", "d.id", "dpi.daily_plan_day_id")
+    .innerJoin("task as t", "t.id", "dpi.task_id")
+    .innerJoin("work_package as wp", "wp.id", "t.work_package_id")
+    .innerJoin("project as p", "p.id", "wp.project_id")
+    .select([
+      "p.id as projectId",
+      "t.estimate_hours as estimateHours",
+      "t.difficulty as difficulty",
+    ])
+    .where("dpi.workspace_id", "=", ctx.workspaceId)
+    .where("d.plan_date", "=", opts.startDate)
+    .where("dpi.status", "=", "completed")
+    .where("dpi.task_id", "is not", null)
+    .execute();
+
+  let completedHours = 0;
+  const completedByProject = new Map<string, number>();
+  for (const row of completedToday) {
+    const hours = resolveHours(row.estimateHours != null ? Number(row.estimateHours) : null, row.difficulty);
+    completedHours += hours;
+    completedByProject.set(row.projectId, (completedByProject.get(row.projectId) ?? 0) + hours);
+  }
+
+  const globalCapacityHoursByDate: Record<string, number> = {
+    [opts.startDate]: Math.max(0, globalCapacityHoursPerDay - completedHours),
+  };
+  const projectCapacityHoursByDate: Record<string, Record<string, number>> = {};
+  for (const [projectId, completedProjectHours] of completedByProject) {
+    const project = projects[projectId];
+    if (!project) continue;
+    projectCapacityHoursByDate[projectId] = {
+      [opts.startDate]: Math.max(0, project.capacityHoursPerDay - completedProjectHours),
+    };
+  }
 
   return {
     state: {
@@ -379,8 +427,35 @@ async function buildPlanningState(
       dayMeta,
       frozenTaskIds: [...frozenTaskIds],
     },
-    globalCapacityHoursPerDay: Number(stats?.global_capacity_hours_per_day ?? 8),
+    globalCapacityHoursPerDay,
+    globalCapacityHoursByDate,
+    projectCapacityHoursByDate,
+    todayCapacity: {
+      date: opts.startDate,
+      global_capacity_hours: globalCapacityHoursPerDay,
+      completed_hours: completedHours,
+      remaining_hours: globalCapacityHoursByDate[opts.startDate]!,
+    },
   };
+}
+
+function stateDayFrozen(meta: PlanningState["dayMeta"][string] | undefined, date: string, startDate: string): boolean {
+  if (!meta) return false;
+  if (meta.isLocked) return true;
+  return meta.isConfirmed && date > startDate;
+}
+
+function dateSetFromChanges(changes: Changes, startDate: string): string[] {
+  const dates = new Set<string>();
+  for (const move of changes.moves) {
+    if (move.from_date && move.from_date >= startDate) dates.add(move.from_date);
+    if (move.to_date && move.to_date >= startDate) dates.add(move.to_date);
+  }
+  for (const conflict of changes.time_fixed_conflicts ?? []) {
+    if (conflict.fixed_date && conflict.fixed_date >= startDate) dates.add(conflict.fixed_date);
+  }
+  if (dates.size > 0) dates.add(startDate);
+  return [...dates].sort();
 }
 
 /** Produce a read-only proposal diff for the current workspace state. */
@@ -392,14 +467,17 @@ export async function analyzeReplan(
   const now = opts.now ?? new Date();
   const startDate = opts.scope?.from_date ?? localDate(ctx.timezone, now);
   const horizonDays = opts.horizonDays ?? DEFAULT_HORIZON_DAYS;
-  const { state, globalCapacityHoursPerDay } = await buildPlanningState(db, ctx, {
+  const { state, globalCapacityHoursPerDay, globalCapacityHoursByDate, projectCapacityHoursByDate, todayCapacity } = await buildPlanningState(db, ctx, {
     startDate,
     scope: opts.scope,
+    keepTodayTaskIds: opts.keepTodayTaskIds,
   });
 
   const config: PlannerConfig = {
     today: startDate,
     globalCapacityHoursPerDay,
+    globalCapacityHoursByDate,
+    projectCapacityHoursByDate,
     horizonDays,
     sameDayDependencies: true,
     allowTaskSplitting: opts.allowTaskSplitting ?? true,
@@ -410,5 +488,10 @@ export async function analyzeReplan(
   const plan = planRoadmap(state, config);
   const diff = createProposalDiff(state, plan);
   const changes = plannerDiffToChanges(diff);
+  changes.review_dates = dateSetFromChanges(changes, startDate);
+  changes.rejected_dates = [];
+  changes.day_decisions = [];
+  changes.kept_today_task_ids = opts.keepTodayTaskIds ?? [];
+  changes.today_capacity = todayCapacity;
   return { summary: summarize(changes), changes };
 }

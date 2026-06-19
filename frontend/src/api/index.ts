@@ -34,6 +34,7 @@ import type {
   Task,
   TaskDependency,
   TaskWithBlocked,
+  TimeFixedResolution,
   WorkPackage,
   WorkPackageDependency,
   WorkPackageWithStatus,
@@ -229,10 +230,14 @@ export const replanApi = {
   /** GET /replan-proposals/{id} — the full structured diff for review. */
   get: (id: string) => apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}`),
   /** POST /replan-proposals — user-initiated replan (trigger fixed server-side). */
-  create: (scope?: { project_id?: string; from_date?: string }) =>
+  create: (scope?: { project_id?: string; from_date?: string }, options?: { keep_today_task_ids?: string[] }) =>
     apiRequest<ReplanProposal>("/replan-proposals", {
       method: "POST",
-      body: scope ? { trigger: "user_request", scope } : { trigger: "user_request" },
+      body: {
+        trigger: "user_request",
+        ...(scope ? { scope } : {}),
+        ...(options?.keep_today_task_ids ? { keep_today_task_ids: options.keep_today_task_ids } : {}),
+      },
     }),
   /**
    * POST /replan-proposals/{id}/approve. Omit `edits` for a plain approve (applies
@@ -248,6 +253,15 @@ export const replanApi = {
   /** POST /replan-proposals/{id}/reject — plan untouched. */
   reject: (id: string) =>
     apiRequest<ReplanProposal>(`/replan-proposals/${id}/reject`, { method: "POST" }),
+  approveDay: (id: string, date: string, body?: { time_fixed_resolutions?: TimeFixedResolution[] }) =>
+    apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}/days/${date}/approve`, {
+      method: "POST",
+      body: body ?? {},
+    }),
+  rejectDay: (id: string, date: string) =>
+    apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}/days/${date}/reject`, {
+      method: "POST",
+    }),
 };
 
 export const tasksApi = {

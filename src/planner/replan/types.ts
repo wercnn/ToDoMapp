@@ -72,6 +72,8 @@ export interface DayMeta {
 export interface PlannerConfig {
   today: DateString;
   globalCapacityHoursPerDay: number;
+  globalCapacityHoursByDate?: Record<DateString, number>;
+  projectCapacityHoursByDate?: Record<string, Record<DateString, number>>;
   horizonDays: number;
   sameDayDependencies: boolean;
   allowTaskSplitting: boolean;

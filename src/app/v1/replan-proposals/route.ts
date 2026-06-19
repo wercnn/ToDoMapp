@@ -32,6 +32,7 @@ export const GET = handler(async (req: Request) => {
 interface Body {
   trigger?: string;
   scope?: { project_id?: string; from_date?: string };
+  keep_today_task_ids?: unknown;
 }
 
 export const POST = handler(async (req: Request) => {
@@ -45,10 +46,20 @@ export const POST = handler(async (req: Request) => {
   if (body.scope?.from_date != null && !isValidDateString(body.scope.from_date)) {
     throw badRequest("scope.from_date must be a 'YYYY-MM-DD' date");
   }
+  if (
+    body.keep_today_task_ids !== undefined &&
+    (!Array.isArray(body.keep_today_task_ids) ||
+      !body.keep_today_task_ids.every((id) => typeof id === "string"))
+  ) {
+    throw badRequest("keep_today_task_ids must be an array of task ids");
+  }
 
   const proposal = await createProposal(getDb(), ctx, {
     trigger: "user_request",
     scope: body.scope,
+    keepTodayTaskIds: Array.isArray(body.keep_today_task_ids)
+      ? (body.keep_today_task_ids as string[])
+      : undefined,
   });
   return json(proposal, 201);
 });

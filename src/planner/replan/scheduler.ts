@@ -29,6 +29,14 @@ function taskProjectId(state: PlanningState, taskId: string): string {
   return wp.projectId;
 }
 
+function globalCapacityForDate(config: PlannerConfig, date: DateString): number {
+  return config.globalCapacityHoursByDate?.[date] ?? config.globalCapacityHoursPerDay;
+}
+
+function projectCapacityForDate(project: { id: string; capacityHoursPerDay: number }, config: PlannerConfig, date: DateString): number {
+  return config.projectCapacityHoursByDate?.[project.id]?.[date] ?? project.capacityHoursPerDay;
+}
+
 function oldAssignmentFromPlan(state: PlanningState): Record<string, DateString> {
   const old: Record<string, DateString> = {};
   for (const [date, items] of Object.entries(state.currentPlan)) {
@@ -131,25 +139,26 @@ export function planRoadmap(inputState: PlanningState, config: PlannerConfig): P
   }
 
   for (const [date, items] of Object.entries(dayItems)) {
-    if ((dayLoad[date] ?? 0) > config.globalCapacityHoursPerDay + 1e-9) {
+    const globalCapacity = globalCapacityForDate(config, date);
+    if ((dayLoad[date] ?? 0) > globalCapacity + 1e-9) {
       conflicts.push({
         type: state.dayMeta[date]?.isLocked ? "locked_day_capacity_conflict" : "frozen_day_capacity_conflict",
         date,
-        reason: `Frozen work exceeds global daily capacity (${dayLoad[date]}h planned vs ${config.globalCapacityHoursPerDay}h/day).`,
+        reason: `Frozen work exceeds global daily capacity (${dayLoad[date]}h planned vs ${globalCapacity}h/day).`,
       });
     }
     const projectIds = new Set(items.map((taskId) => taskProjectId(state, taskId)));
     for (const projectId of projectIds) {
       const project = state.projects[projectId];
       const load = projectDayLoad[projectLoadKey(projectId, date)] ?? 0;
-      if (project && load > project.capacityHoursPerDay + 1e-9) {
+      if (project && load > projectCapacityForDate(project, config, date) + 1e-9) {
         conflicts.push({
           type: state.dayMeta[date]?.isLocked
             ? "locked_day_project_capacity_conflict"
             : "frozen_day_project_capacity_conflict",
           date,
           project_id: projectId,
-          reason: `Frozen work exceeds project daily capacity (${load}h planned vs ${project.capacityHoursPerDay}h/day).`,
+          reason: `Frozen work exceeds project daily capacity (${load}h planned vs ${projectCapacityForDate(project, config, date)}h/day).`,
         });
       }
     }
@@ -170,7 +179,8 @@ export function planRoadmap(inputState: PlanningState, config: PlannerConfig): P
     }
 
     const project = state.projects[taskProjectId(state, taskId)];
-    const maxCap = Math.min(config.globalCapacityHoursPerDay, project?.capacityHoursPerDay ?? 0);
+    const projectDailyCapacity = project?.capacityHoursPerDay ?? 0;
+    const maxCap = Math.min(config.globalCapacityHoursPerDay, projectDailyCapacity);
     if (task.estimateHours > maxCap + 1e-9) {
       impossibleTasks.add(taskId);
       const fixed = task.isTimeFixed;
@@ -182,7 +192,7 @@ export function planRoadmap(inputState: PlanningState, config: PlannerConfig): P
         taskTitle: task.title,
         estimate_hours: task.estimateHours,
         global_capacity: config.globalCapacityHoursPerDay,
-        project_capacity: project?.capacityHoursPerDay ?? null,
+        project_capacity: projectDailyCapacity,
         fixed_date: task.fixedDate,
         suggestion: fixed
           ? "Do not auto-split this fixed-date task. Prioritize, descope, or renegotiate the date."
@@ -330,11 +340,11 @@ export function planRoadmap(inputState: PlanningState, config: PlannerConfig): P
 
         const project = state.projects[taskProjectId(state, taskId)];
         if (!project) continue;
-        if ((dayLoad[currentDay] ?? 0) + task.estimateHours > config.globalCapacityHoursPerDay + 1e-9) {
+        if ((dayLoad[currentDay] ?? 0) + task.estimateHours > globalCapacityForDate(config, currentDay) + 1e-9) {
           continue;
         }
         const key = projectLoadKey(project.id, currentDay);
-        if ((projectDayLoad[key] ?? 0) + task.estimateHours > project.capacityHoursPerDay + 1e-9) {
+        if ((projectDayLoad[key] ?? 0) + task.estimateHours > projectCapacityForDate(project, config, currentDay) + 1e-9) {
           continue;
         }
 

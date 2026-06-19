@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { CalendarDays, Check, Flag, Lock, SlidersHorizontal, Unlock } from "lucide-react";
-import type { RoadmapDay, RoadmapItem } from "@api-types";
+import type { ReplanProposalDetail, RoadmapDay, RoadmapItem, TimeFixedResolution } from "@api-types";
+import type { TimeFixedDecision } from "@/lib/buildApproveEdits";
 import { daysApi, replanApi, roadmapApi } from "@/api";
 import { Button } from "@/components/ui/button";
 import { StatusPill, type StatusKind } from "@/components/StatusPill";
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { calmMessage } from "@/lib/apiError";
 import { dayProgress, isDayComplete } from "@/lib/planningDisplay";
 import { DayDrawer } from "./DayDrawer";
-import { ReplanReview } from "./ReplanReview";
+import { TimeFixedConflictControl } from "./TimeFixedConflictControl";
 import { buildTimeline } from "./timeline";
 import { formatDay } from "./dates";
 
@@ -40,20 +41,31 @@ export function Roadmap() {
   const [searchParams] = useSearchParams();
   const [openDate, setOpenDate] = useState<string | null>(searchParams.get("date"));
   const [selectedDate, setSelectedDate] = useState<string | null>(searchParams.get("date"));
-  const [reviewId, setReviewId] = useState<string | null>(searchParams.get("proposal"));
-  const [autoOpenedProposal, setAutoOpenedProposal] = useState(false);
+  const [activeProposalId, setActiveProposalId] = useState<string | null>(searchParams.get("proposal"));
+  const [keepTodayMode, setKeepTodayMode] = useState(false);
+  const [keepTodayTaskIds, setKeepTodayTaskIds] = useState<Set<string>>(new Set());
 
   const roadmap = useQuery({ queryKey: ["roadmap", "all"], queryFn: () => roadmapApi.get() });
   const pending = useQuery({ queryKey: ["replan-proposals", "pending"], queryFn: () => replanApi.list("pending") });
-
-  const timeline = useMemo(() => (roadmap.data ? buildTimeline(roadmap.data) : null), [roadmap.data]);
-  const today = roadmap.data?.position.today ?? null;
   const pendingProposal = pending.data?.[0] ?? null;
-  const daysAhead = roadmap.data?.days.filter((day) => (today ? day.date >= today : true)).length ?? 0;
+  const proposalId = activeProposalId ?? pendingProposal?.id ?? null;
+  const proposalDetail = useQuery({
+    queryKey: ["replan-proposal", proposalId],
+    queryFn: () => replanApi.get(proposalId as string),
+    enabled: proposalId != null,
+  });
+  const activeProposal =
+    proposalDetail.data?.proposal.status === "pending" ? proposalDetail.data : null;
+  const displayRoadmap = activeProposal?.preview?.roadmap ?? roadmap.data;
+
+  const timeline = useMemo(() => (displayRoadmap ? buildTimeline(displayRoadmap) : null), [displayRoadmap]);
+  const today = displayRoadmap?.position.today ?? roadmap.data?.position.today ?? null;
+  const daysAhead = displayRoadmap?.days.filter((day) => (today ? day.date >= today : true)).length ?? 0;
   const selectedDay =
-    roadmap.data?.days.find((day) => day.date === selectedDate) ??
-    roadmap.data?.days.find((day) => day.date === today) ??
-    roadmap.data?.days[0] ??
+    displayRoadmap?.days.find((day) => day.date === selectedDate) ??
+    displayRoadmap?.days.find((day) => day.date === activeProposal?.preview?.next_pending_date) ??
+    displayRoadmap?.days.find((day) => day.date === today) ??
+    displayRoadmap?.days[0] ??
     null;
 
   useEffect(() => {
@@ -61,11 +73,23 @@ export function Roadmap() {
   }, [selectedDate, selectedDay]);
 
   useEffect(() => {
-    if (pendingProposal && !reviewId && !autoOpenedProposal) {
-      setReviewId(pendingProposal.id);
-      setAutoOpenedProposal(true);
+    if (pendingProposal && !activeProposalId) setActiveProposalId(pendingProposal.id);
+  }, [activeProposalId, pendingProposal]);
+
+  useEffect(() => {
+    if (
+      activeProposalId &&
+      proposalDetail.data?.proposal.id === activeProposalId &&
+      proposalDetail.data.proposal.status !== "pending"
+    ) {
+      setActiveProposalId(null);
     }
-  }, [autoOpenedProposal, pendingProposal, reviewId]);
+  }, [activeProposalId, proposalDetail.data?.proposal.id, proposalDetail.data?.proposal.status]);
+
+  useEffect(() => {
+    const next = activeProposal?.preview?.next_pending_date;
+    if (next) setSelectedDate(next);
+  }, [activeProposal?.proposal.id, activeProposal?.preview?.next_pending_date]);
 
   const proposeMore = useMutation({
     mutationFn: () => roadmapApi.propose({ horizon_days: 14 }),
@@ -75,7 +99,75 @@ export function Roadmap() {
     },
   });
 
-  if (roadmap.isLoading) {
+  const requestReplan = useMutation({
+    mutationFn: (keepTaskIds: string[]) =>
+      replanApi.create(undefined, { keep_today_task_ids: keepTaskIds }),
+    onSuccess: (proposal) => {
+      void qc.invalidateQueries({ queryKey: ["replan-proposals"] });
+      void qc.invalidateQueries({ queryKey: ["morning-brief"] });
+      setActiveProposalId(proposal.id);
+      setKeepTodayMode(false);
+      if (today) setSelectedDate(today);
+    },
+  });
+
+  const approveDay = useMutation({
+    mutationFn: (input: { proposalId: string; date: string; time_fixed_resolutions: TimeFixedResolution[] }) =>
+      replanApi.approveDay(input.proposalId, input.date, {
+        time_fixed_resolutions: input.time_fixed_resolutions,
+      }),
+    onSuccess: (detail) => {
+      invalidateRoadmapReview(qc);
+      if (detail.proposal.status === "pending") {
+        setActiveProposalId(detail.proposal.id);
+        setSelectedDate(detail.preview?.next_pending_date ?? detail.proposal.created_at.slice(0, 10));
+      } else {
+        setActiveProposalId(null);
+        if (today) setSelectedDate(today);
+      }
+    },
+  });
+
+  const rejectDay = useMutation({
+    mutationFn: (input: { proposalId: string; date: string }) =>
+      replanApi.rejectDay(input.proposalId, input.date),
+    onSuccess: (detail) => {
+      invalidateRoadmapReview(qc);
+      if (detail.proposal.status === "pending") {
+        setActiveProposalId(detail.proposal.id);
+        setSelectedDate(detail.preview?.next_pending_date ?? detail.proposal.created_at.slice(0, 10));
+      } else {
+        setActiveProposalId(null);
+        if (today) setSelectedDate(today);
+      }
+    },
+  });
+
+  const dismissReplan = useMutation({
+    mutationFn: (proposalId: string) => replanApi.reject(proposalId),
+    onSuccess: () => {
+      invalidateRoadmapReview(qc);
+      setActiveProposalId(null);
+      if (today) setSelectedDate(today);
+    },
+  });
+
+  const todayIncompleteItems = useMemo(() => {
+    const day = roadmap.data?.days.find((entry) => entry.date === roadmap.data?.position.today);
+    return (day?.items ?? []).filter((item) => item.status !== "completed" && item.task?.status !== "done");
+  }, [roadmap.data]);
+
+  function beginReplan() {
+    if (todayIncompleteItems.length > 0) {
+      setKeepTodayTaskIds(new Set(todayIncompleteItems.map((item) => item.task_id)));
+      setKeepTodayMode(true);
+      if (roadmap.data?.position.today) setSelectedDate(roadmap.data.position.today);
+      return;
+    }
+    requestReplan.mutate([]);
+  }
+
+  if (roadmap.isLoading || (proposalId != null && proposalDetail.isLoading && !displayRoadmap)) {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-8 w-52" />
@@ -92,15 +184,20 @@ export function Roadmap() {
       <header className="flex flex-none flex-wrap items-center gap-3 border-b border-border bg-bg px-6 py-4">
         <h2 className="text-2xl font-black tracking-tight">Roadmap</h2>
         <span className="text-xs font-bold text-text-tertiary">{daysAhead} days ahead</span>
-        <Button
-          size="sm"
-          className="ml-auto"
-          onClick={() => proposeMore.mutate()}
-          disabled={proposeMore.isPending}
-        >
-          <CalendarDays size={14} />
-          {proposeMore.isPending ? "Proposing…" : "Propose more days"}
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            onClick={beginReplan}
+            disabled={requestReplan.isPending || proposalId != null}
+          >
+            <SlidersHorizontal size={14} />
+            {proposalId ? "Reviewing replan" : requestReplan.isPending ? "Replanning…" : "Replan"}
+          </Button>
+          <Button size="sm" onClick={() => proposeMore.mutate()} disabled={proposeMore.isPending}>
+            <CalendarDays size={14} />
+            {proposeMore.isPending ? "Proposing…" : "Propose more days"}
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-none flex-wrap items-center gap-3 border-b border-border px-6 py-2.5">
@@ -155,6 +252,43 @@ export function Roadmap() {
           <DayContextPanel
             day={selectedDay}
             today={today}
+            keepTodayMode={keepTodayMode}
+            keepTodayItems={todayIncompleteItems}
+            keepTodayTaskIds={keepTodayTaskIds}
+            onToggleKeepToday={(taskId) =>
+              setKeepTodayTaskIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(taskId)) next.delete(taskId);
+                else next.add(taskId);
+                return next;
+              })
+            }
+            onCancelKeepToday={() => setKeepTodayMode(false)}
+            onStartReplan={() => requestReplan.mutate([...keepTodayTaskIds])}
+            startingReplan={requestReplan.isPending}
+            replanDetail={activeProposal}
+            reviewingBusy={approveDay.isPending || rejectDay.isPending || dismissReplan.isPending}
+            reviewingError={
+              approveDay.error || rejectDay.error || dismissReplan.error
+                ? calmMessage(approveDay.error ?? rejectDay.error ?? dismissReplan.error)
+                : null
+            }
+            onApproveReplanDay={(date, timeFixedResolutions) => {
+              if (!activeProposal) return;
+              approveDay.mutate({
+                proposalId: activeProposal.proposal.id,
+                date,
+                time_fixed_resolutions: timeFixedResolutions,
+              });
+            }}
+            onRejectReplanDay={(date) => {
+              if (!activeProposal) return;
+              rejectDay.mutate({ proposalId: activeProposal.proposal.id, date });
+            }}
+            onDismissReplan={() => {
+              if (!activeProposal) return;
+              dismissReplan.mutate(activeProposal.proposal.id);
+            }}
             onOpenDrawer={(date) => setOpenDate(date)}
             onRefresh={() => {
               void qc.invalidateQueries({ queryKey: ["roadmap"] });
@@ -165,9 +299,16 @@ export function Roadmap() {
       )}
 
       <DayDrawer date={openDate} onClose={() => setOpenDate(null)} today={today} />
-      <ReplanReview proposalId={reviewId} onClose={() => setReviewId(null)} />
     </div>
   );
+}
+
+function invalidateRoadmapReview(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ["roadmap"] });
+  void qc.invalidateQueries({ queryKey: ["replan-proposals"] });
+  void qc.invalidateQueries({ queryKey: ["replan-proposal"] });
+  void qc.invalidateQueries({ queryKey: ["morning-brief"] });
+  void qc.invalidateQueries({ queryKey: ["day"] });
 }
 
 function DayRow({
@@ -273,18 +414,49 @@ function MilestoneRow({ date, title, achieved }: { date: string; title: string; 
 function DayContextPanel({
   day,
   today,
+  keepTodayMode,
+  keepTodayItems,
+  keepTodayTaskIds,
+  onToggleKeepToday,
+  onCancelKeepToday,
+  onStartReplan,
+  startingReplan,
+  replanDetail,
+  reviewingBusy,
+  reviewingError,
+  onApproveReplanDay,
+  onRejectReplanDay,
+  onDismissReplan,
   onOpenDrawer,
   onRefresh,
 }: {
   day: RoadmapDay | null;
   today: string | null;
+  keepTodayMode: boolean;
+  keepTodayItems: RoadmapItem[];
+  keepTodayTaskIds: Set<string>;
+  onToggleKeepToday: (taskId: string) => void;
+  onCancelKeepToday: () => void;
+  onStartReplan: () => void;
+  startingReplan: boolean;
+  replanDetail: ReplanProposalDetail | null;
+  reviewingBusy: boolean;
+  reviewingError: string | null;
+  onApproveReplanDay: (date: string, timeFixedResolutions: TimeFixedResolution[]) => void;
+  onRejectReplanDay: (date: string) => void;
+  onDismissReplan: () => void;
   onOpenDrawer: (date: string) => void;
   onRefresh: () => void;
 }) {
+  const [timeFixedDecisions, setTimeFixedDecisions] = useState<Record<string, TimeFixedDecision | undefined>>({});
   const run = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: onRefresh,
   });
+  useEffect(() => {
+    setTimeFixedDecisions({});
+  }, [day?.date, replanDetail?.proposal.id]);
+
   if (!day) {
     return (
       <aside className="border-l border-border bg-bg p-5 text-sm font-semibold text-text-tertiary">
@@ -297,6 +469,21 @@ function DayContextPanel({
   const groups = groupRoadmapItems(day.items);
   const canConfirm = day.status === "proposed";
   const canLock = !day.projected && day.status !== "completed";
+  const reviewDates = replanDetail?.preview?.changed_dates ?? [];
+  const reviewDecision = replanDetail?.preview?.day_decisions.find((decision) => decision.date === day.date);
+  const isReviewDate = reviewDates.includes(day.date);
+  const conflictsForDay =
+    replanDetail?.changes.time_fixed_conflicts.filter((conflict) => conflict.fixed_date === day.date) ?? [];
+  const everyConflictResolved = conflictsForDay.every((conflict) => timeFixedDecisions[conflict.task_id]);
+  const timeFixedResolutions = conflictsForDay
+    .map((conflict): TimeFixedResolution | null => {
+      const decision = timeFixedDecisions[conflict.task_id];
+      if (!decision) return null;
+      return decision.choice === "renegotiate"
+        ? { task_id: conflict.task_id, choice: "renegotiate", new_fixed_date: decision.new_fixed_date }
+        : { task_id: conflict.task_id, choice: decision.choice };
+    })
+    .filter((resolution): resolution is TimeFixedResolution => resolution != null);
 
   return (
     <aside className="min-h-0 overflow-y-auto border-l border-border bg-bg p-5">
@@ -309,35 +496,98 @@ function DayContextPanel({
         <StatusPill status={DAY_PILL[day.status]} label={day.projected ? "Projected" : undefined} />
       </div>
 
-      <div className="mb-5 grid grid-cols-3 gap-2">
-        <Button
-          size="sm"
-          disabled={!canConfirm || run.isPending}
-          onClick={() => run.mutate(() => daysApi.confirm(day.date))}
-        >
-          Confirm
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!canLock || run.isPending}
-          onClick={() => run.mutate(() => daysApi.setLock(day.date, !day.is_locked))}
-        >
-          {day.is_locked ? <Unlock size={14} /> : <Lock size={14} />}
-          {day.is_locked ? "Unlock" : "Lock"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={day.projected}
-          onClick={() => onOpenDrawer(day.date)}
-        >
-          <SlidersHorizontal size={14} />
-          Adjust
-        </Button>
-      </div>
+      {keepTodayMode ? (
+        <KeepTodayPanel
+          items={keepTodayItems}
+          selectedIds={keepTodayTaskIds}
+          starting={startingReplan}
+          onToggle={onToggleKeepToday}
+          onCancel={onCancelKeepToday}
+          onStart={onStartReplan}
+        />
+      ) : replanDetail ? (
+        <div className="mb-5 rounded-[12px] border border-system/40 bg-system-soft px-3 py-3">
+          <div className="mb-3 flex items-center gap-2">
+            <SlidersHorizontal size={14} className="text-system" />
+            <p className="text-xs font-black uppercase tracking-wider text-system">Replan review</p>
+            {reviewDecision && (
+              <span className="ml-auto text-[11px] font-black capitalize text-system">{reviewDecision.status}</span>
+            )}
+          </div>
+          {replanDetail.preview?.today_capacity?.date === day.date && (
+            <p className="mb-3 text-[11px] font-semibold text-text-secondary">
+              Today has {replanDetail.preview.today_capacity.remaining_hours.toFixed(1)}h available after completed work.
+            </p>
+          )}
+          {conflictsForDay.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {conflictsForDay.map((conflict) => (
+                <TimeFixedConflictControl
+                  key={conflict.task_id}
+                  conflict={conflict}
+                  onChange={(decision) =>
+                    setTimeFixedDecisions((prev) => ({ ...prev, [conflict.task_id]: decision }))
+                  }
+                />
+              ))}
+            </div>
+          )}
+          {reviewingError && <p className="mb-2 text-xs font-bold text-warning">{reviewingError}</p>}
+          {reviewDates.length === 0 ? (
+            <Button size="sm" className="w-full" variant="outline" disabled={reviewingBusy} onClick={onDismissReplan}>
+              Dismiss
+            </Button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                disabled={!isReviewDate || !!reviewDecision || reviewingBusy || !everyConflictResolved}
+                onClick={() => onApproveReplanDay(day.date, timeFixedResolutions)}
+              >
+                Approve day
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!isReviewDate || !!reviewDecision || reviewingBusy}
+                onClick={() => onRejectReplanDay(day.date)}
+              >
+                Reject day
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mb-5 grid grid-cols-3 gap-2">
+          <Button
+            size="sm"
+            disabled={!canConfirm || run.isPending}
+            onClick={() => run.mutate(() => daysApi.confirm(day.date))}
+          >
+            Confirm
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!canLock || run.isPending}
+            onClick={() => run.mutate(() => daysApi.setLock(day.date, !day.is_locked))}
+          >
+            {day.is_locked ? <Unlock size={14} /> : <Lock size={14} />}
+            {day.is_locked ? "Unlock" : "Lock"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={day.projected}
+            onClick={() => onOpenDrawer(day.date)}
+          >
+            <SlidersHorizontal size={14} />
+            Adjust
+          </Button>
+        </div>
+      )}
 
-      {day.projected && (
+      {day.projected && !replanDetail && (
         <p className="mb-4 rounded-[12px] border border-dashed border-system/40 bg-system-soft px-3 py-2 text-xs font-bold text-system">
           This is a live projection. Use Propose more days before confirming or editing it.
         </p>
@@ -363,8 +613,7 @@ function DayContextPanel({
                   {item.task?.blocked && <StatusPill status="blocked" />}
                 </div>
                 <p className="mt-1 text-[11px] font-semibold text-text-tertiary">
-                  {item.status ?? "planned"} · {item.origin ?? "projected"}
-                  {item.task?.estimate_hours ? ` · ${Number(item.task.estimate_hours).toFixed(1)}h` : ""}
+                  {item.status === "completed" ? "Completed" : "Planned"} · {taskHoursLabel(item)}
                 </p>
               </div>
             ))}
@@ -378,6 +627,65 @@ function DayContextPanel({
       </div>
     </aside>
   );
+}
+
+function KeepTodayPanel({
+  items,
+  selectedIds,
+  starting,
+  onToggle,
+  onCancel,
+  onStart,
+}: {
+  items: RoadmapItem[];
+  selectedIds: Set<string>;
+  starting: boolean;
+  onToggle: (taskId: string) => void;
+  onCancel: () => void;
+  onStart: () => void;
+}) {
+  return (
+    <div className="mb-5 rounded-[12px] border border-system/40 bg-system-soft px-3 py-3">
+      <div className="mb-3 flex items-center gap-2">
+        <SlidersHorizontal size={14} className="text-system" />
+        <p className="text-xs font-black uppercase tracking-wider text-system">Keep on today</p>
+      </div>
+      <div className="space-y-1.5">
+        {items.map((item) => (
+          <label
+            key={item.task_id}
+            className="flex items-start gap-2 rounded-md border border-border bg-bg px-3 py-2"
+          >
+            <input
+              type="checkbox"
+              checked={selectedIds.has(item.task_id)}
+              onChange={() => onToggle(item.task_id)}
+              className="mt-0.5 h-4 w-4 flex-none accent-[var(--accent-progress)]"
+            />
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-extrabold text-text-primary">
+                {item.task?.title ?? "Task"}
+              </span>
+              <span className="block text-[11px] font-semibold text-text-tertiary">{taskHoursLabel(item)}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button size="sm" variant="outline" onClick={onCancel} disabled={starting}>
+          Cancel
+        </Button>
+        <Button size="sm" onClick={onStart} disabled={starting}>
+          {starting ? "Replanning…" : "Start replan"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function taskHoursLabel(item: RoadmapItem): string {
+  if (item.task?.estimate_hours) return `${Number(item.task.estimate_hours).toFixed(1)}h`;
+  return "1.5h assumed";
 }
 
 function groupRoadmapItems(items: RoadmapItem[]) {

@@ -328,6 +328,21 @@ export interface TaskSplitReport {
   parts: TaskSplitPart[];
 }
 
+export type ReplanDayDecisionStatus = "approved" | "rejected";
+
+export interface ReplanDayDecision {
+  date: DateString;
+  status: ReplanDayDecisionStatus;
+  decided_at: IsoTimestamp;
+}
+
+export interface ReplanTodayCapacity {
+  date: DateString;
+  global_capacity_hours: number;
+  completed_hours: number;
+  remaining_hours: number;
+}
+
 /** The user's explicit choice for a conflict, supplied on edited approval. */
 export interface TimeFixedResolution {
   task_id: string;
@@ -349,8 +364,22 @@ export interface ReplanChanges {
   warnings?: string[];
   split_report?: TaskSplitReport[];
   split_task_id_map?: Record<string, string>;
+  review_dates?: DateString[];
+  day_decisions?: ReplanDayDecision[];
+  rejected_dates?: DateString[];
+  kept_today_task_ids?: string[];
+  today_capacity?: ReplanTodayCapacity;
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+export interface ReplanPreview {
+  roadmap: Roadmap;
+  changed_dates: DateString[];
+  next_pending_date: DateString | null;
+  day_decisions: ReplanDayDecision[];
+  rejected_dates: DateString[];
+  today_capacity: ReplanTodayCapacity | null;
 }
 
 /** GET /replan-proposals/{id} — full proposal + its structured diff for the review UI. */
@@ -358,6 +387,7 @@ export interface ReplanProposalDetail {
   proposal: ReplanProposal;
   changes: ReplanChanges;
   refs: { tasks: Record<string, RoadmapTaskRef> };
+  preview?: ReplanPreview;
 }
 
 /** POST /replan-proposals/{id}/approve — the resolved proposal + what the apply step wrote. */
