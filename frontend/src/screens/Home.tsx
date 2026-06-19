@@ -186,6 +186,16 @@ export function Home() {
             </div>
           )}
         </div>
+      </section>
+
+      <aside className="flex min-w-0 flex-col gap-4">
+        <AttentionCard
+          data={data}
+          approving={approveProposal.isPending}
+          onApprove={(id) => approveProposal.mutate(id)}
+          onReview={(id) => navigate(`/roadmap?proposal=${id}`)}
+          onRoadmap={() => navigate("/roadmap")}
+        />
 
         <section className="rounded-[14px] border border-border bg-surface-1 p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -212,16 +222,7 @@ export function Home() {
             </div>
           )}
         </section>
-      </section>
 
-      <aside className="flex min-w-0 flex-col gap-4">
-        <AttentionCard
-          data={data}
-          approving={approveProposal.isPending}
-          onApprove={(id) => approveProposal.mutate(id)}
-          onReview={(id) => navigate(`/roadmap?proposal=${id}`)}
-          onRoadmap={() => navigate("/roadmap")}
-        />
         <GoalsOverview />
       </aside>
     </div>
