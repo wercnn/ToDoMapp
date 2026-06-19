@@ -178,6 +178,12 @@ export async function getRoadmap(
   const itemsByDay = new Map<string, RoadmapItem[]>();
   const persistedPlannedTasks = new Set<string>();
   for (const r of itemRows) {
+    // A 'deferred' item is the history trace of a task that was MOVED off this day
+    // (replan apply defers the old item rather than deleting it — Principle 3). It is
+    // no longer on this day, so it must NOT be listed or counted; the task reappears on
+    // its new day (persisted 'replanned' item or the projection). Without this, a task
+    // removed from today by an approved replan keeps showing here and the count reverts.
+    if (r.status === "deferred") continue;
     const list = itemsByDay.get(r.dayId) ?? itemsByDay.set(r.dayId, []).get(r.dayId)!;
     list.push({
       task_id: r.taskId ?? "",
@@ -314,6 +320,9 @@ export async function readDay(
     .selectAll("i")
     .where("i.workspace_id", "=", ctx.workspaceId)
     .where("i.daily_plan_day_id", "=", day.id)
+    // Exclude 'deferred' history traces (a task moved off this day by a replan) so they
+    // don't surface as Daily Goals in the day view / morning brief. Mirrors getRoadmap.
+    .where("i.status", "<>", "deferred")
     .orderBy("i.position")
     .execute();
   const refs = await readTaskRefs(
