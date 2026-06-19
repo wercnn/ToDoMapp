@@ -6,6 +6,44 @@ This summarizes the web UI parity work against
 `docs/design/project/TodoMapp Prototype.dc.html`. The implementation remains React + Vite and uses
 the existing dark "Earned Momentum" token system in `frontend/src/styles/tokens.css`.
 
+## Second gap-closure pass (2026-06-19)
+
+A follow-up pass closed six remaining gaps plus a milestone-management feature. Backend untouched —
+pure frontend/UI edits. Verified with `npm run typecheck` and `npm run build` (frontend).
+
+- **Home — "The road ahead" roadmap visual** (`screens/Home.tsx`): replaced the day-card strip with
+  a prototype circle-node path built from `buildTimeline`: ✓ green circles for fully-done days, a
+  larger today ring showing `done/total`, hollow (dashed when projected) future days, and
+  rotated-diamond milestone nodes. The block now lives in the **right sidebar between the Attention
+  card and Goals & Progress**. New `dayProgress` / `isDayComplete` helpers in `lib/planningDisplay.ts`.
+- **Two-step task toggle** (`screens/Home.tsx`): a task advances open → in progress → done. "In
+  progress" is presentation-only local state (the API has no start-task verb; status is only
+  `todo`/`done`) and resets on reload; the second click calls `tasksApi.complete`.
+- **Top bar** (`screens/shell/TopBar.tsx`): removed the entire expanded right column (pending-proposal
+  Approve/Review block and pull-forward strip) and the collapsed-header proposal pill; proposals now
+  surface only on Home's Attention card. The today task strip spans full width.
+- **Roadmap tab** (`screens/roadmap/Roadmap.tsx`): replaced the horizontal path with a **vertical day
+  list** on a left rail (node markers: ✓ / today ring / hollow / dashed-projected) plus milestone
+  rows and an inline legend. Stripped the goal/date filters and the Replan button; kept `Propose more
+  days` and the right-side day-plan panel (Confirm/Lock/Adjust).
+- **Project workbench** (`screens/project/`): removed the "Critical path to…" and "Work packages
+  only…" toolbar text (`FlowView.tsx`; toolbar now renders only when an edge is selected); slimmed the
+  project header to a single thin horizontal row (`ProjectDetail.tsx`); reordered the WP panel so the
+  **task to-do list leads**, with WP detail fields below a divider (`WorkPackageSheet.tsx`).
+- **Add milestone** (`ProjectDetail.tsx`): lilac `+ Add milestone` button in the project header with
+  an inline create popover (`projectsApi.createMilestone`). Milestones are intentionally **not**
+  rendered on the flow canvas.
+
+### Milestone management view (`screens/project/MilestoneSheet.tsx`)
+- A right-panel view (mutually exclusive with the WP panel) that opens automatically when a milestone
+  is created, and is reachable again via the Table view's clickable "Group by milestone" headers.
+- Two lists of work packages: **in this milestone** (each removable, sets `milestone_id: null`) and
+  **available to add** (each with a `+`). WPs already in another milestone show an amber warning chip
+  with that milestone's name.
+- Adding a flagged WP opens a confirm dialog ("[WP] is already in [milestone] — move it here?") since
+  a WP can hold only one milestone; confirming re-assigns it. All edits invalidate
+  `projectQueryKeys` so lists, the WP milestone dropdown, and progress roll-ups stay in sync.
+
 ## API support added
 - Enriched roadmap/day/morning-brief task refs with project, work package, estimate, difficulty,
   time-fixed, fixed date, and blocked metadata.
