@@ -3,6 +3,8 @@
 Live build checklist. **Update the relevant section at the end of each work session.**
 Terse; see `/docs` for spec detail and `CLAUDE.md` for architecture.
 
+_Last updated: 2026-06-19 — Replan logic implemented, mode earliest_completion
+
 _Last updated: 2026-06-19 — backend API phases are complete, and the React/Vite web app
 received a prototype-parity pass against `docs/design/project/TodoMapp Prototype.dc.html`._
 
