@@ -40,3 +40,33 @@ export function createConfirmedDay(
   };
   return db.insertInto("daily_plan_day").values(values).returningAll().executeTakeFirstOrThrow();
 }
+
+/**
+ * Get-or-create the day for a date. Shared by the plan edits (which want a
+ * `confirmed` day) and by auto-placement of newly created work (which wants a
+ * `proposed` day so a subsequent replan is free to move it — the replan freezes
+ * FUTURE CONFIRMED days, so a confirmed placement would pin the new task).
+ */
+export async function getOrCreateDay(
+  db: Executor,
+  ctx: { workspaceId: string },
+  date: string,
+  now: Date,
+  status: "confirmed" | "proposed" = "confirmed",
+): Promise<DailyPlanDay> {
+  const existing = await db
+    .selectFrom("daily_plan_day")
+    .selectAll()
+    .where("workspace_id", "=", ctx.workspaceId)
+    .where("plan_date", "=", date)
+    .executeTakeFirst();
+  if (existing) return existing;
+  if (status === "proposed") {
+    return db
+      .insertInto("daily_plan_day")
+      .values({ workspace_id: ctx.workspaceId, plan_date: date, status: "proposed" })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+  return createConfirmedDay(db, ctx.workspaceId, date, now);
+}

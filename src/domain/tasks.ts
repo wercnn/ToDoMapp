@@ -6,8 +6,11 @@
 import type { Kysely } from "kysely";
 import type { Database, DifficultyLevel, Task, TaskStatus } from "../db/types";
 import type { AuthContext } from "../auth/context";
+import { withTransaction } from "../db/transaction";
+import { addDays, localDate } from "../lib/dates";
 import { badRequest, notFound, unprocessable } from "../lib/errors";
 import { validateTitle, validateEstimate, validateTimeFixed } from "./validation";
+import { getOrCreateDay } from "./planDays";
 import { getBlockedTaskIds } from "./blocked";
 
 async function assertWorkPackageInWorkspace(
@@ -40,28 +43,66 @@ export async function createTask(
   ctx: AuthContext,
   wpId: string,
   input: CreateTaskInput,
+  now: Date = new Date(),
+  opts: { autoPlace?: boolean } = {},
 ): Promise<Task> {
   await assertWorkPackageInWorkspace(db, ctx, wpId);
   const title = validateTitle(input.title);
   validateEstimate(input);
   validateTimeFixed(input);
 
-  return db
-    .insertInto("task")
-    .values({
-      ...(input.id ? { id: input.id } : {}),
-      workspace_id: ctx.workspaceId,
-      work_package_id: wpId,
-      title,
-      notes: input.notes ?? null,
-      estimate_hours: input.estimate_hours ?? null,
-      difficulty: input.difficulty ?? null,
-      is_time_fixed: input.is_time_fixed ?? false,
-      fixed_date: input.fixed_date ?? null,
-      ...(input.position != null ? { position: input.position } : {}),
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  return withTransaction(db, async (trx) => {
+    const task = await trx
+      .insertInto("task")
+      .values({
+        ...(input.id ? { id: input.id } : {}),
+        workspace_id: ctx.workspaceId,
+        work_package_id: wpId,
+        title,
+        notes: input.notes ?? null,
+        estimate_hours: input.estimate_hours ?? null,
+        difficulty: input.difficulty ?? null,
+        is_time_fixed: input.is_time_fixed ?? false,
+        fixed_date: input.fixed_date ?? null,
+        ...(input.position != null ? { position: input.position } : {}),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // New work created through the API lands on a CONCRETE day so it can never get lost
+    // in a projection: a time-fixed task on its committed date, everything else on
+    // TOMORROW. The day is created `proposed` (not confirmed) so a later replan is free
+    // to move it — the replan freezes future confirmed days. Dependencies are ignored
+    // here; tomorrow is a holding slot and the replan reorders the queue. (Off by
+    // default so internal/test callers that seed their own plan are unaffected.)
+    if (opts.autoPlace) {
+      const placementDate =
+        task.is_time_fixed && task.fixed_date
+          ? task.fixed_date
+          : addDays(localDate(ctx.timezone, now), 1);
+      const day = await getOrCreateDay(trx, ctx, placementDate, now, "proposed");
+      const maxPos = await trx
+        .selectFrom("daily_plan_item")
+        .select((eb) => eb.fn.max("position").as("m"))
+        .where("workspace_id", "=", ctx.workspaceId)
+        .where("daily_plan_day_id", "=", day.id)
+        .executeTakeFirst();
+      await trx
+        .insertInto("daily_plan_item")
+        .values({
+          workspace_id: ctx.workspaceId,
+          daily_plan_day_id: day.id,
+          item_type: "task",
+          task_id: task.id,
+          status: "planned",
+          origin: "user_added",
+          position: Number(maxPos?.m ?? -1) + 1,
+        })
+        .execute();
+    }
+
+    return task;
+  });
 }
 
 export interface TaskWithBlocked extends Task {

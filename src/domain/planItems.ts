@@ -19,7 +19,7 @@ import { conflict, notFound, unprocessable, badRequest } from "../lib/errors";
 import { localDate } from "../lib/dates";
 import { getBlockedTaskIds } from "./blocked";
 import { recordEngagement, refreshStats } from "./engagement";
-import { createConfirmedDay } from "./planDays";
+import { getOrCreateDay } from "./planDays";
 
 async function engage(trx: Transaction<Database>, ctx: AuthContext, today: string, now: Date): Promise<void> {
   await recordEngagement(trx, { userId: ctx.userId, workspaceId: ctx.workspaceId, localDate: today, now });
@@ -41,23 +41,6 @@ async function assertSchedulable(
   if (!task) throw notFound("Task not found");
   const blocked = await getBlockedTaskIds(db, ctx);
   if (blocked.has(taskId)) throw unprocessable("Task is blocked by an incomplete predecessor");
-}
-
-/** Get-or-create the day for a date, reusing the shared confirmed-day shape. */
-async function getOrCreateDay(
-  trx: Executor,
-  ctx: AuthContext,
-  date: string,
-  now: Date,
-): Promise<DailyPlanDay> {
-  const existing = await trx
-    .selectFrom("daily_plan_day")
-    .selectAll()
-    .where("workspace_id", "=", ctx.workspaceId)
-    .where("plan_date", "=", date)
-    .executeTakeFirst();
-  if (existing) return existing;
-  return createConfirmedDay(trx, ctx.workspaceId, date, now);
 }
 
 /** Add a task to a day (origin='user_added'). ⚡eng. */

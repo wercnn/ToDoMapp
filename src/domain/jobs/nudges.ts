@@ -11,8 +11,8 @@
  * All three are FULLY WIRED:
  *   - replan_needs_review  — reads `replan_proposal`.
  *   - streak_at_risk       — reads `user_stats` + `engagement_day`.
- *   - milestone_approaching— uses the shared `projectMilestoneDates` projection
- *     (activated in Phase 6); fires when a milestone's derived projected_date falls
+ *   - milestone_approaching— uses the shared `scheduledMilestoneDates` (real plan)
+ *     ; fires when a milestone's derived projected_date falls
  *     within MILESTONE_APPROACHING_DAYS of local today. (Was stubbed in Phase 5 only
  *     because the projection it depends on didn't exist yet.)
  */
@@ -20,7 +20,7 @@ import type { Kysely } from "kysely";
 import type { Database, NotificationPreference } from "../../db/types";
 import type { WorkspaceContext } from "../../auth/context";
 import { addDays, localDate, localTime } from "../../lib/dates";
-import { projectMilestoneDates } from "../projection";
+import { scheduledMilestoneDates } from "../scheduleDates";
 import { claimDispatch, deliverToUser } from "./dispatch";
 import type { Notifier } from "./notifier";
 
@@ -133,7 +133,7 @@ export async function nudgeMilestoneApproaching(
 
   const today = localDate(ctx.timezone, now);
   const cutoff = addDays(today, MILESTONE_APPROACHING_DAYS);
-  const projectedDates = await projectMilestoneDates(db, ctx, { now });
+  const projectedDates = await scheduledMilestoneDates(db, ctx, { now });
 
   // Earliest approaching milestone first (deterministic when several qualify).
   const approaching = [...projectedDates.entries()]

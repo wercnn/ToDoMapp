@@ -26,9 +26,10 @@ export interface Move {
 }
 
 /**
- * Milestone projection shift, for the review UI. `to_projected_date` is computed by
- * the shared projection helper (`projectMilestoneDates`) — the SAME source GET
- * /roadmap and the flow diagram use, so a milestone's date is consistent everywhere.
+ * Milestone projection shift, for the review UI. `from_projected_date` is the
+ * milestone's date under the CURRENT plan and `to_projected_date` is its date under
+ * the PROPOSED plan — both computed by the planner from task assignments (max day of
+ * the milestone's tasks), so the diff shows how the proposal moves the milestone.
  *
  * projected_date is ALWAYS derived (data-model §6), NEVER stored: there is no
  * `milestone.projected_date` column and apply writes nothing here. Do not cache it

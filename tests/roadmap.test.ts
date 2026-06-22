@@ -1,17 +1,15 @@
 /**
- * Phase 6 — Roadmap projection & daily-planning reads (api §10, data-model §6).
+ * Roadmap & daily-planning reads (api §10, data-model §6).
  *
  * The cases that earn their keep:
- *  - PLANNER 2A safety: empty `edges` is byte-identical to omitting them (proves
- *    /propose is unaffected) AND a CROSS-PROJECT A→B dependency proves edge-awareness
- *    was necessary — position-ordering alone (the 2B approach) would have placed B
- *    alongside A and been wrong.
- *  - projection: staged unblocking places B after A; milestone projected_date = max
- *    gating-task date; time-fixed pinned; non-UTC timezone.
- *  - invariant #5: GET /roadmap / projectSchedule write NOTHING.
- *  - the payoff: a dependency-gated milestone gets a real projected_date (null before).
- *  - unification: the projected_date a replan shows for a milestone EQUALS what
- *    /roadmap shows for it (same shared helper).
+ *  - PLANNER 2A safety (the propose/confirm planner): empty `edges` is byte-identical
+ *    to omitting them, and a CROSS-PROJECT A→B dependency proves edge-awareness was
+ *    necessary — position-ordering alone would have placed B alongside A.
+ *  - scheduled milestone dates: projected_date = latest scheduled day among the
+ *    milestone's open tasks, read from the real plan; null when none are scheduled or
+ *    they only sit on a slipped day. No projection is computed.
+ *  - invariant #5: GET /roadmap writes NOTHING and returns only persisted days.
+ *  - flow next_milestone.projected_date comes from the same plan-derived dates.
  *  - the edit endpoints: add (blocked/dup/planned-elsewhere), defer/reorder, delete,
  *    pull-forward (blocked/already-there), getDay (today ⚡eng / 404).
  *
@@ -22,11 +20,11 @@ import type { Kysely } from "kysely";
 import { createDb } from "@/db/kysely";
 import type { Database } from "@/db/types";
 import { planner } from "@/planner/index";
-import { projectSchedule } from "@/domain/projection";
+import { scheduledMilestoneDates } from "@/domain/scheduleDates";
 import { getRoadmap, getDay } from "@/domain/roadmapRead";
+import { createTask } from "@/domain/tasks";
 import { addItem, patchItem, deleteItem, pullForward } from "@/domain/planItems";
 import { getProjectFlow } from "@/domain/flow";
-import { analyzeReplan } from "@/domain/replan/analyze";
 import { mapDbError } from "@/lib/errors";
 import { addDays, localDate } from "@/lib/dates";
 import {
@@ -126,6 +124,18 @@ async function rowCounts(ws: string): Promise<{ days: number; items: number }> {
     .where("workspace_id", "=", ws).executeTakeFirstOrThrow();
   return { days: Number(d.c), items: Number(i.c) };
 }
+/** Place a task as a planned item on a (get-or-created confirmed) day. */
+async function planOnDay(ws: string, taskId: string, date: string): Promise<void> {
+  const existing = await db.selectFrom("daily_plan_day").select("id")
+    .where("workspace_id", "=", ws).where("plan_date", "=", date).executeTakeFirst();
+  const dayId = existing?.id ?? (await db.insertInto("daily_plan_day")
+    .values({ workspace_id: ws, plan_date: date, status: "confirmed", confirmed_at: new Date() })
+    .returning("id").executeTakeFirstOrThrow()).id;
+  await db.insertInto("daily_plan_item").values({
+    workspace_id: ws, daily_plan_day_id: dayId, item_type: "task",
+    task_id: taskId, status: "planned", origin: "user_added", position: 0,
+  }).execute();
+}
 
 // ---- Pure planner (2A) tests ----------------------------------------------
 describe("planner staged unblocking (2A)", () => {
@@ -163,94 +173,65 @@ describe("planner staged unblocking (2A)", () => {
   });
 });
 
-// ---- Projection tests ------------------------------------------------------
-describe("roadmap projection", () => {
-  it("stages B after A, derives milestone projected_date, pins time-fixed, and writes nothing", async () => {
+// ---- Scheduled milestone dates (real plan, no projection) ------------------
+describe("scheduled milestone dates", () => {
+  it("projected_date = the latest scheduled day among the milestone's open tasks", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
-    const now = new Date("2026-06-14T12:00:00Z");
-    const today = localDate("UTC", now);
+    const today = "2026-06-14";
     const { projectId } = await addGoalProject(workspaceId, 8);
     const ms = await addMilestone(workspaceId, projectId, 0);
     const wpA = await addWp(workspaceId, projectId, ms, 0);
     const wpB = await addWp(workspaceId, projectId, ms, 1);
     const a = await addTask(workspaceId, wpA, { estimate: 2, position: 0 });
     const b = await addTask(workspaceId, wpB, { estimate: 2, position: 1 });
-    await addTaskDep(workspaceId, a, b); // A must finish before B
+    await planOnDay(workspaceId, a, today);
+    await planOnDay(workspaceId, b, addDays(today, 1));
 
-    const before = await rowCounts(workspaceId);
-    const { taskDate, milestoneDate } = await projectSchedule(db, ctx, { now });
-    const after = await rowCounts(workspaceId);
-
-    expect(after).toEqual(before); // invariant #5: projection writes nothing
-    expect(taskDate.get(a)).toBe(today);
-    expect(taskDate.get(b)!).toBe(addDays(today, 1)); // staged after A
-    expect(milestoneDate.get(ms)).toBe(addDays(today, 1)); // max gating-task date = B's
-
-    // A time-fixed task is pinned to its date.
-    const wpC = await addWp(workspaceId, projectId, null, 2);
-    const fixed = addDays(today, 3);
-    const c = await addTask(workspaceId, wpC, { estimate: 2, timeFixed: true, fixedDate: fixed });
-    const second = await projectSchedule(db, ctx, { now });
-    expect(second.taskDate.get(c)).toBe(fixed);
+    const dates = await scheduledMilestoneDates(db, ctx);
+    expect(dates.get(ms)).toBe(addDays(today, 1)); // the later of A / B
   });
 
-  it("milestone projected_date is null (but the milestone still appears) when a gating task can't be placed", async () => {
+  it("projected_date is null when none of the milestone's open tasks are scheduled", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
-    const now = new Date("2026-06-14T12:00:00Z");
-    const today = localDate("UTC", now);
     const { projectId } = await addGoalProject(workspaceId, 8);
     const ms = await addMilestone(workspaceId, projectId, 0);
     const wp = await addWp(workspaceId, projectId, ms, 0);
-    // A time-fixed task pinned beyond the (small) horizon can't land → unknowable.
-    await addTask(workspaceId, wp, { estimate: 2, timeFixed: true, fixedDate: addDays(today, 30) });
+    await addTask(workspaceId, wp, { estimate: 2 }); // never placed on a day
 
-    const { milestoneDate } = await projectSchedule(db, ctx, { now, horizonDays: 5 });
-    expect(milestoneDate.has(ms)).toBe(true); // present, NOT omitted
-    expect(milestoneDate.get(ms)).toBeNull(); // with an explicit "can't schedule" null
+    const dates = await scheduledMilestoneDates(db, ctx);
+    expect(dates.get(ms) ?? null).toBeNull();
   });
 
-  it("re-projects work from a SLIPPED day forward instead of letting it vanish", async () => {
+  it("ignores items on slipped days (that work still needs re-planning)", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
-    const now = new Date("2026-06-14T12:00:00Z");
-    const today = localDate("UTC", now);
     const { projectId } = await addGoalProject(workspaceId, 8);
     const ms = await addMilestone(workspaceId, projectId, 0);
     const wp = await addWp(workspaceId, projectId, ms, 0);
     const t = await addTask(workspaceId, wp, { estimate: 2 });
-
-    // A past day the slippage detector marked 'slipped' — the day status flips but the
-    // item stays 'planned' (invariant #5). The work didn't happen and still needs doing.
     const day = await db.insertInto("daily_plan_day")
-      .values({ workspace_id: workspaceId, plan_date: "2026-06-10", status: "slipped", confirmed_at: now })
+      .values({ workspace_id: workspaceId, plan_date: "2026-06-10", status: "slipped", confirmed_at: new Date() })
       .returning("id").executeTakeFirstOrThrow();
     await db.insertInto("daily_plan_item").values({
       workspace_id: workspaceId, daily_plan_day_id: day.id, item_type: "task",
       task_id: t, status: "planned", origin: "proposed", position: 0,
     }).execute();
 
-    const { taskDate, milestoneDate } = await projectSchedule(db, ctx, { now });
-    expect(taskDate.get(t)).toBe(today); // re-projected forward, NOT stuck on 2026-06-10
-    expect(milestoneDate.get(ms)).toBe(today);
-
-    // And it surfaces in GET /roadmap's projected region (the path ahead).
-    const roadmap = await getRoadmap(db, ctx, { now });
-    const projectedTaskIds = roadmap.days
-      .filter((d) => d.projected)
-      .flatMap((d) => d.items.map((i) => i.task_id));
-    expect(projectedTaskIds).toContain(t);
+    const dates = await scheduledMilestoneDates(db, ctx);
+    expect(dates.get(ms) ?? null).toBeNull(); // only on a slipped day ⇒ not counted
   });
 });
 
 // ---- GET /roadmap -----------------------------------------------------------
 describe("GET /roadmap", () => {
-  it("merges persisted days with projected days and writes nothing", async () => {
+  it("returns only persisted days — no projection appended — and writes nothing", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
     const now = new Date("2026-06-14T12:00:00Z");
     const today = localDate("UTC", now);
     const { projectId } = await addGoalProject(workspaceId, 8);
-    const wp = await addWp(workspaceId, projectId, null, 0);
+    const ms = await addMilestone(workspaceId, projectId, 0);
+    const wp = await addWp(workspaceId, projectId, ms, 0);
     const planned = await addTask(workspaceId, wp, { estimate: 2, position: 0 });
-    const future = await addTask(workspaceId, wp, { estimate: 2, position: 1 });
+    const unplanned = await addTask(workspaceId, wp, { estimate: 2, position: 1 });
 
     // Persist a confirmed day TODAY with the first task on it.
     const day = await db.insertInto("daily_plan_day")
@@ -267,30 +248,23 @@ describe("GET /roadmap", () => {
 
     expect(after).toEqual(before); // #5: pure read
 
+    // Exactly the persisted day — nothing projected after it.
+    expect(roadmap.days.map((d) => d.date)).toEqual([today]);
     const todayDay = roadmap.days.find((d) => d.date === today)!;
-    expect(todayDay.projected).toBe(false);
     expect(todayDay.status).toBe("confirmed");
     expect(todayDay.items[0]!.task).toMatchObject({
       id: planned,
       title: "T",
       status: "todo",
       project_id: projectId,
-      project_title: "P",
-      work_package_id: wp,
-      work_package_title: "WP",
-      estimate_hours: "2.00",
-      difficulty: null,
-      is_time_fixed: false,
-      fixed_date: null,
       blocked: false,
     });
 
-    const projectedDays = roadmap.days.filter((d) => d.projected);
-    expect(projectedDays.length).toBeGreaterThan(0);
-    // The future (unplanned) task appears in a projected day; the persisted one does not double-show.
-    const projectedTaskIds = projectedDays.flatMap((d) => d.items.map((i) => i.task_id));
-    expect(projectedTaskIds).toContain(future);
-    expect(projectedTaskIds).not.toContain(planned);
+    // The unplanned task is not shown anywhere (there is no projection).
+    const allTaskIds = roadmap.days.flatMap((d) => d.items.map((i) => i.task_id));
+    expect(allTaskIds).not.toContain(unplanned);
+    // Milestone date = the latest scheduled day of its open tasks (only `planned`, on today).
+    expect(roadmap.milestones.find((m) => m.id === ms)!.projected_date).toBe(today);
     expect(roadmap.position.today).toBe(today);
   });
 
@@ -320,9 +294,9 @@ describe("GET /roadmap", () => {
   });
 });
 
-// ---- Activation: the deferred-item payoff ----------------------------------
-describe("deferred-item activation", () => {
-  it("flow next_milestone.projected_date is now a real date (was null pre-Phase-6)", async () => {
+// ---- Milestone dates from the plan -----------------------------------------
+describe("milestone dates from the plan", () => {
+  it("flow next_milestone.projected_date reflects the latest scheduled day of its tasks", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
     const now = new Date("2026-06-14T12:00:00Z");
     const today = localDate("UTC", now);
@@ -332,28 +306,68 @@ describe("deferred-item activation", () => {
     const wpB = await addWp(workspaceId, projectId, ms, 1);
     const a = await addTask(workspaceId, wpA, { estimate: 2, position: 0 });
     const b = await addTask(workspaceId, wpB, { estimate: 2, position: 1 });
-    await addTaskDep(workspaceId, a, b);
+    await planOnDay(workspaceId, a, today);
+    await planOnDay(workspaceId, b, addDays(today, 1));
 
     const flow = await getProjectFlow(db, ctx, projectId, now);
     expect(flow.next_milestone?.id).toBe(ms);
-    expect(flow.next_milestone?.projected_date).toBe(addDays(today, 1)); // B's day, the gate
+    expect(flow.next_milestone?.projected_date).toBe(addDays(today, 1)); // B's day, the latest
   });
+});
 
-  it("the projected_date a replan shows for a milestone EQUALS what /roadmap shows", async () => {
+// ---- Auto-placement of newly created work ----------------------------------
+describe("auto-place new tasks (createTask autoPlace)", () => {
+  it("lands a new task on TOMORROW as a planned item on a proposed day", async () => {
     const { ctx, workspaceId } = await provision({ timezone: "UTC" });
     const now = new Date("2026-06-14T12:00:00Z");
+    const tomorrow = addDays(localDate("UTC", now), 1);
     const { projectId } = await addGoalProject(workspaceId, 8);
-    const ms = await addMilestone(workspaceId, projectId, 0);
-    const wp = await addWp(workspaceId, projectId, ms, 0);
-    await addTask(workspaceId, wp, { estimate: 2, position: 0 });
+    const wp = await addWp(workspaceId, projectId, null, 0);
 
-    const roadmap = await getRoadmap(db, ctx, { now });
-    const roadmapDate = roadmap.milestones.find((m) => m.id === ms)!.projected_date;
+    const task = await createTask(db, ctx, wp, { title: "New" }, now, { autoPlace: true });
 
-    const { changes } = await analyzeReplan(db, ctx, { now });
-    const impact = changes.milestone_impacts.find((i) => i.milestone_id === ms)!;
-    expect(impact.to_projected_date).toBe(roadmapDate); // unified by the shared helper
-    expect(roadmapDate).not.toBeNull();
+    const item = await db
+      .selectFrom("daily_plan_item as i")
+      .innerJoin("daily_plan_day as d", "d.id", "i.daily_plan_day_id")
+      .select(["d.plan_date as planDate", "d.status as dayStatus", "i.status as itemStatus", "i.origin as origin"])
+      .where("i.task_id", "=", task.id)
+      .executeTakeFirstOrThrow();
+    expect(item.planDate).toBe(tomorrow);
+    expect(item.dayStatus).toBe("proposed"); // proposed ⇒ a later replan is free to move it
+    expect(item.itemStatus).toBe("planned");
+    expect(item.origin).toBe("user_added");
+  });
+
+  it("lands a time-fixed task on its fixed date instead of tomorrow", async () => {
+    const { ctx, workspaceId } = await provision({ timezone: "UTC" });
+    const now = new Date("2026-06-14T12:00:00Z");
+    const fixed = addDays(localDate("UTC", now), 5);
+    const { projectId } = await addGoalProject(workspaceId, 8);
+    const wp = await addWp(workspaceId, projectId, null, 0);
+
+    const task = await createTask(
+      db, ctx, wp, { title: "Fixed", is_time_fixed: true, fixed_date: fixed }, now, { autoPlace: true },
+    );
+    const item = await db
+      .selectFrom("daily_plan_item as i")
+      .innerJoin("daily_plan_day as d", "d.id", "i.daily_plan_day_id")
+      .select("d.plan_date as planDate")
+      .where("i.task_id", "=", task.id)
+      .executeTakeFirstOrThrow();
+    expect(item.planDate).toBe(fixed);
+  });
+
+  it("without autoPlace, createTask writes no plan item (internal/test callers)", async () => {
+    const { ctx, workspaceId } = await provision({ timezone: "UTC" });
+    const { projectId } = await addGoalProject(workspaceId, 8);
+    const wp = await addWp(workspaceId, projectId, null, 0);
+    const task = await createTask(db, ctx, wp, { title: "Plain" });
+    const item = await db
+      .selectFrom("daily_plan_item")
+      .select("id")
+      .where("task_id", "=", task.id)
+      .executeTakeFirst();
+    expect(item).toBeUndefined();
   });
 });
 

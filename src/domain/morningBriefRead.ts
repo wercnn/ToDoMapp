@@ -18,7 +18,7 @@ import { localDate } from "../lib/dates";
 import { recordEngagement, refreshStats } from "./engagement";
 import { readDay, type DayView } from "./roadmapRead";
 import { getStats, type StatsView } from "./me";
-import { projectMilestoneDates } from "./projection";
+import { scheduledMilestoneDates } from "./scheduleDates";
 import { listProposals } from "./replan/proposals";
 
 export interface MorningBrief {
@@ -72,7 +72,7 @@ export async function getMorningBrief(
     : null;
 
   // Nearest milestone = unachieved, datable, with the EARLIEST projected_date.
-  const milestoneDates = await projectMilestoneDates(db, ctx, { now });
+  const milestoneDates = await scheduledMilestoneDates(db, ctx, { now });
   const unachieved = await db
     .selectFrom("milestone as m")
     .innerJoin("project as p", "p.id", "m.project_id")

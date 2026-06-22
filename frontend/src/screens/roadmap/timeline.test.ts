@@ -70,7 +70,6 @@ describe("buildTimeline", () => {
       date,
       status: "confirmed",
       is_locked: false,
-      projected: false,
       items: [],
     });
     const { entries } = buildTimeline(

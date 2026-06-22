@@ -22,7 +22,7 @@ import { notFound } from "../lib/errors";
 import { localDate } from "../lib/dates";
 import { resolveHours } from "../planner/constants";
 import { getBlockedTaskIds } from "./blocked";
-import { projectMilestoneDates } from "./projection";
+import { scheduledMilestoneDates } from "./scheduleDates";
 
 export type DerivedStatus = "done" | "blocked" | "in_progress" | "open";
 
@@ -267,7 +267,7 @@ export async function getProjectFlow(
   // the shared projection (data-model §6 — computed live, never stored).
   let nextMsDate: string | null = null;
   if (nextMs) {
-    const milestoneDates = await projectMilestoneDates(db, ctx, { now });
+    const milestoneDates = await scheduledMilestoneDates(db, ctx, { now });
     nextMsDate = milestoneDates.get(nextMs.id) ?? null;
   }
 

@@ -42,10 +42,11 @@ API-first; clients hold zero business logic.
   + staged unblocking when edges supplied; empty edges = inert), `constants.ts` (difficulty→hours).
 - `src/domain/` — business logic: `bootstrap`, `goals`, `projects`, `workPackages`, `tasks`,
   `completion` (the cascade) + `scoring`, `engagement`, `roadmap` (propose + confirmDay),
-  `roadmapRead` (GET /roadmap + `readDay` pure core + `getDay` = readDay + today-⚡eng),
-  `projection` (read-only roadmap projection +
-  `projectMilestoneDates` — the one source of milestone dates; projected_date is derived, NEVER a
-  column), `planItems` (add/defer/reorder/delete/pull-forward/lock), `flow`, `blocked`, `validation`,
+  `roadmapRead` (GET /roadmap from persisted days only + `readDay` pure core + `getDay` = readDay +
+  today-⚡eng), `scheduleDates` (`scheduledMilestoneDates` — the one source of milestone dates,
+  = latest scheduled day of a milestone's open tasks read from the real plan; projected_date is
+  derived, NEVER a column. New work auto-lands on tomorrow via createTask `autoPlace`, so there is no
+  read-only projection), `planItems` (add/defer/reorder/delete/pull-forward/lock), `flow`, `blocked`, `validation`,
   `me` (GET/PATCH profile, stats, ⚡eng action), `devices` (register/list/delete; upsert by push_token),
   `notificationPrefs` (get/replace), `points` (point-events/rules reads — no writes),
   `morningBriefRead` (the composite; composes `readDay` so it records ⚡eng exactly once),

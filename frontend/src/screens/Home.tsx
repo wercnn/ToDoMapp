@@ -385,10 +385,7 @@ function RoadNode({
           </span>
         ) : (
           <span
-            className={cn(
-              "grid h-9 w-9 place-items-center rounded-full border-2 border-border-strong bg-surface-1 font-mono text-[11px] font-bold text-text-tertiary",
-              day.projected && "border-dashed",
-            )}
+            className="grid h-9 w-9 place-items-center rounded-full border-2 border-border-strong bg-surface-1 font-mono text-[11px] font-bold text-text-tertiary"
           >
             {total || ""}
           </span>

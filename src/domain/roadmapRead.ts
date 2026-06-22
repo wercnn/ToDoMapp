@@ -1,9 +1,9 @@
 /**
  * Roadmap & day READS (api-endpoints.md §10). `getRoadmap` assembles the
- * Duolingo-style path: persisted past/confirmed days from the tables UNION the
- * live projection for everything beyond, milestones as landmarks with their
- * derived `projected_date`, and the "you are here" position. The projection is
- * read-only (data-model §6) — nothing here writes a plan row.
+ * Duolingo-style path from the PERSISTED plan days only — all work now always sits
+ * on a concrete day (new work lands on tomorrow; replan moves it), so there is no
+ * read-only projection appended after the confirmed days. Milestones are landmarks
+ * with their plan-derived `projected_date`. Read-only — nothing here writes a row.
  *
  * `getDay` is the Companion's main read; viewing TODAY is a qualifying engagement
  * (Decision #8), so it records ⚡eng — the one write on this path, and a user action.
@@ -15,7 +15,7 @@ import { withTransaction, type Executor } from "../db/transaction";
 import { notFound } from "../lib/errors";
 import { localDate } from "../lib/dates";
 import { recordEngagement, refreshStats } from "./engagement";
-import { projectSchedule } from "./projection";
+import { scheduledMilestoneDates } from "./scheduleDates";
 import { getBlockedTaskIds } from "./blocked";
 
 export interface RoadmapTaskRef {
@@ -48,9 +48,8 @@ export interface RoadmapItem {
 
 export interface RoadmapDay {
   date: string;
-  status: DayStatus | "projected";
+  status: DayStatus;
   is_locked: boolean;
-  projected: boolean;
   items: RoadmapItem[];
 }
 
@@ -170,19 +169,11 @@ export async function getRoadmap(
     itemRows.map((row) => row.taskId).filter((id): id is string => id != null),
   );
 
-  // Slipped days don't "hold" their work — the same task is re-projected forward, so
-  // it must NOT be deduped out of the projected region (it shows both historically on
-  // the slipped day and ahead on its new projected day). Mirrors projection.ts.
-  const slippedDayIds = new Set(persistedDays.filter((d) => d.status === "slipped").map((d) => d.id));
-
   const itemsByDay = new Map<string, RoadmapItem[]>();
-  const persistedPlannedTasks = new Set<string>();
   for (const r of itemRows) {
-    // A 'deferred' item is the history trace of a task that was MOVED off this day
-    // (replan apply defers the old item rather than deleting it — Principle 3). It is
-    // no longer on this day, so it must NOT be listed or counted; the task reappears on
-    // its new day (persisted 'replanned' item or the projection). Without this, a task
-    // removed from today by an approved replan keeps showing here and the count reverts.
+    // A 'deferred' item is the history trace of a task MOVED off this day (replan apply
+    // defers rather than deletes — Principle 3). It's no longer on this day, so it must
+    // NOT be listed or counted; the task reappears on its new persisted day.
     if (r.status === "deferred") continue;
     const list = itemsByDay.get(r.dayId) ?? itemsByDay.set(r.dayId, []).get(r.dayId)!;
     list.push({
@@ -192,70 +183,22 @@ export async function getRoadmap(
       origin: r.origin,
       position: r.position,
     });
-    if (r.taskId && r.status === "planned" && !slippedDayIds.has(r.dayId)) {
-      persistedPlannedTasks.add(r.taskId);
-    }
   }
 
-  const days: RoadmapDay[] = persistedDays.map((d) => ({
-    date: d.plan_date,
-    status: d.status,
-    is_locked: d.is_locked,
-    projected: false,
-    items: itemsByDay.get(d.id) ?? [],
-  }));
+  // All work always sits on a concrete persisted day now, so the roadmap is simply the
+  // persisted days in range — no read-only projection appended after them.
+  const days: RoadmapDay[] = persistedDays
+    .map((d) => ({
+      date: d.plan_date,
+      status: d.status,
+      is_locked: d.is_locked,
+      items: itemsByDay.get(d.id) ?? [],
+    }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
-  // --- Projection for everything not already persisted. ---
-  // The projection starts at the contiguous-prefix end (see projectSchedule). We MERGE
-  // its draft into the day list, deduping per task: a projected day that coincides with
-  // an existing persisted day (e.g. an approved/confirmed future day) gets its
-  // non-duplicate items APPENDED to that day rather than being skipped, so gap days fill
-  // in and nothing collapses past an isolated confirmed day. Per-task dedup
-  // (`persistedPlannedTasks`) still prevents double-listing a committed task.
-  const { draft, milestoneDate } = await projectSchedule(db, ctx, {
-    now,
-    goalId: opts.goalId,
-  });
-
-  const dayByDate = new Map(days.map((d) => [d.date, d] as const));
-
-  // Task refs for projected items (titles/status), fetched once.
-  const projectedTaskIds = new Set<string>();
-  for (const d of draft) {
-    if (opts.to && d.planDate > opts.to) continue;
-    for (const it of d.items) {
-      if (!persistedPlannedTasks.has(it.taskId)) projectedTaskIds.add(it.taskId);
-    }
-  }
-  const refById = await readTaskRefs(db, ctx, [...projectedTaskIds]);
-
-  for (const d of draft) {
-    if (opts.to && d.planDate > opts.to) continue;
-    const existing = dayByDate.get(d.planDate);
-    const target: RoadmapDay = existing ?? {
-      date: d.planDate,
-      status: "projected",
-      is_locked: false,
-      projected: true,
-      items: [],
-    };
-    for (const it of d.items) {
-      if (persistedPlannedTasks.has(it.taskId)) continue; // already shown on a persisted day
-      target.items.push({
-        task_id: it.taskId,
-        task: refById.get(it.taskId) ?? null,
-        status: "planned",
-        origin: "proposed",
-        position: target.items.length,
-      });
-    }
-    if (!existing && target.items.length > 0) {
-      days.push(target);
-      dayByDate.set(d.planDate, target);
-    }
-  }
-
-  days.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  // Milestone finish dates come straight from the plan (latest scheduled day among each
+  // milestone's open tasks — see scheduleDates.ts).
+  const milestoneDate = await scheduledMilestoneDates(db, ctx, { now, goalId: opts.goalId });
 
   // --- Milestones in scope as landmarks with their derived projected_date. ---
   let msQ = db

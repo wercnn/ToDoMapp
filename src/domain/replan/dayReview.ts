@@ -87,11 +87,12 @@ function activeMoves(changes: Changes): Move[] {
 function ensurePreviewDay(days: Map<string, Roadmap["days"][number]>, date: string): Roadmap["days"][number] {
   const existing = days.get(date);
   if (existing) return existing;
+  // A day the proposal would introduce. In the preview it's a "proposed" addition
+  // (apply turns it into a confirmed day on approval).
   const day: Roadmap["days"][number] = {
     date,
-    status: "projected",
+    status: "proposed",
     is_locked: false,
-    projected: true,
     items: [],
   };
   days.set(date, day);

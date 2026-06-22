@@ -485,9 +485,8 @@ export interface RoadmapItem {
 
 export interface RoadmapDay {
   date: DateString;
-  status: DayStatus | "projected";
+  status: DayStatus;
   is_locked: boolean;
-  projected: boolean;
   items: RoadmapItem[];
 }
 

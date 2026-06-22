@@ -9,15 +9,16 @@
  * `ON DELETE SET NULL (milestone_id)`: removing a milestone UNGROUPS its work
  * packages (nulls their milestone_id), it never deletes work (data-model §4.2).
  *
- * `projected_date` in the list read comes from the shared `projectMilestoneDates`
- * — the SAME source flow/roadmap/nudges derive milestone dates from, so they agree.
+ * `projected_date` in the list read comes from the shared `scheduledMilestoneDates`
+ * (the real plan: latest scheduled day of the milestone's open tasks) — the SAME
+ * source flow/roadmap/nudges derive milestone dates from, so they agree.
  */
 import type { Kysely } from "kysely";
 import type { Database, Milestone } from "../db/types";
 import type { AuthContext } from "../auth/context";
 import { badRequest, notFound } from "../lib/errors";
 import { validateTitle } from "./validation";
-import { projectMilestoneDates } from "./projection";
+import { scheduledMilestoneDates } from "./scheduleDates";
 
 async function assertProjectInWorkspace(
   db: Kysely<Database>,
@@ -76,7 +77,7 @@ export async function listMilestones(
   }
 
   // projected_date — the shared projection (single source).
-  const projected = await projectMilestoneDates(db, ctx, { now });
+  const projected = await scheduledMilestoneDates(db, ctx, { now });
 
   return milestones.map((m) => {
     const c = counts.get(m.id) ?? { total: 0, done: 0 };

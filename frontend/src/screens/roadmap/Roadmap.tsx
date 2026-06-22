@@ -26,7 +26,6 @@ const DAY_PILL: Record<RoadmapDay["status"], StatusKind> = {
   confirmed: "confirmed",
   completed: "completed",
   slipped: "slipped",
-  projected: "open",
 };
 
 const LEGEND: { label: string; kind: StatusKind; projected?: boolean }[] = [
@@ -353,10 +352,7 @@ function DayRow({
             ? "h-8 w-8 border-[3px] border-progress bg-bg text-progress shadow-[0_0_0_4px_var(--accent-progress-soft)]"
             : complete
               ? "h-7 w-7 border-2 border-progress bg-progress-soft text-progress"
-              : cn(
-                  "h-7 w-7 border-2 border-border-strong bg-surface-1 text-text-tertiary",
-                  day.projected && "border-dashed",
-                ),
+              : "h-7 w-7 border-2 border-border-strong bg-surface-1 text-text-tertiary",
         )}
       >
         {isToday ? (total ? `${done}/${total}` : "•") : complete ? <Check size={13} /> : total || ""}
@@ -371,7 +367,6 @@ function DayRow({
             : isToday
               ? "border-progress/60 bg-bg hover:bg-surface-2"
               : "border-border bg-bg hover:bg-surface-2",
-          day.projected && !selected && "border-dashed",
         )}
       >
         <div className="min-w-0">
@@ -387,7 +382,7 @@ function DayRow({
           <span className="text-[11px] font-bold text-text-tertiary">
             {total} task{total === 1 ? "" : "s"}
           </span>
-          <StatusPill status={DAY_PILL[day.status]} label={day.projected ? "Projected" : undefined} />
+          <StatusPill status={DAY_PILL[day.status]} />
         </span>
       </button>
     </div>
@@ -480,7 +475,7 @@ function DayContextPanel({
   const { weekday, rest } = formatDay(day.date);
   const groups = groupRoadmapItems(day.items);
   const canConfirm = day.status === "proposed";
-  const canLock = !day.projected && day.status !== "completed";
+  const canLock = day.status !== "completed";
   const reviewDates = replanDetail?.preview?.changed_dates ?? [];
   const reviewDecision = replanDetail?.preview?.day_decisions.find((decision) => decision.date === day.date);
   const isReviewDate = reviewDates.includes(day.date);
@@ -505,7 +500,7 @@ function DayContextPanel({
           <h3 className="font-mono text-xl font-black">{rest}</h3>
           {day.date === today && <p className="mt-1 text-xs font-black text-progress">You are here</p>}
         </div>
-        <StatusPill status={DAY_PILL[day.status]} label={day.projected ? "Projected" : undefined} />
+        <StatusPill status={DAY_PILL[day.status]} />
       </div>
 
       {keepTodayMode ? (
@@ -590,19 +585,12 @@ function DayContextPanel({
           <Button
             size="sm"
             variant="outline"
-            disabled={day.projected}
             onClick={() => onOpenDrawer(day.date)}
           >
             <SlidersHorizontal size={14} />
             Adjust
           </Button>
         </div>
-      )}
-
-      {day.projected && !replanDetail && (
-        <p className="mb-4 rounded-[12px] border border-dashed border-system/40 bg-system-soft px-3 py-2 text-xs font-bold text-system">
-          This is a live projection. Use Propose more days before confirming or editing it.
-        </p>
       )}
 
       <div className="space-y-4">
