@@ -602,4 +602,87 @@ describe("replanning pipeline", () => {
       expect(items.some((i) => i.status === "planned" && i.origin === "replanned")).toBe(true);
     }
   });
+
+  // --- re-planning back onto a day with a leftover tombstone -----------------
+
+  it("re-plans a task back onto a day where it left a DEFERRED tombstone without a unique conflict", async () => {
+    // Simulate a prior replan: T1 already carries a DEFERRED tombstone on `tomorrow`.
+    const tomorrowDay = await db
+      .insertInto("daily_plan_day")
+      .values({ workspace_id: ws.workspaceId, plan_date: tomorrow, status: "confirmed", confirmed_at: now })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("daily_plan_item")
+      .values({
+        workspace_id: ws.workspaceId,
+        daily_plan_day_id: tomorrowDay.id,
+        item_type: "task",
+        task_id: scenario.t1Id,
+        status: "deferred",
+        origin: "replanned",
+        position: 0,
+      })
+      .execute();
+
+    // A new replan moves T1 from today BACK onto tomorrow — used to trip
+    // UNIQUE (daily_plan_day_id, task_id) against the tombstone.
+    const proposal = await insertProposal({
+      moves: [{ task_id: scenario.t1Id, from_date: today, to_date: tomorrow }],
+    });
+    const { proposal: resolved } = await approveProposal(db, ws.ctx, proposal.id, { now });
+    expect(resolved.status).toBe("approved");
+
+    const onTomorrow = (await planItems(scenario.t1Id)).filter((i) => i.planDate === tomorrow);
+    expect(onTomorrow).toHaveLength(1); // tombstone cleared, not duplicated
+    expect(onTomorrow[0]).toMatchObject({ status: "planned", origin: "replanned" });
+    // The source day's item was deferred as usual.
+    expect((await planItems(scenario.t1Id)).find((i) => i.planDate === today)).toMatchObject({
+      status: "deferred",
+    });
+  });
+
+  it("orders same-day moves by task position, not by task id", async () => {
+    const wp = await db
+      .insertInto("work_package")
+      .values({
+        workspace_id: ws.workspaceId,
+        project_id: scenario.projectId,
+        milestone_id: scenario.milestoneId,
+        title: "Same-day WP",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    // `hi` sorts FIRST by id but has the LATER position; `lo` sorts second by id
+    // but should land first on the day because its position is lower.
+    const hiId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const loId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    await db
+      .insertInto("task")
+      .values({ id: hiId, workspace_id: ws.workspaceId, work_package_id: wp.id, title: "Hi position", estimate_hours: 1, position: 1 })
+      .execute();
+    await db
+      .insertInto("task")
+      .values({ id: loId, workspace_id: ws.workspaceId, work_package_id: wp.id, title: "Lo position", estimate_hours: 1, position: 0 })
+      .execute();
+
+    const proposal = await insertProposal({
+      moves: [
+        { task_id: hiId, from_date: null, to_date: dayAfter },
+        { task_id: loId, from_date: null, to_date: dayAfter },
+      ],
+    });
+    await approveProposal(db, ws.ctx, proposal.id, { now });
+
+    const onDay = await db
+      .selectFrom("daily_plan_item as dpi")
+      .innerJoin("daily_plan_day as d", "d.id", "dpi.daily_plan_day_id")
+      .select("dpi.task_id as taskId")
+      .where("dpi.workspace_id", "=", ws.workspaceId)
+      .where("d.plan_date", "=", dayAfter)
+      .where("dpi.status", "=", "planned")
+      .orderBy("dpi.position")
+      .execute();
+    expect(onDay.map((r) => r.taskId)).toEqual([loId, hiId]);
+  });
 });

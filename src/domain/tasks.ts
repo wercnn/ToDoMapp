@@ -52,6 +52,23 @@ export async function createTask(
   validateTimeFixed(input);
 
   return withTransaction(db, async (trx) => {
+    // Position is the source of truth for task order within a work package
+    // (it drives position-based dependencies and blocked-state). New tasks must
+    // land AFTER the existing ones, so without an explicit position we append at
+    // max(position)+1 — first task in the WP is 0. Defaulting to the DB's 0 would
+    // make every task tie and fall back to a random id ordering.
+    let position = input.position;
+    if (position == null) {
+      const maxPos = await trx
+        .selectFrom("task")
+        .select((eb) => eb.fn.max("position").as("m"))
+        .where("workspace_id", "=", ctx.workspaceId)
+        .where("work_package_id", "=", wpId)
+        .where("replaced_at", "is", null)
+        .executeTakeFirst();
+      position = Number(maxPos?.m ?? -1) + 1;
+    }
+
     const task = await trx
       .insertInto("task")
       .values({
@@ -64,7 +81,7 @@ export async function createTask(
         difficulty: input.difficulty ?? null,
         is_time_fixed: input.is_time_fixed ?? false,
         fixed_date: input.fixed_date ?? null,
-        ...(input.position != null ? { position: input.position } : {}),
+        position,
       })
       .returningAll()
       .executeTakeFirstOrThrow();

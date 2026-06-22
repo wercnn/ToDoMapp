@@ -24,6 +24,7 @@ import { createGoal } from "@/domain/goals";
 import { createProject } from "@/domain/projects";
 import { createWorkPackage } from "@/domain/workPackages";
 import { createTask } from "@/domain/tasks";
+import { getBlockedTaskIds } from "@/domain/blocked";
 import { proposeRoadmap, confirmDay } from "@/domain/roadmap";
 import { ApiError } from "@/lib/errors";
 import { localDate } from "@/lib/dates";
@@ -169,6 +170,45 @@ describe("create-path invariants are enforced at the API layer (422 ApiError, no
     }).catch((e) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(422);
+  });
+});
+
+describe("task position is auto-assigned per work package", () => {
+  it("sequential createTask calls get incrementing positions (0,1,2…), honoring an explicit position", async () => {
+    const p = await provision();
+    const { wpId, taskId: firstId } = await seedSchedulable(p); // first task already created
+    const second = await createTask(db, p.ctx, wpId, { title: "Second", estimate_hours: 1 });
+    const third = await createTask(db, p.ctx, wpId, { title: "Third", estimate_hours: 1 });
+    const explicit = await createTask(db, p.ctx, wpId, { title: "Explicit", estimate_hours: 1, position: 99 });
+
+    const first = await db
+      .selectFrom("task")
+      .select("position")
+      .where("id", "=", firstId)
+      .executeTakeFirstOrThrow();
+    expect(first.position).toBe(0);
+    expect(second.position).toBe(1);
+    expect(third.position).toBe(2);
+    expect(explicit.position).toBe(99); // explicit wins over the auto-increment
+  });
+
+  it("position order drives blocked-state: task 2 is blocked until task 1 is done", async () => {
+    const p = await provision();
+    const { wpId, taskId: firstId } = await seedSchedulable(p);
+    const second = await createTask(db, p.ctx, wpId, { title: "Second", estimate_hours: 1 });
+
+    let blocked = await getBlockedTaskIds(db, p.ctx);
+    expect(blocked.has(firstId)).toBe(false); // earliest task is never blocked
+    expect(blocked.has(second.id)).toBe(true); // blocked by the open task 1
+
+    await db
+      .updateTable("task")
+      .set({ status: "done", completed_at: new Date() })
+      .where("id", "=", firstId)
+      .execute();
+
+    blocked = await getBlockedTaskIds(db, p.ctx);
+    expect(blocked.has(second.id)).toBe(false); // unblocked once task 1 is done
   });
 });
 

@@ -296,7 +296,15 @@ Approving a proposal is transactional:
 For each move:
 
 - `from_date` item becomes `deferred`.
+- Any stale `deferred` tombstone the task already has on `to_date` is dropped first.
+  `daily_plan_item` allows a task at most once per day (`UNIQUE (daily_plan_day_id,
+  task_id)`, any status), so re-planning a task back onto a day it previously left —
+  common once tasks shuffle by position across replans — would otherwise fail with a
+  unique-constraint conflict. Only `deferred` rows are cleared; `completed` rows
+  (scoring history) are kept.
 - `to_date` gets a fresh `daily_plan_item` with `origin = "replanned"`.
+- Moves landing on the same day are applied in task-position order, so the day reads
+  in work-package order (task 1 before task 2) rather than by random task id.
 - If `to_date` is null, the task is descheduled only.
 
 Rejecting a proposal:

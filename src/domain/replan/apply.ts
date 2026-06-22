@@ -14,9 +14,13 @@
  *  - old item (from_date) → status='deferred' (history preserved, NO penalty events,
  *    Principle 3). Done BEFORE the new insert so the partial unique
  *    `daily_plan_item_one_planned_per_task` never trips.
+ *  - any DEFERRED tombstone the task already has on the to_date day is dropped first,
+ *    so re-planning a task back onto a day it once left can't trip the full
+ *    `UNIQUE (daily_plan_day_id, task_id)` (one row per task per day, any status).
  *  - new item → fresh row, origin='replanned', status='planned', on the to_date day
  *    (created 'confirmed' if absent — approval IS the authorization, matching
- *    confirmDay's shape).
+ *    confirmDay's shape). Same-day moves are applied in task-position order so the
+ *    day reads in work-package order, not random task id order.
  *  - time-fixed resolutions: `prioritize` keeps it put (skip the move); `descope`
  *    defers the old item with NO successor (its authoritative trace is the stored
  *    applied_changes); `renegotiate` updates task.fixed_date and honors the move.
@@ -288,7 +292,36 @@ export async function applyChanges(
     return day;
   };
 
-  for (const m of moves) {
+  // Intra-day order = task position. Tasks that land on the SAME day must appear in
+  // work-package order (task 1 before task 2…), so we process inserts ordered by
+  // (to_date, task.position) and let the running max+1 numbering follow suit —
+  // otherwise the day would be ordered by random task id. Positions are read AFTER
+  // materializeSplits so freshly-created split parts resolve too.
+  const resolveTaskId = (m: Changes["moves"][number]): string => splitTaskIdMap[m.task_id] ?? m.task_id;
+  const resolvedMoveIds = [...new Set(moves.map(resolveTaskId))];
+  const posRows = resolvedMoveIds.length
+    ? await trx
+        .selectFrom("task")
+        .select(["id", "position"])
+        .where("workspace_id", "=", ws)
+        .where("id", "in", resolvedMoveIds)
+        .execute()
+    : [];
+  const positionById = new Map(posRows.map((r) => [r.id, r.position]));
+  const orderedMoves = [...moves].sort((a, b) => {
+    const at = a.to_date ?? "";
+    const bt = b.to_date ?? "";
+    if (at !== bt) return at < bt ? -1 : 1;
+    const ap = positionById.get(resolveTaskId(a)) ?? 0;
+    const bp = positionById.get(resolveTaskId(b)) ?? 0;
+    if (ap !== bp) return ap - bp;
+    const ai = a.split_index ?? 0;
+    const bi = b.split_index ?? 0;
+    if (ai !== bi) return ai - bi;
+    return a.task_id < b.task_id ? -1 : a.task_id > b.task_id ? 1 : 0;
+  });
+
+  for (const m of orderedMoves) {
     const taskId = splitTaskIdMap[m.task_id] ?? m.task_id;
     const isVirtualSplit = virtualIds.has(m.task_id);
     const res = resolutions.get(m.task_id);
@@ -336,6 +369,21 @@ export async function applyChanges(
     if (!toDate) continue; // pure descheduling (to_date null) — just deferred.
 
     const day = await ensureDay(toDate);
+
+    // A prior replan may have left a DEFERRED tombstone for this task on the target
+    // day. UNIQUE (daily_plan_day_id, task_id) forbids a second row there regardless
+    // of status, so re-planning the task back onto that day would otherwise trip a
+    // 23505. The tombstone is moot once the task is planned here again — drop it.
+    // Only 'deferred' rows are removed: 'completed' rows hold scoring history, and a
+    // 'planned' row can't exist on to_date for a move (it would have been a no-op).
+    await trx
+      .deleteFrom("daily_plan_item")
+      .where("workspace_id", "=", ws)
+      .where("daily_plan_day_id", "=", day.id)
+      .where("task_id", "=", taskId)
+      .where("status", "=", "deferred")
+      .execute();
+
     const maxPos = await trx
       .selectFrom("daily_plan_item")
       .select((eb) => eb.fn.max("position").as("m"))
