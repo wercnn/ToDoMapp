@@ -54,9 +54,9 @@ User
 
 **Daily Goals.** The set of tasks selected for a specific calendar day. This is what the Companion surfaces in the morning and what the day's roadmap step contains. Produced by the hybrid planning loop (system proposes → user adjusts, §4.3). Completing all of a day's tasks completes the Daily Goal and awards its points.
 
-**Roadmap.** The day-granular path from "now" to a goal, Duolingo-style: each step is a day carrying its Daily Goals, with milestones as landmarks along the path. The roadmap is a *projection* of the WBS \+ dependencies \+ the user's capacity onto the calendar — when underlying work changes, the roadmap re-projects (with approval, per Principle 1).
+**Roadmap.** The day-granular path from "now" to a goal, Duolingo-style: each step is a day carrying its Daily Goals, with milestones as landmarks along the path. The roadmap is a *projection* of the WBS \+ task order \+ work-package dependencies \+ the user's capacity onto the calendar. Normal WBS edits do not rewrite it automatically; the user manually requests Replan, and slippage recovery is approved in the morning brief.
 
-**Dependency.** A directed "must finish before" relationship, existing at **two levels**: between Tasks and between Work Packages. The dependency graph drives the Project Flow Diagram and constrains the planner — a task whose upstream dependency is incomplete is *blocked* and cannot be scheduled or pulled forward.
+**Dependency.** Task order is position-based inside each Work Package: the second task depends on the first, the third on the second, and so on. Work Packages can also have explicit directed "must finish before" dependencies. This dependency model drives the Project Flow Diagram and constrains the planner — a task whose ordered predecessor is incomplete is *blocked* and cannot be scheduled or pulled forward.
 
 **Capacity.** Per project, the user states **how many hours per day** they want to spend on it. The planner fills each day up to capacity. If the user finishes early and wants more, they can **pull tasks from the next day forward** (only unblocked tasks) — working ahead advances the roadmap.
 
@@ -72,17 +72,17 @@ User
 
 ### **4.1 Goal & WBS management *(web-primary)***
 
-Create and edit the hierarchy: goals (tagged short/mid/long term), projects, work packages (as to-do lists), and tasks (as to-do lines). Group work packages into milestones. Estimate effort in hours or low/mid/high difficulty. Adding a new work package mid-flight is a normal, supported operation — it feeds the replanning flow rather than breaking anything.
+Create and edit the hierarchy: goals (tagged short/mid/long term), projects, work packages (as to-do lists), and tasks (as to-do lines). Group work packages into milestones. Estimate effort in hours or low/mid/high difficulty. Adding a new work package mid-flight is a normal, supported operation: it is added directly, placed as holding work when needed, and the user can manually run Replan to reorganize the roadmap.
 
 ### **4.2 Dependencies & Project Flow Diagram *(web-primary)***
 
-Define finish-before dependencies between tasks and between work packages. The **Project Flow Diagram** renders the dependency graph visually — what's done, in progress, blocked, and on the critical path to the next milestone. Alongside it, visual tables give a structured at-a-glance view of project state (Principle 5).
+Arrange task order inside each work package and define finish-before dependencies between work packages. The **Project Flow Diagram** renders this dependency model visually — what's done, in progress, blocked, and on the critical path to the next milestone. Alongside it, visual tables give a structured at-a-glance view of project state (Principle 5).
 
 ### **4.3 Day-based Roadmap & Hybrid Daily Planning *(both surfaces)***
 
 The roadmap lays the path to each goal as a sequence of day-steps with milestone landmarks. Planning is **hybrid**:
 
-1. The system proposes Daily Goals for upcoming days, derived from the dependency graph (only unblocked work), estimates, deadlines, and the user's per-project hours-per-day capacity.  
+1. The system proposes Daily Goals for upcoming days, derived from task order, work-package dependencies (only unblocked work), estimates, deadlines, and the user's per-project hours-per-day capacity.
 2. The user adjusts — swaps tasks, changes load, locks a day — and confirms.  
 3. Confirmed days render as the roadmap path. Completed days fill in visibly; the current day is highlighted; future days show what's coming.  
 4. **Working ahead:** if the day's plan is done and the user wants more, they pull unblocked tasks from the next day forward; the roadmap advances accordingly.
@@ -98,7 +98,7 @@ Slippage is detected at **midnight local time**. The system never silently rewri
 3. **Propose** — for flexible work: a shifted plan (e.g., "push these 3 tasks forward one day; milestone moves Fri → Mon"). For time-fixed work: no auto-move — the conflict is surfaced explicitly with options (reprioritize today, descope, renegotiate the date).  
 4. **Approve** — the user accepts, edits, or rejects the proposal. Only then does the roadmap update.
 
-The same pipeline handles **new work packages added mid-flight**: insert into the WBS → analyze dependency/roadmap impact → propose updated roadmap → user approves.
+New work packages and tasks are added directly without automatic replan proposals. When the user wants the roadmap reorganized, they manually request Replan: analyze dependency/roadmap impact → propose updated roadmap → user approves.
 
 ### **4.5 Points, Progress Experience & Streak *(mobile-primary, present on web)***
 
@@ -156,8 +156,8 @@ Companion and Workspace operate on the same live data through the same backend A
 
 1. User opens the Workspace; the dashboard shows project state at a glance: flow diagram, visual tables, roadmap, today's progress.  
 2. User works through tasks, marks completions, refines upcoming work packages. If the day's plan is finished, they pull tomorrow's unblocked tasks forward and keep going.  
-3. Mid-session, a new requirement emerges → user adds a new Work Package with tasks and dependencies.  
-4. The system analyzes impact and proposes an updated roadmap ("milestone shifts \+2 days"). User approves or counter-adjusts. Roadmap re-renders.
+3. Mid-session, a new requirement emerges → user adds a new Work Package with ordered tasks and any work-package dependencies.
+4. When ready, the user opens Replan. The system analyzes impact and proposes an updated roadmap ("milestone shifts \+2 days"). User approves or counter-adjusts. Roadmap re-renders.
 
 ### **Journey D — Slippage & Recovery *(both)***
 
@@ -198,7 +198,7 @@ These are **not built in v1**, but the data model and architecture must not prec
 | 6 | Daily planning | Hybrid: system proposes, user adjusts and confirms; user can pull next-day unblocked tasks forward |
 | 7 | Slippage handling | Ask the user; time-fixed work never auto-moves; flexible work may shift, only with user approval |
 | 8 | Streak rule | Kept by opening & engaging with the plan (completion not required) |
-| 9 | Dependency levels | Both task-level and work-package-level |
+| 9 | Dependency levels | Task order inside work packages plus explicit work-package dependencies |
 | 10 | Mobile platform | iOS first (Swift) |
 | 11 | Point system | Fixed values per event: task completed, daily goal completed, milestone achieved (extra points) |
 | 12 | Capacity model | User sets hours/day per project; planner fills to capacity; work-ahead pulls next-day tasks |
@@ -262,4 +262,3 @@ These rules are binding for all Phase-1 code:
 ---
 
 *Next step: review and approve, then begin Phase-1 implementation per §9.*
-

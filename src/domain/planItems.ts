@@ -40,7 +40,7 @@ async function assertSchedulable(
     .executeTakeFirst();
   if (!task) throw notFound("Task not found");
   const blocked = await getBlockedTaskIds(db, ctx);
-  if (blocked.has(taskId)) throw unprocessable("Task is blocked by an incomplete predecessor");
+  if (blocked.has(taskId)) throw unprocessable("Task is blocked by an incomplete ordered predecessor");
 }
 
 /** Add a task to a day (origin='user_added'). ⚡eng. */

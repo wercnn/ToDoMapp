@@ -2,8 +2,7 @@
  * GET  /v1/projects/{projectId}/work-packages  — list (filters: milestone_id, open)
  * POST /v1/projects/{projectId}/work-packages  — create a work package
  *
- * When a confirmed roadmap exists, create returns `{ work_package, replan_proposal }`
- * (a pending `new_work_package` proposal); otherwise just `{ work_package }`.
+ * Create returns `{ work_package }`; replanning after mid-flight additions is manual.
  */
 import { handler, json, readJson } from "@/lib/http";
 import { requireAuth } from "@/auth/context";

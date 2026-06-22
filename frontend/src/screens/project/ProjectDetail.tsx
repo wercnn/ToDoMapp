@@ -7,9 +7,9 @@
  * (React Flow + dagre) land in a separate chunk loaded only on demand.
  *
  * Principle 1: no view silently mutates the plan. WP/task edits are explicit submits
- * (WP panel); a mid-flight WP add surfaces a replan proposal (reviewed here via the
- * reused ReplanReview); the Timeline's cross-day drag will emit a proposal too. The
- * proposal review state lives here so every view hands off to the one ReplanReview.
+ * (WP panel); replanning is a manual proposal reviewed here via the reused
+ * ReplanReview. The proposal review state lives here so every view hands off to
+ * the one ReplanReview.
  */
 import { Suspense, lazy, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -200,7 +200,7 @@ export function ProjectDetail() {
             <TimelineView
               projectId={projectId}
               onProposal={(id) => {
-                setNudge("A re-plan proposal was created — review it before it changes your plan.");
+                setNudge("Review the replan proposal before it changes your plan.");
                 setReviewId(id);
               }}
             />
@@ -225,16 +225,15 @@ export function ProjectDetail() {
         )}
       </div>
 
-      {/* --- Add WP (mid-flight → maybe a proposal) --- */}
+      {/* --- Add WP (direct create; Replan stays manual) --- */}
       <AddWorkPackageSheet
         projectId={projectId}
         milestones={ms}
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onCreated={invalidate}
-        onProposal={(id) => {
-          setNudge("A replan proposal was created — review it before it changes your plan.");
-          setReviewId(id);
+        onCreated={() => {
+          invalidate();
+          setNudge("Work package added. Use Replan when you want to reorganize the roadmap.");
         }}
       />
 

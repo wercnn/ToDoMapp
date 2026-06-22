@@ -113,10 +113,6 @@ async function addTask(
     .returning("id").executeTakeFirstOrThrow();
   return t.id;
 }
-async function addTaskDep(ws: string, pred: string, succ: string): Promise<void> {
-  await db.insertInto("task_dependency")
-    .values({ workspace_id: ws, predecessor_task_id: pred, successor_task_id: succ }).execute();
-}
 async function rowCounts(ws: string): Promise<{ days: number; items: number }> {
   const d = await db.selectFrom("daily_plan_day").select((e) => e.fn.countAll<string>().as("c"))
     .where("workspace_id", "=", ws).executeTakeFirstOrThrow();
@@ -416,9 +412,8 @@ describe("daily-planning edits", () => {
     const { projectId } = await addGoalProject(workspaceId, 8);
     const wp = await addWp(workspaceId, projectId, null, 0);
     const t1 = await addTask(workspaceId, wp, { position: 0 });
-    const pred = await addTask(workspaceId, wp, { position: 1 });
+    await addTask(workspaceId, wp, { position: 1 });
     const blocked = await addTask(workspaceId, wp, { position: 2 });
-    await addTaskDep(workspaceId, pred, blocked); // blocked has an incomplete predecessor
 
     const item = await addItem(db, ctx, today, t1, null, now);
     expect(item.origin).toBe("user_added");
@@ -474,9 +469,8 @@ describe("daily-planning edits", () => {
 
     await expect(pullForward(db, ctx, t, today, now)).rejects.toMatchObject({ status: 409 }); // already there
 
-    const blockedPred = await addTask(workspaceId, wp, { position: 1 });
+    await addTask(workspaceId, wp, { position: 1 });
     const blockedTask = await addTask(workspaceId, wp, { position: 2 });
-    await addTaskDep(workspaceId, blockedPred, blockedTask);
     await expect(pullForward(db, ctx, blockedTask, today, now)).rejects.toMatchObject({ status: 422 });
   });
 });

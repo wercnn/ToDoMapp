@@ -1,9 +1,7 @@
 /**
  * Add-Work-Package sheet (web-screens §C.4 "[+ Work package]"). A mid-flight WP
- * add is a normal operation (§4.1): when confirmed roadmap days already exist the
- * backend returns a `replan_proposal` instead of silently touching the plan
- * (Principle 1). We surface that as a calm nudge that deep-links into ReplanReview —
- * the create itself never rewrites the roadmap.
+ * add is a normal operation (§4.1): it creates the work directly and the user can
+ * request a manual replan when they want to reorganize the roadmap.
  *
  * Reuses the F2 discriminated-union controls so the either/or estimate + time-fixed
  * pairing 422s are structurally prevented.
@@ -34,15 +32,12 @@ export function AddWorkPackageSheet({
   open,
   onClose,
   onCreated,
-  onProposal,
 }: {
   projectId: string;
   milestones: MilestoneWithState[];
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  /** Called with the proposal id when a mid-flight add produced one. */
-  onProposal: (proposalId: string) => void;
 }) {
   const [title, setTitle] = useState("");
   const [milestoneId, setMilestoneId] = useState("");
@@ -71,11 +66,10 @@ export function AddWorkPackageSheet({
       };
       return projectsApi.createWorkPackage(projectId, body);
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       onCreated();
       reset();
       onClose();
-      if (res.replan_proposal) onProposal(res.replan_proposal.id);
     },
     onError: (e) => setError(calmMessage(e)),
   });
@@ -112,7 +106,7 @@ export function AddWorkPackageSheet({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-black text-text-primary">New work package</h2>
             <p className="mt-0.5 text-xs font-semibold text-text-tertiary">
-              Add a planning unit; mid-flight additions hand off to replan review.
+              Add a planning unit; use Replan when you want to reorganize the roadmap.
             </p>
           </div>
           <button

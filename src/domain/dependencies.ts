@@ -1,8 +1,8 @@
 /**
- * Dependency edges — directed "must finish before" relationships at two levels
- * (api-endpoints.md §9, data-model.md §4.3, Decision #9). Tasks and work packages
- * use structurally identical self-referencing join tables, so the cycle check and
- * lock logic are shared; only the table/column names differ per level.
+ * Dependency edge compatibility APIs. Work-package edges remain the explicit
+ * "must finish before" model. Task rows are retained for legacy/metadata use;
+ * scheduling, blocked-state, and flow task edges derive order from task position
+ * inside each work package.
  *
  * Acyclicity is an **API-layer** reachability check (§9.2 rule 6: no DB triggers).
  * Before inserting `pred → succ` we ask whether `succ` can already reach `pred`;

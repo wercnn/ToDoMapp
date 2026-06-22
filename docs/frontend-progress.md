@@ -148,7 +148,7 @@ user's final confirm._
   F4**, flip to Flow-default once Flow is verified), `TableView` (WBS rows expandable to tasks, lazy
   per-WP task load on expand — no fan-out), `WorkPackageSheet` (reuses F3 `sheet.tsx` + F2 discriminated-
   union `EstimateControl`/`TimeFixedControl`; WP field edits + task CRUD + complete/reopen + position
-  reorder), `AddWorkPackageSheet` (mid-flight add → surfaces `replan_proposal` → ReplanReview), `FlowView`
+  reorder), `AddWorkPackageSheet` (mid-flight add → direct create; user manually replans), `FlowView`
   (lazy), `TimelineView`, `flowGraph.ts` (pure ProjectFlow→React Flow mapping + dagre layout), `status.ts`.
   Sidebar now nests projects under goals (→ `/projects/:id`); route added to `App.tsx`.
   - **Backend (additive only):** Flow DTOs (`ProjectFlow`/`FlowNode`/`FlowEdges`/`DerivedStatus`) added to
@@ -168,8 +168,8 @@ user's final confirm._
   - **Code-split proven:** React Flow + dagre (228 kB JS + 16 kB CSS) land entirely in the lazy `FlowView`
     chunk; the main bundle stayed ~unchanged (596→605 kB, the +9 kB is the F4 non-Flow code).
   - **2nd backend gap logged** (`docs/PROGRESS.md` Open items): no targeted "pin task to exact date"
-    proposal primitive — BOTH solution options recorded (PATCH /tasks auto-proposes like `new_work_package`,
-    OR a replan scope carrying a per-task pin). Correctly deferred, like the apply.ts deferred-row bug.
+    proposal primitive — recorded as a future manual targeted replan action. Correctly deferred, like the
+    apply.ts deferred-row bug.
   - **Build-time refinements (honest deviations from the plan, found during build):** (1) the flow payload
     OMITS milestone/estimate/time-fixed/position, so the Table is fed by `listWorkPackages`+lazy `listTasks`,
     NOT the flow payload (confirm #1). (2) The Timeline needs `is_time_fixed`/`fixed_date`, which flow+roadmap
@@ -221,7 +221,7 @@ user's final confirm._
 - Bundle code-splitting (526 kB at F1; split at F4 when React Flow lands).
 - Onboarding for additional goals after first run (web-screens open Q #3).
 - **F2 scope cuts (intentional):** A4 dependencies are WP-level only and the drawn-edge list is
-  session-local — viewing/editing the FULL existing dependency graph + task-level edges is Project
+  session-local — viewing/editing the full position/WP dependency model is Project
   Detail / Flow (F4). A4's "suggested orderings" assist is deferred (manual draw + calm cycle-409 ships).
   A1/A2 Back-edit persists via PATCH; A3 items each commit on add. Editing an already-built WBS mid-flow
   beyond A1/A2 is F4's job, not onboarding's.

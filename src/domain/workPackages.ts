@@ -1,22 +1,14 @@
 /**
  * Work packages — the planning unit (api-endpoints.md §7). Mid-flight additions
- * are normal: when confirmed roadmap days exist, create emits a pending
- * `new_work_package` replan_proposal instead of silently touching the roadmap
- * (Principle 1). The WP insert and the proposal are written in ONE transaction.
- *
- * A freshly-created WP has no tasks yet, so the analyzed diff is typically empty —
- * the proposal's value is the audit-trail record + pending status; concrete moves
- * appear once tasks are added and the user re-runs a replan.
+ * are direct edits: creating a WP never creates a replan proposal. The user can
+ * request a manual replan after adding or editing work.
  */
 import type { Kysely } from "kysely";
 import type { Database, DifficultyLevel, ReplanProposal, Task, WorkPackage } from "../db/types";
 import type { AuthContext } from "../auth/context";
 import { badRequest, notFound } from "../lib/errors";
-import { withTransaction } from "../db/transaction";
 import { validateTitle, validateEstimate, validateTimeFixed } from "./validation";
 import { getBlockedTaskIds } from "./blocked";
-import { analyzeReplan } from "./replan/analyze";
-import { createProposalInTx } from "./replan/proposals";
 
 async function assertProjectInWorkspace(
   db: Kysely<Database>,
@@ -81,48 +73,25 @@ export async function createWorkPackage(
     await assertMilestoneInProject(db, ctx, projectId, input.milestone_id);
   }
 
-  return withTransaction(db, async (trx) => {
-    const workPackage = await trx
-      .insertInto("work_package")
-      .values({
-        ...(input.id ? { id: input.id } : {}),
-        workspace_id: ctx.workspaceId,
-        project_id: projectId,
-        milestone_id: input.milestone_id ?? null,
-        title,
-        description: input.description ?? null,
-        estimate_hours: input.estimate_hours ?? null,
-        difficulty: input.difficulty ?? null,
-        is_time_fixed: input.is_time_fixed ?? false,
-        fixed_date: input.fixed_date ?? null,
-        ...(input.position != null ? { position: input.position } : {}),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // If a confirmed roadmap exists, surface a pending proposal rather than
-    // silently rewriting the plan (api §7, Principle 1).
-    const confirmedDay = await trx
-      .selectFrom("daily_plan_day")
-      .select("id")
-      .where("workspace_id", "=", ctx.workspaceId)
-      .where("status", "=", "confirmed")
-      .limit(1)
-      .executeTakeFirst();
-    if (!confirmedDay) return { work_package: workPackage };
-
-    const { summary, changes } = await analyzeReplan(trx, ctx, {
-      scope: { project_id: projectId },
-      now,
-    });
-    const replan_proposal = await createProposalInTx(trx, ctx, {
-      trigger: "new_work_package",
-      summary,
-      changes,
-      now,
-    });
-    return { work_package: workPackage, replan_proposal };
-  });
+  void now;
+  const workPackage = await db
+    .insertInto("work_package")
+    .values({
+      ...(input.id ? { id: input.id } : {}),
+      workspace_id: ctx.workspaceId,
+      project_id: projectId,
+      milestone_id: input.milestone_id ?? null,
+      title,
+      description: input.description ?? null,
+      estimate_hours: input.estimate_hours ?? null,
+      difficulty: input.difficulty ?? null,
+      is_time_fixed: input.is_time_fixed ?? false,
+      fixed_date: input.fixed_date ?? null,
+      ...(input.position != null ? { position: input.position } : {}),
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  return { work_package: workPackage };
 }
 
 export type WorkPackageStatus = "open" | "in_progress" | "done" | "blocked";

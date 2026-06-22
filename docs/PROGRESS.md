@@ -60,12 +60,12 @@ received a prototype-parity pass against `docs/design/project/TodoMapp Prototype
   days created `confirmed` (approval = authorization, matches `confirmDay`). Approve/reject
   **claim the row** (`UPDATE … WHERE status='pending'`, assert 1) before any mutation, so a
   double-approve/expired-approve race writes nothing (→ 409). ⚡eng on approve/reject; NO
-  penalty events (Principle 3). **`new_work_package`**: WP-create on a confirmed roadmap
-  emits a pending proposal (WP + proposal in one tx) instead of touching the plan.
-  **16 tests pass** (`tests/replan.test.ts` DB-backed + `tests/replan-diff.test.ts` pure),
+  penalty events (Principle 3). Normal replans are manual (`user_request`); slippage creates
+  morning recovery proposals that still require user apply.
+  **Test coverage** (`tests/replan.test.ts` DB-backed + `tests/replan-diff.test.ts` pure),
   incl. the time-fixed 422 keystone, renegotiate-allows, locked both-directions,
   double-apply/expired → 409, a real **concurrent-approve race** (`Promise.allSettled`:
-  one wins, one 409, one successor), superseding, and new_work_package present/absent.
+  one wins, one 409, one successor), superseding, and manual-only WP creation.
   Confirmed-day shape is one source of truth (`src/domain/planDays.ts` — `confirmedDayValues`
   / `createConfirmedDay`) shared by `confirmDay` and replan apply (no DB CHECK on
   status/confirmed_at, so the API is the guarantee).
@@ -209,9 +209,9 @@ received a prototype-parity pass against `docs/design/project/TodoMapp Prototype
 
 ## Roadmap (one line per phase)
 - **Phase 1 — Vertical spine** ✅ — 8-endpoint slice + completion cascade, live-verified.
-- **Phase 2 — Dependencies + acyclicity** ✅ — task/WP dependency edges, API-layer cycle check (invariant #1); lights up `blocked` + the planner.
+- **Phase 2 — Dependencies + acyclicity** ✅ — task/WP dependency edges, API-layer cycle check (invariant #1); scheduling and blocked-state now use task position inside a WP plus WP edges.
 - **Phase 3 — Project Flow Diagram** ✅ — `/projects/{id}/flow`: derived node states + critical path to next milestone.
-- **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, `new_work_package` proposal. `user_request` + `new_work_package` wired; `slippage` shares the machinery (detector job is Phase 5).
+- **Phase 4 — Replanning pipeline** ✅ — `replan_proposal` create/list/get/approve/reject, JSONB diff + transactional apply, time-fixed conflicts (invariants #4/#5), locked-day immunity, manual `user_request` proposals, and slippage recovery proposals.
 - **Phase 5 — Notifications & jobs** ✅ — slippage detector, morning-brief push, contextual nudges, stale-token prune; one Vercel-Cron tick + per-user local-time scan, `CRON_SECRET`-guarded. Milestone-nudge predicate stubbed pending Phase 6 projection; real APNs stubbed behind `Notifier`.
 - **Phase 6 — Roadmap projection & daily-planning reads** ✅ — `GET /roadmap` (persisted ∪ projected via staged-unblocking planner edges), `/days/{date}`, plan-item add/defer/reorder, pull-forward, reopen, day lock. Activated the three deferred `projected_date` consumers (flow/replan/nudge).
 - **Phase 7 — Companion & motivation reads** ✅ — `/me*`, stats, engagement, devices, notif-prefs, points/history, `/morning-brief` composite. Closed the Phase-5 device gap. (Milestones CRUD deferred to Phase 8 WBS edits.)
@@ -242,8 +242,8 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
 - **Principle 3 — replanning is never penalized.** Deferred items keep their history; there are NO penalty point_events. Engaging with a proposal (approve/reject) counts as engagement (⚡eng), keeping the streak alive.
 
 **Scope boundary (IN vs deferred):**
-- **IN:** `POST /replan-proposals` (`trigger='user_request'`), `GET /replan-proposals`(list, default pending) + `GET /{id}` (full diff), `POST /{id}/approve` (optionally `edits`-shaped diff) + `POST /{id}/reject`; the JSONB diff + transactional apply step; time-fixed conflict surfacing; and the **`new_work_package` proposal** — wiring the existing TODO in `src/domain/workPackages.ts` so WP-create on confirmed days emits a pending proposal instead of `{ work_package }` only.
-- **Triggers:** `user_request` and `new_work_package` are wired in Phase 4. `slippage` shares the SAME proposal machinery but its DETECTOR JOB (per-user local-midnight trigger) is **Phase 5** — Phase 4 builds the create-proposal entry point so the job can call it later; the cron/scheduling is not built here.
+- **IN:** `POST /replan-proposals` (`trigger='user_request'`), `GET /replan-proposals`(list, default pending) + `GET /{id}` (full diff), `POST /{id}/approve` (optionally `edits`-shaped diff) + `POST /{id}/reject`; the JSONB diff + transactional apply step; and time-fixed conflict surfacing.
+- **Triggers:** normal replans are manual `user_request`; slippage shares the SAME proposal machinery but its detector job creates a morning recovery proposal that the user still applies by hand.
 
 **Open question for the Phase 4 plan (record, don't resolve):** does the analyze/propose logic (the JSONB-diff producer) live behind the existing planner interface (`proposeDays`) or in a sibling module (e.g. `src/domain/replan` calling the planner)? Decide at plan time to keep it modular/replaceable per Decision #19.
 
@@ -284,9 +284,9 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
   putting THIS task on THAT specific day":
   - `POST /replan-proposals` scope is only `{ project_id?, from_date? }` — the planner re-derives the
     whole schedule from scratch and takes no per-task target date.
-  - `PATCH /tasks/{taskId}` (incl. `fixed_date`/`is_time_fixed`) is a **silent direct write** — it does
-    NOT generate a proposal the way WP/task *create* does (`new_work_package` trigger, see
-    `src/domain/workPackages.ts`). So pinning a task via PATCH would bypass the review step entirely.
+  - `PATCH /tasks/{taskId}` (incl. `fixed_date`/`is_time_fixed`) is a **direct write** and does not
+    generate a proposal. The user must request a manual replan when schedule-impacting edits should
+    reorganize the roadmap.
   - **F4's honest interim (shipped):** a cross-day Timeline drag fires
     `POST /replan-proposals {trigger:'user_request', scope:{project_id, from_date}}` (from_date = the
     earlier of the bar's current date and the drop date) → ReplanReview → approve/reject. The drop day
@@ -295,11 +295,8 @@ The plan mutates ONLY through approval; this group is the audit trail. Orient fr
     what the backend can do — so we don't build that. Time-fixed bars are drag-DISABLED (pinned,
     Decision #7), with a pin affordance so it reads as intentional.
   - **Proposed fix (two options, decide when targeted placement is actually needed — NOT now):**
-    1. **`PATCH /tasks` auto-proposes** when confirmed roadmap days exist — mirror `createWorkPackage`'s
-       `new_work_package` path: a scheduling-relevant edit (`fixed_date`, estimate, time-fixed) on a task
-       whose work flows into confirmed days returns `{ task, replan_proposal? }` instead of silently
-       writing. Keeps the existing PATCH surface; adds the Principle-1 review hop for in-place edits.
-       Same concern applies to WP-sheet estimate/time-fixed edits on already-scheduled tasks.
+    1. **Dedicated manual targeted replan action** for a scheduling-relevant edit, keeping normal
+       task/WP writes direct and avoiding automatic proposal creation from data changes.
     2. **A replan scope carrying a per-task PIN** — extend `POST /replan-proposals` scope with something
        like `{ pins: [{ task_id, fixed_date }] }` that the planner treats as a soft/hard placement
        constraint for that analysis only (not a stored `task.fixed_date`). The planner produces a

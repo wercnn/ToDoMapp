@@ -17,7 +17,7 @@ export interface PlannerCandidate {
   hours: number;
   isTimeFixed: boolean;
   fixedDate: string | null; // 'YYYY-MM-DD'
-  /** Derived from the dependency graph by the caller; blocked work is skipped. */
+  /** Derived by the caller from task position and WP dependencies; blocked work is skipped. */
   blocked: boolean;
   /** Stable ordering hint (project-local position). */
   position: number;
@@ -30,10 +30,10 @@ export interface ProjectCapacity {
 }
 
 /**
- * A task-level "must finish before" edge (predecessor → successor). The caller
- * expands work-package dependencies to task level before passing them in (the m×n
- * fan-out, same as flow.ts). Used for STAGED UNBLOCKING: a successor may only land
- * on a day strictly after all its placed predecessors.
+ * A task-level "must finish before" edge (predecessor → successor). DB callers
+ * derive task edges from task position and expand work-package dependencies to task
+ * level before passing them in. Used for STAGED UNBLOCKING: a successor may only
+ * land on a day strictly after all its placed predecessors.
  *
  * This is what lets the roadmap projection see PAST a dependency wall (schedule A,
  * then B the next day) instead of dropping B as "blocked" forever. The near-horizon

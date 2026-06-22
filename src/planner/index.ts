@@ -1,7 +1,7 @@
 /**
  * v1 planner implementation (deliberately simple, foundation Decision #19):
  *   - fill each day up to per-project capacity, in dependency/position order
- *   - skip blocked work (never schedule a task with incomplete predecessors)
+ *   - skip blocked work (never schedule a task with incomplete ordered predecessors)
  *   - pin time-fixed tasks to their fixed date
  *   - STAGED UNBLOCKING when `edges` are supplied: a successor lands only on a day
  *     strictly after all its placed predecessors. With no edges this is inert, so
@@ -9,7 +9,7 @@
  *     `/propose` passes none).
  *
  * It is a pure function of its input. Everything DB-shaped (gathering candidates,
- * computing blocked-state, expanding WP→task edges, persisting the draft) lives in
+ * computing blocked-state, deriving position/WP edges, persisting the draft) lives in
  * the domain services (roadmap.ts / projection.ts), so this engine stays replaceable.
  */
 import { addDays } from "../lib/dates";

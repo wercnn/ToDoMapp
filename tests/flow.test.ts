@@ -233,6 +233,25 @@ describe("project flow (DB-backed)", () => {
     expect(flow.next_milestone?.id).toBe(m2);
   });
 
+  it("derives task edges from work-package position and ignores manual task_dependency rows", async () => {
+    ws = await provisionWorkspace(db, { timezone: "UTC" });
+    const ctx = ws.ctx;
+    const goal = await mkGoal(ctx);
+    const project = await mkProject(ctx, goal);
+    const milestone = await mkMilestone(ctx, project, { position: 0 });
+    const wp = await mkWp(ctx, project, { position: 0, milestoneId: milestone });
+    const first = await mkTask(ctx, wp, { hours: 1, position: 0 });
+    const second = await mkTask(ctx, wp, { hours: 5, position: 1 });
+
+    await mkTaskDep(ctx, second, first);
+
+    const flow = await getProjectFlow(db, ctx, project);
+    expect(flow.edges.task).toEqual([
+      { predecessor_task_id: first, successor_task_id: second },
+    ]);
+    expect(flow.critical_path).toEqual([first, second]);
+  });
+
   it("critical path is decided by a work_package_dependency (expansion present & directed)", async () => {
     ws = await provisionWorkspace(db, { timezone: "UTC" });
     const ctx = ws.ctx;

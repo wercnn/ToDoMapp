@@ -43,7 +43,7 @@ CREATE TYPE workspace_role     AS ENUM ('owner');               -- future: 'admi
 CREATE TYPE device_platform    AS ENUM ('ios');                 -- future: 'android', 'web_push' (§7)
 ```
 
-Note that `blocked` is deliberately **not** a stored task/work-package status — blocked is *derived* from the dependency graph (see §6, Derived State). Storing it would create a second source of truth that drifts from the dependency tables.
+Note that `blocked` is deliberately **not** a stored task/work-package status — blocked is *derived* from task position inside a work package plus work-package dependencies (see §6, Derived State). Storing it would create a second source of truth that drifts from the base plan data.
 
 ---
 
@@ -259,14 +259,14 @@ A single to-do line inside a work package — the atomic unit of doing (§3.1). 
 
 ### 4.3 Dependencies
 
-Dependencies exist at **two levels** (Decision #9) — between tasks and between work packages — as a directed "must finish before" relationship. Two structurally identical self-referencing join tables keep the model explicit and the FK semantics clean (no polymorphism).
+Dependencies exist at **two levels** (Decision #9). Task order is position-based inside each work package. Work-package dependencies are explicit scheduling constraints. Task dependency rows are retained only for compatibility/legacy metadata; they do not drive scheduling, blocked-state, flow edges, or critical path.
 
 #### `task_dependency`
 
 | Column | Type | Null | Default | Constraints / Notes |
 |---|---|---|---|---|
-| `predecessor_task_id` | `uuid` | NO | — | **PK part**, FK → `task(id)` ON DELETE CASCADE. Must finish first. |
-| `successor_task_id` | `uuid` | NO | — | **PK part**, FK → `task(id)` ON DELETE CASCADE. Blocked until predecessor is done. |
+| `predecessor_task_id` | `uuid` | NO | — | **PK part**, FK → `task(id)` ON DELETE CASCADE. Legacy metadata only. |
+| `successor_task_id` | `uuid` | NO | — | **PK part**, FK → `task(id)` ON DELETE CASCADE. Legacy metadata only; blocked-state and flow edges are position-derived. |
 | `workspace_id` | `uuid` | NO | — | FK → `workspace(id)` ON DELETE CASCADE |
 | `created_at` | `timestamptz` | NO | `now()` | |
 
@@ -340,7 +340,7 @@ Persists the detect → analyze → **propose** → **approve** pipeline (§4.4 
 |---|---|---|---|---|
 | `id` | `uuid` | NO | `gen_random_uuid()` | **PK** |
 | `workspace_id` | `uuid` | NO | — | FK → `workspace(id)` ON DELETE CASCADE |
-| `trigger` | `proposal_trigger` | NO | — | `slippage` (midnight detection), `new_work_package` (mid-flight addition), `user_request` (manual replan). |
+| `trigger` | `proposal_trigger` | NO | — | `slippage` (morning recovery), `user_request` (manual replan), `new_work_package` (legacy historical proposals only). |
 | `status` | `proposal_status` | NO | `'pending'` | `approved` / `edited_approved` / `rejected` / `expired` (superseded by a newer proposal). |
 | `summary` | `text` | NO | — | The human-readable headline shown in the morning brief, e.g. *"Push 3 tasks forward one day; milestone moves Fri → Mon."* |
 | `changes` | `jsonb` | NO | — | Structured diff the engine produced: per-item moves (`task_id`, `from_date`, `to_date`), affected milestones with old/new projected dates, and **time-fixed conflicts** listed separately with their options (prioritize / descope / renegotiate) — time-fixed work is never auto-moved (Decision #7). |
@@ -445,7 +445,7 @@ User-controlled timing and frequency (§4.6): notifications inform and invite, t
 | project → work_package | 1 : N | `work_package.project_id` | CASCADE |
 | milestone → work_package | 0..1 : N (optional grouping) | `work_package.milestone_id` + composite FK `(milestone_id, project_id)` | SET NULL (ungroup, don't delete work) |
 | work_package → task | 1 : N | `task.work_package_id` | CASCADE |
-| task ↔ task ("finish before") | N : M, self, acyclic | `task_dependency` | CASCADE |
+| task ↔ task (legacy metadata) | N : M, self, acyclic | `task_dependency` | CASCADE |
 | work_package ↔ work_package | N : M, self, acyclic | `work_package_dependency` | CASCADE |
 | workspace → daily_plan_day | 1 : N (unique per date) | `daily_plan_day.workspace_id` + UNIQUE `(workspace_id, plan_date)` | CASCADE |
 | daily_plan_day → daily_plan_item | 1 : N | `daily_plan_item.daily_plan_day_id` | CASCADE |
@@ -463,11 +463,11 @@ Per §9.2 rule 6 there are no DB triggers; the API's business-logic modules comp
 
 | Derived value | Computed from | Notes |
 |---|---|---|
-| **Task is blocked** | `task_dependency` (incomplete predecessors) + `work_package_dependency` (incomplete upstream WPs) | Drives the Flow Diagram's "blocked" state and constrains the planner — blocked tasks are never schedulable or pull-forward-able. |
+| **Task is blocked** | Earlier incomplete tasks in the same work package + `work_package_dependency` (incomplete upstream WPs) | Drives the Flow Diagram's "blocked" state and constrains the planner — blocked tasks are never schedulable or pull-forward-able. |
 | **Work package status** (open / in progress / done) | Child tasks' statuses; `work_package.completed_at` is the only persisted cache, maintained transactionally by the API | "In progress" = at least one task done or planned today; "done" = all tasks done. |
 | **Milestone achieved** | All work packages in its set have `completed_at` set | The API sets `milestone.achieved_at` once, awards the extra points (`point_event`), and emits the celebration (animation + recap card). An empty milestone set is never auto-achieved (application rule). |
-| **Critical path to next milestone** | Dependency graph + estimates | Rendered in the Flow Diagram; pure computation. |
-| **Roadmap beyond confirmed days** | WBS + dependencies + estimates + capacity + time-fixed dates | The projection (§3.2). Only proposed/confirmed `daily_plan_day` rows are persisted; the engine re-projects the rest on demand — which is exactly what keeps the engine replaceable (Decision #19). |
+| **Critical path to next milestone** | Position-derived task edges + work-package dependency graph + estimates | Rendered in the Flow Diagram; pure computation. |
+| **Roadmap beyond confirmed days** | WBS + task order + work-package dependencies + estimates + capacity + time-fixed dates | The projection (§3.2). Only proposed/confirmed `daily_plan_day` rows are persisted; the engine re-projects the rest on demand — which is exactly what keeps the engine replaceable (Decision #19). |
 | **Goal / project progress roll-ups** | Counts and estimate sums over descendant tasks | Powering progress bars and days-to-milestone counters. |
 | **Current streak** | Consecutive `engagement_day` rows | Cached in `user_stats` for the Companion home screen; rebuildable. |
 | **Day's planned load vs. capacity** | Sum of item estimates (difficulty mapped to nominal hours) vs. `project.capacity_hours_per_day` | The difficulty→hours mapping is a planner constant (open question). |
@@ -483,7 +483,7 @@ Rules that belong to the model but live in the API layer (no triggers, §9.2 rul
 3. **Day boundary is midnight local** — all `plan_date` / `activity_date` derivations use `app_user.timezone`; the slippage detector runs per-user at their local midnight.
 4. **Time-fixed work is never auto-moved** — replan proposals may only place time-fixed conflicts in the `changes.time_fixed_conflicts` section with explicit options; the apply step rejects any diff that moves a time-fixed item without an explicit user choice.
 5. **Plans change only through approval** — `daily_plan_day` / `daily_plan_item` mutations originate from (a) direct user edits, (b) user-confirmed planner proposals, or (c) an `approved` / `edited_approved` `replan_proposal`. Never from a background job alone.
-6. **Pull-forward only unblocked tasks** — working ahead validates blocked state before moving an item.
+6. **Pull-forward only unblocked tasks** — working ahead validates blocked state before moving an item. Task blocked-state is derived from position inside a work package plus incomplete upstream work packages.
 7. **Caches are transactional** — `work_package.completed_at`, `milestone.achieved_at`, `daily_plan_day.completed_at`, and `user_stats` are updated in the same transaction as the triggering write, and each is rebuildable from base tables.
 8. **Scoring is idempotent** — enforced belt-and-suspenders: application checks plus the partial unique indexes on `point_event`.
 

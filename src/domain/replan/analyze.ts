@@ -10,6 +10,7 @@ import type { WorkspaceContext } from "../../auth/context";
 import { addDays, localDate } from "../../lib/dates";
 import { resolveHours } from "../../planner/constants";
 import { createProposalDiff, planRoadmap } from "../../planner/replan";
+import { derivePositionTaskDependencies } from "../taskPositionDependencies";
 import type {
   PlannerConfig,
   PlanningState,
@@ -293,18 +294,15 @@ async function buildPlanningState(
 
   const taskIds = new Set(Object.keys(tasks));
   const wpIds = new Set(Object.keys(workPackages));
-  let taskDependencies = (
-    await db
-      .selectFrom("task_dependency")
-      .select(["predecessor_task_id", "successor_task_id"])
-      .where("workspace_id", "=", ctx.workspaceId)
-      .execute()
-  )
-    .filter((d) => taskIds.has(d.predecessor_task_id) && taskIds.has(d.successor_task_id))
-    .map((d) => ({
-      predecessorTaskId: d.predecessor_task_id,
-      successorTaskId: d.successor_task_id,
-    }));
+  let taskDependencies = derivePositionTaskDependencies(
+    Object.values(tasks).map((task) => ({
+      id: task.id,
+      workPackageId: task.workPackageId,
+      position: task.position,
+      status: task.status,
+      replacedAt: task.replacedAt,
+    })),
+  ).filter((d) => taskIds.has(d.predecessorTaskId) && taskIds.has(d.successorTaskId));
 
   let workPackageDependencies = (
     await db
@@ -384,7 +382,7 @@ async function buildPlanningState(
       if (!task || !wp) continue;
       if (opts.scope?.project_id && wp.projectId !== opts.scope.project_id) frozenTaskIds.add(taskId);
       if (date < opts.startDate && !recoveryTaskSet.has(taskId)) frozenTaskIds.add(taskId);
-      if (stateDayFrozen(dayMeta[date], date, opts.startDate)) frozenTaskIds.add(taskId);
+      if (stateDayFrozen(dayMeta[date])) frozenTaskIds.add(taskId);
       if (date === opts.startDate && keepTodayTaskIds.has(taskId)) frozenTaskIds.add(taskId);
     }
   }
@@ -505,10 +503,8 @@ async function buildPlanningState(
   };
 }
 
-function stateDayFrozen(meta: PlanningState["dayMeta"][string] | undefined, date: string, startDate: string): boolean {
-  if (!meta) return false;
-  if (meta.isLocked) return true;
-  return meta.isConfirmed && date > startDate;
+function stateDayFrozen(meta: PlanningState["dayMeta"][string] | undefined): boolean {
+  return meta?.isLocked === true;
 }
 
 function dateSetFromChanges(changes: Changes, startDate: string): string[] {

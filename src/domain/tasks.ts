@@ -71,10 +71,9 @@ export async function createTask(
 
     // New work created through the API lands on a CONCRETE day so it can never get lost
     // in a projection: a time-fixed task on its committed date, everything else on
-    // TOMORROW. The day is created `proposed` (not confirmed) so a later replan is free
-    // to move it — the replan freezes future confirmed days. Dependencies are ignored
-    // here; tomorrow is a holding slot and the replan reorders the queue. (Off by
-    // default so internal/test callers that seed their own plan are unaffected.)
+    // TOMORROW. This is a holding slot; the user can manually replan later and the
+    // replan engine will enforce work-package position order. (Off by default so
+    // internal/test callers that seed their own plan are unaffected.)
     if (opts.autoPlace) {
       const placementDate =
         task.is_time_fixed && task.fixed_date

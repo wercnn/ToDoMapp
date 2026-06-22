@@ -48,7 +48,7 @@ async function expireOlderPending(
 
 /**
  * Supersede older pendings and insert a new pending proposal. Runs inside a caller's
- * transaction — used both standalone and atomically with WP-create (new_work_package).
+ * transaction for manual replans and morning slippage recovery.
  */
 export async function createProposalInTx(
   trx: Transaction<Database>,

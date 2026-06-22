@@ -344,9 +344,100 @@ describe("replanning pipeline", () => {
     expect((await proposalStatus(b.id)).status).toBe("pending");
   });
 
-  // --- new_work_package trigger ---------------------------------------------
+  it("manual replan can move future confirmed day items", async () => {
+    await db
+      .updateTable("daily_plan_day")
+      .set({ plan_date: tomorrow, status: "confirmed", confirmed_at: now })
+      .where("id", "=", scenario.dayId)
+      .execute();
 
-  it("WP create against a confirmed roadmap emits a pending proposal and does NOT touch the plan", async () => {
+    const proposal = await createProposal(db, ws.ctx, { trigger: "user_request", now });
+    const changes = proposal.changes as Changes;
+    expect(changes.moves).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ task_id: scenario.t1Id, from_date: tomorrow, to_date: today }),
+        expect.objectContaining({ task_id: scenario.t2Id, from_date: tomorrow, to_date: today }),
+      ]),
+    );
+  });
+
+  it("manual replan still does not move locked day items", async () => {
+    await db
+      .updateTable("daily_plan_day")
+      .set({ plan_date: tomorrow, status: "confirmed", confirmed_at: now, is_locked: true })
+      .where("id", "=", scenario.dayId)
+      .execute();
+
+    const proposal = await createProposal(db, ws.ctx, { trigger: "user_request", now });
+    const changes = proposal.changes as Changes;
+    expect(changes.moves.some((move) => move.task_id === scenario.t1Id || move.task_id === scenario.t2Id)).toBe(false);
+  });
+
+  it("manual replan uses work-package position order and ignores manual task_dependency rows", async () => {
+    await db
+      .updateTable("task")
+      .set({ status: "done", completed_at: now })
+      .where("id", "in", [scenario.t1Id, scenario.t2Id])
+      .execute();
+    await db
+      .updateTable("project")
+      .set({ capacity_hours_per_day: 1 })
+      .where("id", "=", scenario.projectId)
+      .execute();
+    const wp = await db
+      .insertInto("work_package")
+      .values({
+        workspace_id: ws.workspaceId,
+        project_id: scenario.projectId,
+        milestone_id: scenario.milestoneId,
+        title: "Position WP",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const first = await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp.id,
+        title: "First by position",
+        estimate_hours: 1,
+        position: 0,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const second = await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp.id,
+        title: "Second by position",
+        estimate_hours: 1,
+        position: 1,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("task_dependency")
+      .values({
+        workspace_id: ws.workspaceId,
+        predecessor_task_id: second.id,
+        successor_task_id: first.id,
+      })
+      .execute();
+
+    const proposal = await createProposal(db, ws.ctx, { trigger: "user_request", now });
+    const changes = proposal.changes as Changes;
+    expect(changes.moves).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ task_id: first.id, from_date: null, to_date: today }),
+        expect.objectContaining({ task_id: second.id, from_date: null, to_date: tomorrow }),
+      ]),
+    );
+  });
+
+  // --- manual-only creation --------------------------------------------------
+
+  it("WP create against a confirmed roadmap does not emit a proposal and does not touch the plan", async () => {
     // Confirm today's roadmap day.
     await db
       .updateTable("daily_plan_day")
@@ -362,11 +453,10 @@ describe("replanning pipeline", () => {
       .execute();
 
     const result = await createWorkPackage(db, ws.ctx, scenario.projectId, { title: "Mid-flight WP" });
-    expect(result.replan_proposal).toBeTruthy();
-    expect(result.replan_proposal?.status).toBe("pending");
-    expect(result.replan_proposal?.trigger).toBe("new_work_package");
+    expect(result.work_package).toBeTruthy();
+    expect(result.replan_proposal).toBeUndefined();
 
-    // Roadmap unchanged — only a proposal was raised.
+    // Roadmap unchanged — the user must manually request a replan.
     const after = await db
       .selectFrom("daily_plan_item")
       .selectAll()
@@ -376,8 +466,7 @@ describe("replanning pipeline", () => {
     expect(after).toEqual(before);
   });
 
-  it("WP create with no confirmed roadmap returns just the work package (no proposal)", async () => {
-    // seedScenario's day is 'proposed', not confirmed.
+  it("WP create with no confirmed roadmap also returns just the work package", async () => {
     const result = await createWorkPackage(db, ws.ctx, scenario.projectId, { title: "Early WP" });
     expect(result.work_package).toBeTruthy();
     expect(result.replan_proposal).toBeUndefined();

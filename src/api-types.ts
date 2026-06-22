@@ -205,7 +205,7 @@ export interface FlowNode {
   derived_status: DerivedStatus;
 }
 
-/** The two edge families: task→task and WP→WP finish-before edges. */
+/** Position-derived task edges plus explicit WP→WP finish-before edges. */
 export interface FlowEdges {
   task: { predecessor_task_id: string; successor_task_id: string }[];
   work_package: { predecessor_wp_id: string; successor_wp_id: string }[];
@@ -220,7 +220,7 @@ export interface ProjectFlow {
   next_milestone: { id: string; title: string; projected_date: DateString | null } | null;
 }
 
-/** A task→task or WP→WP finish-before edge (POST /task-dependencies, /work-package-dependencies). */
+/** Legacy task-edge metadata or an explicit WP→WP finish-before edge. */
 export interface TaskDependency {
   predecessor_task_id: string;
   successor_task_id: string;
@@ -234,7 +234,7 @@ export interface WorkPackageDependency {
   created_at: IsoTimestamp;
 }
 
-/** A replan proposal row (returned embedded in the WP-create envelope when confirmed days exist). */
+/** A replan proposal row. */
 export interface ReplanProposal {
   id: string;
   workspace_id: string;
@@ -405,11 +405,7 @@ export interface ApproveProposalResult {
   applied: { days: DailyPlanDay[]; items: DailyPlanItem[] };
 }
 
-/**
- * POST /projects/{id}/work-packages. `replan_proposal` is present only when
- * confirmed roadmap days already exist (mid-flight add) — never during onboarding,
- * where WPs are created before any day is proposed.
- */
+/** POST /projects/{id}/work-packages. Backward-compatible envelope; replan remains manual. */
 export interface CreateWorkPackageResult {
   work_package: WorkPackage;
   replan_proposal?: ReplanProposal;

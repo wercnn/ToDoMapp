@@ -52,10 +52,10 @@ async function expectApiError(status: number, fn: () => Promise<unknown>) {
 }
 
 /** Create a bare task under a work package; returns its id. */
-async function makeTask(ctx: AuthContext, wpId: string, title: string): Promise<string> {
+async function makeTask(ctx: AuthContext, wpId: string, title: string, position = 0): Promise<string> {
   const row = await db
     .insertInto("task")
-    .values({ workspace_id: ctx.workspaceId, work_package_id: wpId, title, estimate_hours: 1 })
+    .values({ workspace_id: ctx.workspaceId, work_package_id: wpId, title, estimate_hours: 1, position })
     .returning("id")
     .executeTakeFirstOrThrow();
   return row.id;
@@ -74,8 +74,8 @@ describe("dependency edges", () => {
     await teardownWorkspace(db, ws);
   });
 
-  it("creates a task→task edge and blocks the successor", async () => {
-    const b = await makeTask(ws.ctx, scenario.wp1Id, "B");
+  it("creates a task→task edge but blocked-state ignores manual task edges", async () => {
+    const b = await makeTask(ws.ctx, scenario.wp1Id, "B", -1);
     const edge = await createTaskDependency(db, ws.ctx, {
       predecessor_task_id: scenario.t1Id,
       successor_task_id: b,
@@ -84,8 +84,18 @@ describe("dependency edges", () => {
     expect(edge.successor_task_id).toBe(b);
 
     const blocked = await getBlockedTaskIds(db, ws.ctx);
+    expect(blocked.has(b)).toBe(false);
+    expect(blocked.has(scenario.t1Id)).toBe(true);
+  });
+
+  it("blocks later-position tasks until earlier tasks in the same work package are done", async () => {
+    const b = await makeTask(ws.ctx, scenario.wp1Id, "B", 1);
+    let blocked = await getBlockedTaskIds(db, ws.ctx);
     expect(blocked.has(b)).toBe(true);
-    expect(blocked.has(scenario.t1Id)).toBe(false);
+
+    await db.updateTable("task").set({ status: "done", completed_at: new Date() }).where("id", "=", scenario.t1Id).execute();
+    blocked = await getBlockedTaskIds(db, ws.ctx);
+    expect(blocked.has(b)).toBe(false);
   });
 
   it("rejects a task dependency across work packages with 422", async () => {

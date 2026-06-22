@@ -44,8 +44,7 @@ export function createConfirmedDay(
 /**
  * Get-or-create the day for a date. Shared by the plan edits (which want a
  * `confirmed` day) and by auto-placement of newly created work (which wants a
- * `proposed` day so a subsequent replan is free to move it — the replan freezes
- * FUTURE CONFIRMED days, so a confirmed placement would pin the new task).
+ * `proposed` day as a neutral holding slot before the user manually replans).
  */
 export async function getOrCreateDay(
   db: Executor,

@@ -6,7 +6,7 @@
  * The critical path is the longest path BY ESTIMATE SUM (difficulty mapped to
  * nominal hours via the planner constant) through the task DAG, ending at a task
  * in the next milestone's work-package set. The task DAG has two edge sources:
- *   - `task_dependency` — a direct task→task "must finish before".
+ *   - task position inside a work package — task n precedes task n+1.
  *   - `work_package_dependency` — EXPANDED to task level: an upstream WP edge
  *     means every task in the predecessor WP precedes every task in the successor
  *     WP (an m×n fan-out, directed predecessor→successor). This expansion is the
@@ -23,6 +23,7 @@ import { localDate } from "../lib/dates";
 import { resolveHours } from "../planner/constants";
 import { getBlockedTaskIds } from "./blocked";
 import { scheduledMilestoneDates } from "./scheduleDates";
+import { derivePositionTaskDependencies } from "./taskPositionDependencies";
 
 export type DerivedStatus = "done" | "blocked" | "in_progress" | "open";
 
@@ -141,7 +142,16 @@ export async function getProjectFlow(
   const tasks = wpIds.length
     ? await db
         .selectFrom("task")
-        .select(["id", "work_package_id", "title", "status", "estimate_hours", "difficulty"])
+        .select([
+          "id",
+          "work_package_id",
+          "title",
+          "status",
+          "estimate_hours",
+          "difficulty",
+          "position",
+          "replaced_at",
+        ])
         .where("workspace_id", "=", ctx.workspaceId)
         .where("work_package_id", "in", wpIds)
         .where("replaced_at", "is", null)
@@ -150,13 +160,18 @@ export async function getProjectFlow(
     : [];
   const taskIds = new Set(tasks.map((t) => t.id));
 
-  const taskEdges = (
-    await db
-      .selectFrom("task_dependency")
-      .select(["predecessor_task_id", "successor_task_id"])
-      .where("workspace_id", "=", ctx.workspaceId)
-      .execute()
-  ).filter((e) => taskIds.has(e.predecessor_task_id) && taskIds.has(e.successor_task_id));
+  const taskEdges = derivePositionTaskDependencies(
+    tasks.map((task) => ({
+      id: task.id,
+      workPackageId: task.work_package_id,
+      position: task.position,
+      status: task.status,
+      replacedAt: task.replaced_at,
+    })),
+  ).map((edge) => ({
+    predecessor_task_id: edge.predecessorTaskId,
+    successor_task_id: edge.successorTaskId,
+  }));
 
   const wpIdSet = new Set(wpIds);
   const wpEdges = (

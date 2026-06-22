@@ -153,7 +153,7 @@ Opened by selecting a project in the sidebar. The dense, command-center heart of
 - **Buttons:** `[+ Work package]` · `[Edit project]` · `[⋯ menu]` (archive/delete)
 
 ### C.1 View — **Flow Diagram** *(default; §4.2, Principle 5)*
-- **Content:** the dependency graph as a canvas. Nodes = work packages (and, expandable, tasks); edges = finish-before dependencies at both levels (Decision #9). Each node colored by **derived status** (`done` green / `in-progress` blue / `blocked` amber+glyph / `open` neutral — design language §4.1). **Critical path** to the next milestone emphasized; milestone landmarks marked.
+- **Content:** the dependency graph as a canvas. Nodes = work packages (and, expandable, tasks); task edges are derived from position inside each work package, and work-package edges are explicit finish-before dependencies (Decision #9). Each node colored by **derived status** (`done` green / `in-progress` blue / `blocked` amber+glyph / `open` neutral — design language §4.1). **Critical path** to the next milestone emphasized; milestone landmarks marked.
 - **Create dependencies here:** **drag from one node's edge handle to another to connect** (assisted; the canvas can suggest orderings). Invalid edges (cycle / self) are rejected with a calm inline message.
 - **Controls:** drag-to-connect; select node → opens WP sheet (C.4); pan/zoom; toggle task-level vs WP-level.
 - **Buttons:** `[+ Work package]` · canvas: `Connect (drag)` · `Delete edge` (on selected edge) · `Fit view`
@@ -179,7 +179,7 @@ Selecting a work package slides in a right-side sheet. **A work package is a to-
   - **Reorder** rows (drag). **Add task** at the bottom.
   - Blocked tasks show the `blocked` chip + glyph; can't be scheduled (§6).
 - **Buttons:** `[+ Add task]` · per row: `✓` `pin` `notes` `+ dependency` `delete` · sheet: `[Close]` `[Delete work package]`
-- **Note:** adding a work package or task here is a *normal mid-flight operation* (§4.1) — if confirmed roadmap days exist, it feeds a **replan proposal** rather than silently changing the plan (Principle 1). User is told a proposal was created.
+- **Note:** adding a work package or task here is a *normal mid-flight operation* (§4.1). It does not create a replan proposal automatically; the user manually opens Replan when they want the roadmap reorganized.
 
 **Flow sequence (C):**
 ```
@@ -187,8 +187,8 @@ Sidebar(project) → C.1 (Flow default)
    ⇄ [Flow|Timeline|Table] toggle switches view, same data
 Select WP (any view) → C.4 sheet opens (right)
    Edit tasks inline · drag-to-connect deps (canvas) or add in sheet
-Add WP/task mid-flight → if confirmed days exist → replan proposal created
-   → top bar lilac dot · review in D
+Add WP/task mid-flight → direct create
+   → user manually opens Replan when they want to reorganize the roadmap
 Complete all WPs of a milestone → E (celebration dialog)
 ```
 
@@ -260,7 +260,7 @@ A (Onboarding) ──Confirm──▶ B (Home/Dashboard)
   Flow│Timeline│Table       Path + Replan review        quick complete/defer/
    └─ WP Sheet (right)        └─ Approve/Edit/Reject       pull-forward/approve
         │                          │
-   add WP/task mid-flight ─────────┘ (creates replan proposal)
+   add WP/task mid-flight ─────────┘ (manual Replan when needed)
    complete milestone ──▶ E (Celebration dialog) ──See next──▶ D
 ```
 

@@ -2,9 +2,8 @@
  * GET  /v1/replan-proposals          — list proposals (default status=pending)
  * POST /v1/replan-proposals          — user-initiated replan (trigger='user_request')
  *
- * Replanning pipeline (api §11). `slippage` / `new_work_package` share this same
- * machinery but are SYSTEM-triggered (the Phase 5 job / WP-create) — a client may
- * only request `user_request` here.
+ * Replanning pipeline (api §11). Normal replans are manual (`user_request`);
+ * slippage recovery is system-created for the morning brief but still user-applied.
  */
 import { handler, json, readJson } from "@/lib/http";
 import { badRequest } from "@/lib/errors";
@@ -39,7 +38,7 @@ export const POST = handler(async (req: Request) => {
   const ctx = await requireAuth(req);
   const body = await readJson<Body>(req);
 
-  // Only manual replans are client-initiated; system triggers come from jobs/WP-create.
+  // Only manual replans are client-initiated; slippage recovery comes from jobs.
   if (body.trigger !== "user_request") {
     throw badRequest("trigger must be 'user_request'");
   }

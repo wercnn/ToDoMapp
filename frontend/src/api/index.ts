@@ -139,7 +139,7 @@ export const projectsApi = {
   /** POST /projects/{id}/milestones — A4. */
   createMilestone: (projectId: string, body: { title: string; description?: string | null }) =>
     apiRequest<Milestone>(`/projects/${projectId}/milestones`, { method: "POST", body }),
-  /** POST /projects/{id}/work-packages — A3. Returns { work_package, replan_proposal? }. */
+  /** POST /projects/{id}/work-packages — A3. Direct create; replan remains manual. */
   createWorkPackage: (projectId: string, body: WorkPackageBody) =>
     apiRequest<CreateWorkPackageResult>(`/projects/${projectId}/work-packages`, {
       method: "POST",
@@ -292,9 +292,8 @@ export const tasksApi = {
   /**
    * PATCH /tasks/{id} — F4 sheet inline edit (title/notes/estimate/time-fixed/position).
    * `status`/`completed_at` are NOT editable here (use complete/reopen). Estimate/time-fixed
-   * are the discriminated unions (422 prevented structurally). NOTE: this is a DIRECT write —
-   * it does NOT generate a replan proposal even on scheduling-relevant fields. See the tracked
-   * backend gap in PROGRESS ("no targeted pin-proposal primitive").
+   * are the discriminated unions (422 prevented structurally). This is a direct write; use the
+   * manual Replan flow when schedule-impacting edits should reorganize the roadmap.
    */
   update: (
     id: string,

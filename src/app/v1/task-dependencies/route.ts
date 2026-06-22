@@ -1,6 +1,6 @@
 /**
- * POST /v1/task-dependencies — create a task→task "must finish before" edge (api §9).
- * Rejects self-dependency (422), duplicate edge (409, PK), and any cycle (409).
+ * POST /v1/task-dependencies — create legacy task-edge metadata (api §9).
+ * Task scheduling, blocked-state, and flow edges use position inside the work package.
  */
 import { handler, json, readJson } from "@/lib/http";
 import { requireAuth } from "@/auth/context";

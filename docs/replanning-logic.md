@@ -6,8 +6,9 @@ how the scheduler chooses tasks, and where to change the ranking behavior.
 ## Core Idea
 
 Replanning is a human-in-the-loop proposal flow. It does not immediately rewrite the
-roadmap. A trigger creates a `replan_proposal` row containing a JSON diff. The plan
-tables are changed only after the user approves the proposal.
+roadmap. A manual request or morning slippage recovery creates a `replan_proposal`
+row containing a JSON diff. The plan tables are changed only after the user
+approves the proposal.
 
 Main flow:
 
@@ -55,17 +56,18 @@ backend only supports a replan scope with an anchor date:
 
 The drop date is treated as "replan from here", not as a guaranteed target slot.
 
-### New work package during an active roadmap
+### Task and work-package changes
 
-`createWorkPackage` checks whether confirmed roadmap days exist. If they do, it
-creates a `new_work_package` proposal in the same transaction as the work-package
-insert. The existing plan is not touched until approval.
+Creating or editing work packages and tasks does not create a replan proposal.
+New tasks can be auto-placed on a concrete holding day, but the user must request
+a manual replan when they want the roadmap reorganized.
 
 ### Slippage detector
 
 The background job finds confirmed past days that still have planned items. It marks
 those days as `slipped` and creates a `slippage` proposal if there is something
-actionable to review. The job never applies the proposal.
+actionable to review. The job never applies the proposal; the morning brief asks the
+user which slipped tasks to do today and which to push later.
 
 ## Step By Step: Proposal Generation
 
@@ -77,7 +79,7 @@ actionable to review. The job never applies the proposal.
 
 3. `buildPlanningState` loads:
    - active goals, projects, milestones, work packages, and tasks
-   - task dependencies
+   - position-derived task dependencies inside each work package
    - work-package dependencies
    - current planned items
    - day status and lock metadata
@@ -89,7 +91,6 @@ actionable to review. The job never applies the proposal.
    - tasks outside the requested project scope
    - tasks on dates before the replan start date
    - tasks on locked days
-   - tasks on future confirmed days
    - tasks explicitly selected as "keep today"
 
 5. `analyzeReplan` calls `planRoadmap` with this config:
@@ -150,6 +151,8 @@ The high-level flow is:
    - task larger than both global and project daily capacity and not splittable
 6. Order projects by deadline pressure (see Project Urgency Ordering).
 7. Build one dependency-valid, priority-aware task queue across all projects.
+   Task-to-task order inside a work package is derived from task position: task 2
+   follows task 1, task 3 follows task 2, and so on.
 8. Fill the queue: for each task, take its earliest dependency-valid day, then scan
    forward to the first day with room under the (base + proposed-extra) capacity.
 9. If a project misses its deadline, propose extra capacity and refill from scratch
@@ -168,7 +171,8 @@ A task can be considered for a day only if all of these pass:
 - The task is not impossible.
 - Time-fixed tasks are considered only on their fixed date.
 - The current day is not earlier than the task's earliest allowed date.
-- Task-level dependencies are ready.
+- Position-derived task dependencies are satisfied. Same-day successors are allowed
+  only after their earlier-position predecessors have been assigned.
 - Work-package dependencies are ready.
 - Adding the task does not exceed global capacity for the day.
 - Adding the task does not exceed project capacity for the day.
