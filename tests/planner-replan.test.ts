@@ -333,4 +333,83 @@ describe("replan planner v1", () => {
     expect(diff.milestone_impacts).toHaveLength(1);
     expect(diff.goal_impacts).toHaveLength(1);
   });
+
+  it("schedules a tighter-deadline project ahead of a looser one under shared capacity", () => {
+    const state = baseState();
+    state.projects.P!.capacityHoursPerDay = 1; // P has no deadline
+    state.projects.P2 = {
+      id: "P2",
+      goalId: "G",
+      title: "Urgent",
+      capacityHoursPerDay: 1,
+      targetEndDate: today, // P2 is due today ⇒ higher deadline pressure
+      position: 1,
+      priority: 2,
+    };
+    state.workPackages.W3 = {
+      id: "W3",
+      projectId: "P2",
+      title: "WP3",
+      milestoneId: null,
+      estimateHours: null,
+      isTimeFixed: false,
+      fixedDate: null,
+      position: 0,
+      priority: 1,
+    };
+    state.tasks = {
+      A: task({ id: "A", workPackageId: "W1", estimateHours: 1 }), // P (looser)
+      C: task({ id: "C", workPackageId: "W3", estimateHours: 1 }), // P2 (urgent)
+    };
+
+    // Global capacity 1 ⇒ only one task fits today; the urgent project should win it,
+    // even though P sorts first by position.
+    const plan = planRoadmap(state, cfg({ globalCapacityHoursPerDay: 1 }));
+    expect(plan.assignment.C).toBe(today);
+    expect(plan.assignment.A).toBe("2026-06-20");
+  });
+
+  it("proposes minimal extra capacity to pull a project back onto its deadline", () => {
+    const state = baseState();
+    state.projects.P!.capacityHoursPerDay = 1;
+    state.projects.P!.targetEndDate = "2026-06-20"; // today + 1
+    state.tasks = {
+      A: task({ id: "A", workPackageId: "W1", estimateHours: 1 }),
+      B: task({ id: "B", workPackageId: "W1", estimateHours: 1 }),
+      C: task({ id: "C", workPackageId: "W1", estimateHours: 1 }),
+    };
+
+    // 3×1h at 1h/day finishes 2026-06-21 — one day late. The repair loop adds exactly
+    // 1h of capacity (on the day nearest the deadline) so all three fit by 06-20.
+    const plan = planRoadmap(state, cfg({ globalCapacityHoursPerDay: 8 }));
+
+    const proposal = plan.capacityProposals.find((p) => p.projectId === "P");
+    expect(proposal).toBeDefined();
+    expect(proposal!.normalProjectedDate).toBe("2026-06-21");
+    expect(proposal!.proposedProjectedDate).toBe("2026-06-20");
+    const totalExtra = proposal!.requiredExtraCapacity.reduce(
+      (sum, d) => sum + d.proposedExtraProjectHours,
+      0,
+    );
+    expect(totalExtra).toBeCloseTo(1, 5); // minimal: removing any 0.5h misses the deadline
+    expect(plan.deadlineResults.find((r) => r.projectId === "P")!.satisfied).toBe(true);
+    expect(plan.assignment.C! <= "2026-06-20").toBe(true);
+  });
+
+  it("reports an infeasible_plan conflict when no allowed extra capacity can meet the deadline", () => {
+    const state = baseState();
+    state.projects.P!.capacityHoursPerDay = 1;
+    state.projects.P!.targetEndDate = today; // only today is eligible
+    state.tasks = {};
+    for (const id of ["A", "B", "C", "D", "E", "F"]) {
+      state.tasks[id] = task({ id, workPackageId: "W1", estimateHours: 1 });
+    }
+
+    // 6h due today, but project capacity 1h/day + max 4h/day extra = 5h ⇒ impossible.
+    const plan = planRoadmap(state, cfg({ globalCapacityHoursPerDay: 12 }));
+    expect(
+      plan.conflicts.some((c) => c.type === "infeasible_plan" && c.project_id === "P"),
+    ).toBe(true);
+    expect(plan.deadlineResults.find((r) => r.projectId === "P")!.satisfied).toBe(false);
+  });
 });

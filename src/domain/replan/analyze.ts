@@ -127,6 +127,8 @@ function plannerDiffToChanges(diff: ReplanProposalDiff): Changes {
     planning_conflicts: diff.planning_conflicts,
     warnings: diff.warnings,
     split_report: splitReportToJson(diff.split_report),
+    capacity_proposals: diff.capacity_proposals,
+    deadline_results: diff.deadline_results,
   };
 }
 

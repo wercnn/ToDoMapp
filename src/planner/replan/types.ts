@@ -79,6 +79,15 @@ export interface PlannerConfig {
   allowTaskSplitting: boolean;
   objective: "min_disruption" | "earliest_completion";
   splitChunkHours?: number | null;
+  /**
+   * Virtual-capacity repair-loop knobs. When a project deadline can't be met under
+   * normal capacity, the scheduler proposes extra (overload) hours and retries.
+   * Absent ⇒ defaults from `constants.ts`; set to 0 to disable the repair loop.
+   */
+  maxIterations?: number;
+  maxExtraGlobalHoursPerDay?: number;
+  maxExtraHoursPerWeek?: number;
+  capacityIncrementStep?: number;
 }
 
 export interface PlanningState {
@@ -122,6 +131,37 @@ export interface TaskSplitReport {
   parts: TaskSplitPart[];
 }
 
+/** One overloaded day inside a project's capacity proposal (camelCase, planner-internal). */
+export interface ExtraCapacityDay {
+  date: DateString;
+  baseGlobalCapacityHours: number;
+  proposedExtraGlobalHours: number;
+  baseProjectCapacityHours: number;
+  proposedExtraProjectHours: number;
+}
+
+/**
+ * A per-project overload proposal: the extra capacity the user would need to accept
+ * to pull the project's completion back onto its deadline. `normalProjectedDate` is
+ * where the project lands under normal capacity (repair-loop iteration 0);
+ * `proposedProjectedDate` is where it lands once the extra capacity is applied.
+ */
+export interface CapacityProposal {
+  projectId: string;
+  deadline: DateString | null;
+  normalProjectedDate: DateString | null;
+  proposedProjectedDate: DateString | null;
+  requiredExtraCapacity: ExtraCapacityDay[];
+}
+
+/** Deadline satisfaction summary for one project with a `targetEndDate`. */
+export interface DeadlineResult {
+  projectId: string;
+  deadline: DateString | null;
+  projectedDate: DateString | null;
+  satisfied: boolean;
+}
+
 export interface PlanResult {
   assignment: Record<string, DateString>;
   dayItems: Record<DateString, string[]>;
@@ -134,6 +174,10 @@ export interface PlanResult {
   goalDates: Record<string, DateString | null>;
   splitReport: TaskSplitReport[];
   expandedState: PlanningState;
+  /** Per-project overload proposals (empty when the plan fits normal capacity). */
+  capacityProposals: CapacityProposal[];
+  /** Deadline satisfaction per project with a deadline. */
+  deadlineResults: DeadlineResult[];
 }
 
 export interface ReplanMove {
@@ -181,6 +225,30 @@ export interface ReplanGoalImpact {
   delta_days: number | null;
 }
 
+/** One overloaded day inside a project's capacity proposal (snake_case, wire/stored shape). */
+export interface ReplanExtraCapacityDay {
+  date: DateString;
+  base_global_capacity_hours: number;
+  proposed_extra_global_hours: number;
+  base_project_capacity_hours: number;
+  proposed_extra_project_hours: number;
+}
+
+export interface ReplanCapacityProposal {
+  project_id: string;
+  deadline: DateString | null;
+  normal_projected_date: DateString | null;
+  proposed_projected_date: DateString | null;
+  required_extra_capacity: ReplanExtraCapacityDay[];
+}
+
+export interface ReplanDeadlineResult {
+  project_id: string;
+  deadline: DateString | null;
+  projected_date: DateString | null;
+  satisfied: boolean;
+}
+
 export interface ReplanProposalDiff {
   summary: string;
   moves: ReplanMove[];
@@ -193,4 +261,7 @@ export interface ReplanProposalDiff {
   planning_conflicts: PlanningConflict[];
   warnings: string[];
   split_report: TaskSplitReport[];
+  /** Per-project overload proposals (advisory; applied only as a denser plan). */
+  capacity_proposals: ReplanCapacityProposal[];
+  deadline_results: ReplanDeadlineResult[];
 }

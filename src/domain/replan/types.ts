@@ -80,8 +80,39 @@ export interface Changes {
   kept_today_task_ids?: string[];
   today_capacity?: TodayCapacity;
   preview_days?: PreviewDay[];
+  /**
+   * Advisory per-project overload proposals: the extra capacity the user would
+   * accept to pull a project back onto its deadline. Display-only — apply never
+   * writes base capacity (extra capacity is "advisory only", v2 decision).
+   */
+  capacity_proposals?: CapacityProposal[];
+  /** Deadline satisfaction per project with a deadline, for the review UI. */
+  deadline_results?: DeadlineResult[];
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+export interface CapacityProposalDay {
+  date: string;
+  base_global_capacity_hours: number;
+  proposed_extra_global_hours: number;
+  base_project_capacity_hours: number;
+  proposed_extra_project_hours: number;
+}
+
+export interface CapacityProposal {
+  project_id: string;
+  deadline: string | null;
+  normal_projected_date: string | null;
+  proposed_projected_date: string | null;
+  required_extra_capacity: CapacityProposalDay[];
+}
+
+export interface DeadlineResult {
+  project_id: string;
+  deadline: string | null;
+  projected_date: string | null;
+  satisfied: boolean;
 }
 
 export interface DayDecision {
@@ -303,5 +334,11 @@ export function parseChanges(input: unknown): Changes {
       ? (input.today_capacity as unknown as TodayCapacity)
       : undefined,
     preview_days: Array.isArray(input.preview_days) ? (input.preview_days as PreviewDay[]) : undefined,
+    capacity_proposals: Array.isArray(input.capacity_proposals)
+      ? (input.capacity_proposals as CapacityProposal[])
+      : undefined,
+    deadline_results: Array.isArray(input.deadline_results)
+      ? (input.deadline_results as DeadlineResult[])
+      : undefined,
   };
 }

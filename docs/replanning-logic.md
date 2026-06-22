@@ -25,7 +25,9 @@ trigger
 Important files:
 
 - `src/domain/replan/analyze.ts`: reads DB state and builds planner input.
-- `src/planner/replan/scheduler.ts`: pure greedy scheduling engine.
+- `src/planner/replan/scheduler.ts`: pure queue-first scheduling engine with the
+  virtual-capacity repair loop.
+- `src/planner/replan/constants.ts`: repair-loop limits (max extra hours, iterations).
 - `src/planner/replan/proposalDiff.ts`: compares old plan vs proposed plan.
 - `src/domain/replan/proposals.ts`: proposal lifecycle.
 - `src/domain/replan/apply.ts`: applies an approved diff to roadmap tables.
@@ -124,34 +126,37 @@ It produces:
 - `time_fixed_conflicts`: time-fixed work that needs explicit user choice.
 - `planning_conflicts`: non-time-fixed planning conflicts.
 - `split_report`: flexible tasks split into smaller parts for capacity.
+- `capacity_proposals`: per-project advisory extra capacity needed to meet a deadline.
+- `deadline_results`: per-project deadline satisfaction (met or not).
 
 8. A new pending `replan_proposal` is inserted. Older pending proposals are marked
 `expired`, except the slippage job backs off from pending user-intent proposals.
 
 ## Step By Step: Scheduling
 
-The scheduler in `src/planner/replan/scheduler.ts` is deterministic and greedy. It
-does not solve a global optimization problem.
+The scheduler in `src/planner/replan/scheduler.ts` is deterministic. It builds one
+priority-ordered task queue, fills it to capacity, then repairs missed deadlines by
+proposing extra capacity. It does not solve a global optimization problem.
 
-The high-level loop is:
+The high-level flow is:
 
 1. Optionally split oversized flexible tasks into virtual parts.
-2. Validate dependency graph consistency.
-3. Build old assignment from `currentPlan`.
-4. Add locked and frozen tasks to the assignment first.
-5. Detect capacity conflicts caused by frozen work.
-6. Mark impossible tasks:
+2. Validate dependency-graph consistency (cycles, intra-WP / intra-project rules).
+3. Reserve protected work: completed-today, frozen tasks, locked-day items, and
+   time-fixed tasks. This immovable baseline is where every fill pass starts.
+4. Detect capacity conflicts caused by that reserved work.
+5. Mark impossible tasks:
    - time-fixed task with no fixed date
-   - task larger than both global and project daily capacity
-7. For each day in the horizon:
-   - add frozen tasks for that day to the scheduled set
-   - skip the day if it is locked
-   - repeatedly collect feasible candidates
-   - sort candidates by priority rank
-   - place the best candidate
-   - update load and dependency readiness
-8. Anything still unscheduled after the horizon becomes an `unscheduled_task`
-conflict.
+   - task larger than both global and project daily capacity and not splittable
+6. Order projects by deadline pressure (see Project Urgency Ordering).
+7. Build one dependency-valid, priority-aware task queue across all projects.
+8. Fill the queue: for each task, take its earliest dependency-valid day, then scan
+   forward to the first day with room under the (base + proposed-extra) capacity.
+9. If a project misses its deadline, propose extra capacity and refill from scratch
+   (the repair loop), then minimize the proposed extra once a feasible plan is found.
+10. Anything still unplaceable becomes an `unscheduled_task` conflict; a deadline that
+    cannot be met within the extra-capacity limits becomes an `infeasible_plan`
+    conflict.
 
 ## Hard Constraints
 
@@ -171,166 +176,71 @@ A task can be considered for a day only if all of these pass:
 
 ## Objective Function
 
-The current "objective function" is a greedy lexicographic ranking, not a summed
-score. For each day, all feasible candidates are sorted by a rank tuple. The
-scheduler picks the candidate with the smallest tuple.
+The guiding objective is to keep already-planned work still, finish projects by their
+deadlines, never silently exceed capacity, keep work packages together, and respect
+priority. The scheduler does not minimize a single weighted score; it encodes those
+preferences structurally:
 
-The configured production objective is currently:
+- Hard constraints are feasibility filters: dependency order, time-fixed dates, locked
+  days, and capacity (base plus any explicitly proposed extra).
+- Soft preferences are encoded in ordering: project urgency, work-package critical
+  path, and task position decide what gets capacity first.
 
-```text
-objective: "earliest_completion"
-```
+The earliest-day selection still honors a per-task objective knob:
 
-There is also support for:
+- `earliest_completion` (production): a flexible task may be pulled as early as the
+  replan start date if dependencies and capacity allow.
+- `min_disruption`: a flexible task with an old future date is floored at that old
+  date, reducing movement.
+- Time-fixed tasks always use their fixed date.
 
-```text
-objective: "min_disruption"
-```
+## Project Urgency Ordering
 
-The objective affects earliest allowed date:
-
-- `earliest_completion`: flexible tasks may be pulled as early as the replan start
-  date if dependencies and capacity allow it.
-- `min_disruption`: if a task already had an old future date, it cannot be moved
-  earlier than that old date.
-- Time-fixed tasks always use their fixed date as earliest allowed date.
-
-## Priority Ranking Calculation
-
-The ranking is calculated in `rankTask(taskId, currentDay)`.
-
-Code-equivalent tuple:
-
-```ts
-[
-  -isFixedToday,
-  -wasPlannedToday,
-  -isOverdueFromOldPlan,
-  fixedPressure,
-  project.priority,
-  task.priority,
-  oldDelta,
-  project.position,
-  wp.position,
-  task.position,
-  -isNewTask,
-  taskId,
-]
-```
-
-The scheduler sorts ascending. That means smaller values win.
-
-### Ranking Fields
-
-`isFixedToday`
+`sortProjectsByUrgency` ranks projects before any task is placed. For each project
+with a `target_end_date`:
 
 ```text
-1 if task.isTimeFixed and task.fixedDate == currentDay
-0 otherwise
+required_daily    = remaining_effort / eligible_days_before_deadline
+deadline_pressure = required_daily / project.capacity_hours_per_day
 ```
 
-The tuple uses `-isFixedToday`, so fixed work due today wins before non-fixed work.
+Projects sort by: already-missed deadline first, then highest pressure, then closest
+deadline, then `position` (the explicit-priority proxy — there is still no separate
+priority column). Pressure also predicts the repair loop: `> 1.0` means the deadline
+is unreachable under normal capacity, so extra capacity will be proposed.
 
-`wasPlannedToday`
+## Queue Construction
 
-```text
-1 if the old assignment date == currentDay
-0 otherwise
-```
+`buildTaskQueue` produces one global queue. Projects come in urgency order; inside a
+project, work packages are topologically sorted and, among ready WPs, ordered by
+critical-path length, then downstream-WP count, then position; inside a WP, tasks are
+topologically sorted and ordered by position. Because v1 dependencies stay
+intra-project, the queue alone guarantees predecessor-before-successor, and keeping a
+work package's tasks contiguous is what holds it together.
 
-The tuple uses `-wasPlannedToday`, so tasks already planned for this day are favored.
-This reduces unnecessary movement.
+The fill (`assignQueue`) walks the queue once: each task takes its earliest
+dependency-valid day, then scans forward to the first day with room under the
+`base + proposed-extra` capacity envelope, skipping locked days.
 
-`isOverdueFromOldPlan`
+## Virtual-Capacity Repair Loop
 
-```text
-1 if the task had an old date before the replan start date
-0 otherwise
-```
+When the fill leaves a project past its deadline, the scheduler proposes extra
+(overload) capacity rather than just giving up:
 
-The tuple uses `-isOverdueFromOldPlan`, so overdue work is favored.
+1. Find the highest-priority project that misses its deadline.
+2. Add one `capacity_increment_step` (0.5h) of extra capacity on the eligible day
+   closest to the deadline, raising the project and global ceilings in lockstep.
+3. Refill the whole queue from scratch — added capacity can shift earlier placements.
+4. Repeat until every deadline is met or a limit is hit: `max_extra_hours_per_day`
+   (4), `max_extra_hours_per_week` (10), `max_iterations` (100). Hitting a limit emits
+   an `infeasible_plan` conflict.
+5. Once feasible, minimize: try removing each proposed increment and keep the removal
+   only if no previously-satisfied deadline regresses.
 
-`fixedPressure`
-
-```text
-daysBetween(currentDay, task.fixedDate), if task has fixedDate
-9999 otherwise
-```
-
-Lower wins. A task with a nearer fixed date has more scheduling pressure. In normal
-valid data, only time-fixed tasks have `fixedDate`.
-
-`project.priority`
-
-Lower wins. In the current repository, `project.priority` is loaded from
-`project.position` in `analyze.ts`. There is no separate persisted project priority
-field in the checked-in schema.
-
-`task.priority`
-
-Lower wins. In the current repository, `task.priority` is loaded from `task.position`
-in `analyze.ts`. There is no separate persisted task priority field in the checked-in
-schema.
-
-`oldDelta`
-
-```text
-abs(daysBetween(oldDate, currentDay)), if task had an old date
-9999 otherwise
-```
-
-Lower wins. This favors keeping tasks close to where they already were.
-
-`project.position`, `wp.position`, `task.position`
-
-Lower wins. These are stable WBS ordering tie-breakers.
-
-`isNewTask`
-
-```text
-1 if the task had no old assignment
-0 otherwise
-```
-
-The tuple uses `-isNewTask`, so if all earlier fields tie, new tasks beat old tasks.
-In practice, old tasks often win earlier through `wasPlannedToday` and `oldDelta`.
-
-`taskId`
-
-Final deterministic tie-breaker.
-
-### Example Ranking
-
-Assume today is `2026-06-22`, current day being filled is also `2026-06-22`, and
-all tasks fit capacity.
-
-Task A:
-
-```text
-old date: 2026-06-22
-fixed: no
-project position: 0
-task position: 2
-```
-
-Task B:
-
-```text
-old date: none
-fixed: no
-project position: 0
-task position: 1
-```
-
-Their important rank fields:
-
-```text
-A: wasPlannedToday = 1, oldDelta = 0, isNewTask = 0
-B: wasPlannedToday = 0, oldDelta = 9999, isNewTask = 1
-```
-
-Because `-wasPlannedToday` is compared before task position, A wins even though B
-has a lower task position.
+The proposed extra capacity is **advisory**. It is reported on the proposal as
+`capacity_proposals` (per project, per day, with `normal_projected_date` vs
+`proposed_projected_date`) and `deadline_results`, but approval only writes the denser
+day assignments — base capacities are never changed.
 
 ## Time-Fixed Work
 
@@ -404,53 +314,39 @@ preview and from later active move selection.
 
 The proposal remains `pending` until every review date is decided.
 
-## How To Modify The Ranking
+## How To Modify The Scheduler
 
-Most ranking changes belong in `rankTask` in:
+Ordering changes belong in `src/planner/replan/scheduler.ts`:
 
-```text
-src/planner/replan/scheduler.ts
-```
+- Project order: edit `sortProjectsByUrgency` (e.g. weight explicit priority over
+  pressure, or change how `eligible_days_before_deadline` is counted).
+- Work-package order: edit the `wpCompare` comparator in `buildTaskQueue` (critical
+  path vs downstream count vs position).
+- Task order: edit the `taskCompare` comparator in `buildTaskQueue`.
 
-Common changes:
+Deadline reasoning is keyed on `project.target_end_date` only. Milestones and goals
+have no deadline column; their dates remain derived projections surfaced as impacts.
+If a persisted project-priority column is added, also populate `project.priority` in
+`buildPlanningState` (`src/domain/replan/analyze.ts`) — today it is copied from
+`position`.
 
-- Give real priority fields more weight by placing `project.priority`,
-  `wp.priority`, or `task.priority` earlier in the tuple.
-- Favor earliest completion more aggressively by moving `oldDelta` later.
-- Favor stability more aggressively by moving `oldDelta` earlier.
-- Favor shortest tasks by adding `task.estimateHours` before position.
-- Favor deadline pressure by adding project target date or milestone target date.
-- Prevent new tasks from jumping ahead by replacing `-isNewTask` with `isNewTask`.
+## How To Tune The Repair Loop
 
-If a new persisted priority column is added, also update `buildPlanningState` in:
-
-```text
-src/domain/replan/analyze.ts
-```
-
-Today, `priority` is just copied from `position`, so editing the tuple alone will not
-create a new priority concept unless the planner state starts receiving one.
+Repair behavior is controlled by the limits in `src/planner/replan/constants.ts`
+(`MAX_ITERATIONS`, `MAX_EXTRA_GLOBAL_HOURS_PER_DAY`, `MAX_EXTRA_HOURS_PER_WEEK`,
+`CAPACITY_INCREMENT_STEP`) and can be overridden per request by setting the matching
+`PlannerConfig` fields in `analyzeReplan` (set iterations or per-day extra to 0 to
+disable it). The distribution policy — which day gets the next increment — lives in
+`addCapacityIncrement`; the trimming policy lives in the STEP-11 minimization block.
 
 ## How To Modify The Objective
 
-To switch the current production behavior from earliest completion to minimum
-disruption, change the planner config in `analyzeReplan`:
+The production objective for earliest-day selection is `earliest_completion`, with
+`min_disruption` available (it floors a flexible task's earliest day at its old date).
+Switch it via `PlannerConfig.objective` in `analyzeReplan`.
 
-```text
-objective: "earliest_completion"
-```
-
-to:
-
-```text
-objective: "min_disruption"
-```
-
-To make objective user-configurable, pass a request-level or user-setting value into
-`analyzeReplan`, validate it, and set `PlannerConfig.objective` from that value.
-
-For a true optimizer, replace the greedy day loop with a model that minimizes a
-weighted cost function, for example:
+For a true weighted-cost optimizer, replace the queue fill with a model that minimizes
+a cost function, for example:
 
 ```text
 total cost =

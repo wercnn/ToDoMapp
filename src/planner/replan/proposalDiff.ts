@@ -2,6 +2,8 @@ import type {
   DateString,
   PlanResult,
   PlanningState,
+  ReplanCapacityProposal,
+  ReplanDeadlineResult,
   ReplanGoalImpact,
   ReplanInsertion,
   ReplanMilestoneImpact,
@@ -184,13 +186,37 @@ export function createProposalDiff(
     a.task_id < b.task_id ? -1 : a.task_id > b.task_id ? 1 : 0,
   );
 
+  const capacity_proposals: ReplanCapacityProposal[] = planResult.capacityProposals.map((p) => ({
+    project_id: p.projectId,
+    deadline: p.deadline,
+    normal_projected_date: p.normalProjectedDate,
+    proposed_projected_date: p.proposedProjectedDate,
+    required_extra_capacity: p.requiredExtraCapacity.map((d) => ({
+      date: d.date,
+      base_global_capacity_hours: d.baseGlobalCapacityHours,
+      proposed_extra_global_hours: d.proposedExtraGlobalHours,
+      base_project_capacity_hours: d.baseProjectCapacityHours,
+      proposed_extra_project_hours: d.proposedExtraProjectHours,
+    })),
+  }));
+
+  const deadline_results: ReplanDeadlineResult[] = planResult.deadlineResults.map((r) => ({
+    project_id: r.projectId,
+    deadline: r.deadline,
+    projected_date: r.projectedDate,
+    satisfied: r.satisfied,
+  }));
+
+  const capacitySuffix =
+    capacity_proposals.length > 0 ? ` ${capacity_proposals.length} capacity proposal(s).` : "";
   const summary =
     `${movesOnly.length} moved, ` +
     `${insertions.length} inserted, ` +
     `${unchanged.length} unchanged, ` +
     `${removedOrUnplanned.length} unplanned/removed, ` +
     `${planResult.conflicts.length} conflicts, ` +
-    `${planResult.splitReport.length} tasks split.`;
+    `${planResult.splitReport.length} tasks split.` +
+    capacitySuffix;
 
   return {
     summary,
@@ -204,5 +230,7 @@ export function createProposalDiff(
     planning_conflicts: planningConflicts,
     warnings: planResult.warnings,
     split_report: planResult.splitReport,
+    capacity_proposals,
+    deadline_results,
   };
 }
