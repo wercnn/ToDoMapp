@@ -20,11 +20,15 @@ import { readDay, type DayView } from "./roadmapRead";
 import { getStats, type StatsView } from "./me";
 import { scheduledMilestoneDates } from "./scheduleDates";
 import { listProposals } from "./replan/proposals";
+import { getProposalDetailView, type ReplanProposalDetailView } from "./replan/dayReview";
+import { emptyChanges, type Changes, type ReplanRecoveryMeta } from "./replan/types";
 
 export interface MorningBrief {
   today: DayView | null;
   stats: StatsView;
   pending_proposal: { id: string; summary: string } | null;
+  pending_replan: ReplanProposalDetailView | null;
+  recovery: ReplanRecoveryMeta | null;
   position: { today: string; current_streak: number };
   next_milestone: { id: string; title: string; projected_date: string; days_away: number } | null;
 }
@@ -34,6 +38,32 @@ function dayDiff(from: string, to: string): number {
   const a = Date.parse(`${from}T00:00:00Z`);
   const b = Date.parse(`${to}T00:00:00Z`);
   return Math.round((b - a) / 86_400_000);
+}
+
+function normalizeChanges(input: unknown): Changes {
+  return { ...emptyChanges(), ...((input ?? {}) as Changes) };
+}
+
+async function latestResolvedRecovery(
+  db: Kysely<Database>,
+  workspaceId: string,
+  today: string,
+): Promise<ReplanRecoveryMeta | null> {
+  const rows = await db
+    .selectFrom("replan_proposal")
+    .select(["changes", "applied_changes"])
+    .where("workspace_id", "=", workspaceId)
+    .where("trigger", "=", "slippage")
+    .where("status", "in", ["approved", "edited_approved"])
+    .orderBy("created_at", "desc")
+    .limit(20)
+    .execute();
+
+  for (const row of rows) {
+    const recovery = normalizeChanges(row.applied_changes ?? row.changes).recovery;
+    if (recovery?.local_date === today) return recovery;
+  }
+  return null;
 }
 
 export async function getMorningBrief(
@@ -70,6 +100,10 @@ export async function getMorningBrief(
   const pendingProposal = pending.length
     ? { id: pending[0]!.id, summary: pending[0]!.summary }
     : null;
+  const pendingReplan = pending.length
+    ? await getProposalDetailView(db, ctx, pending[0]!.id)
+    : null;
+  const recovery = pendingReplan?.changes.recovery ?? (await latestResolvedRecovery(db, ctx.workspaceId, today));
 
   // Nearest milestone = unachieved, datable, with the EARLIEST projected_date.
   const milestoneDates = await scheduledMilestoneDates(db, ctx, { now });
@@ -100,6 +134,8 @@ export async function getMorningBrief(
     today: todayView,
     stats,
     pending_proposal: pendingProposal,
+    pending_replan: pendingReplan,
+    recovery,
     position: { today, current_streak: stats.current_streak },
     next_milestone: nextMilestone,
   };

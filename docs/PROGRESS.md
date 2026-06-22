@@ -84,8 +84,8 @@ received a prototype-parity pass against `docs/design/project/TodoMapp Prototype
     item → `slipped`, then calls the existing trigger-agnostic `createProposalInTx({trigger:'slippage'})`.
     **Invariant #5**: writes ONLY `daily_plan_day.status` + a proposal row — never a `daily_plan_item`,
     never `applyChanges` (it imports neither). Mark+propose commit in one tx (no slipped-day-without-proposal).
-    Empty diff → no no-op proposal. **Cross-trigger product rule**: backs off (no proposal) when a pending
-    `user_request`/`new_work_package` proposal exists — won't clobber user intent; a pending `slippage` may refresh.
+    Empty diff → no no-op proposal. A recovery proposal supersedes older pending proposals so slipped work
+    is not stranded behind the roadmap.
   - **Morning brief** (`jobs/morningBrief.ts`): pref-gated; **catch-up via ledger**, not window-crossing —
     "local time ≥ `morning_brief_time` today AND no `notification_dispatch` row for the day" → sends once,
     so a skipped tick just sends late.
@@ -97,9 +97,9 @@ received a prototype-parity pass against `docs/design/project/TodoMapp Prototype
   - **Push delivery**: built behind a swappable `Notifier` (`jobs/notifier.ts`); v1 binds `LogNotifier`
     (logs the send). Real APNs is a later drop-in — not blocking. Idempotency ledger = `notification_dispatch`
     (`(user, kind, dedupe_key)` unique; claim-then-send via `INSERT … ON CONFLICT DO NOTHING`).
-  - **8 tests pass** (`tests/jobs.test.ts`): slipped-marking + exactly-one-proposal + idempotent re-run;
+  - **Jobs tests** (`tests/jobs.test.ts`): slipped-marking + exactly-one-proposal + idempotent re-run;
     invariant #5 (items byte-identical before/after); the **per-user timezone boundary** (UTC vs UTC-12,
-    same instant); cross-trigger backoff; morning-brief due/flag/dedupe; replan-nudge gate+dedupe; stale prune.
+    same instant); cross-trigger recovery supersession; morning-brief due/flag/dedupe; replan-nudge gate+dedupe; stale prune.
 - **Roadmap projection & daily-planning reads (Phase 6)**: the roadmap is a PROJECTION,
   never stored (data-model §6) — only proposed/confirmed days persist; the rest is recomputed.
   - **Planner 2A** (`src/planner`): additive optional `edges: TaskEdge[]` → STAGED UNBLOCKING

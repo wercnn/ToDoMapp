@@ -28,6 +28,7 @@ function cloneState(state: PlanningState): PlanningState {
     ),
     dayMeta: Object.fromEntries(Object.entries(state.dayMeta).map(([k, v]) => [k, { ...v }])),
     frozenTaskIds: state.frozenTaskIds ? [...state.frozenTaskIds] : undefined,
+    earliestTaskDateById: state.earliestTaskDateById ? { ...state.earliestTaskDateById } : undefined,
   };
 }
 
@@ -158,6 +159,14 @@ export function expandStateForTaskSplitting(
   }
 
   expanded.frozenTaskIds = (state.frozenTaskIds ?? []).flatMap((taskId) => splitParts.get(taskId) ?? [taskId]);
+  if (state.earliestTaskDateById) {
+    expanded.earliestTaskDateById = {};
+    for (const [taskId, date] of Object.entries(state.earliestTaskDateById)) {
+      for (const id of splitParts.get(taskId) ?? [taskId]) {
+        expanded.earliestTaskDateById[id] = date;
+      }
+    }
+  }
 
   return { expandedState: expanded, splitReport };
 }

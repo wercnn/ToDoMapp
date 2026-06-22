@@ -102,6 +102,8 @@ export interface PlanningState {
   dayMeta: Record<DateString, DayMeta>;
   /** Assigned and capacity-counted, but not eligible for movement. */
   frozenTaskIds?: string[];
+  /** Optional per-task lower bound used by recovery flows. */
+  earliestTaskDateById?: Record<string, DateString>;
 }
 
 export interface PlanningConflict {

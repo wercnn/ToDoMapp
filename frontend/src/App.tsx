@@ -51,6 +51,7 @@ export function App() {
         }
       >
         <Route path="/home" element={<Home />} />
+        <Route path="/morning-brief" element={<Home />} />
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/projects/:projectId" element={<ProjectDetail />} />
       </Route>

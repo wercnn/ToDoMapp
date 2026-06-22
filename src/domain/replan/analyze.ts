@@ -7,7 +7,7 @@
  */
 import type { Executor } from "../../db/transaction";
 import type { WorkspaceContext } from "../../auth/context";
-import { localDate } from "../../lib/dates";
+import { addDays, localDate } from "../../lib/dates";
 import { resolveHours } from "../../planner/constants";
 import { createProposalDiff, planRoadmap } from "../../planner/replan";
 import type {
@@ -33,6 +33,11 @@ export interface AnalyzeOptions {
   allowTaskSplitting?: boolean;
   splitChunkHours?: number | null;
   keepTodayTaskIds?: string[];
+  recovery?: {
+    slippedDayIds?: string[];
+    slippedDates?: string[];
+    todayTaskIds?: string[];
+  };
 }
 
 /** A currently-planned item (the diff baseline): which day a task sits on today. */
@@ -135,13 +140,20 @@ function plannerDiffToChanges(diff: ReplanProposalDiff): Changes {
 async function buildPlanningState(
   db: Executor,
   ctx: WorkspaceContext,
-  opts: { startDate: string; scope?: ReplanScope; keepTodayTaskIds?: string[] },
+  opts: {
+    startDate: string;
+    scope?: ReplanScope;
+    keepTodayTaskIds?: string[];
+    recovery?: AnalyzeOptions["recovery"];
+  },
 ): Promise<{
   state: PlanningState;
   globalCapacityHoursPerDay: number;
   globalCapacityHoursByDate: Record<string, number>;
   projectCapacityHoursByDate: Record<string, Record<string, number>>;
   todayCapacity: TodayCapacity;
+  recovery: NonNullable<Changes["recovery"]> | null;
+  originalCurrentPlan: PlanningState["currentPlan"];
 }> {
   const goals: PlanningState["goals"] = {};
   const projects: PlanningState["projects"] = {};
@@ -321,6 +333,13 @@ async function buildPlanningState(
       isConfirmed: day.status === "confirmed" || day.status === "completed" || day.status === "slipped",
     };
   }
+  const recoveryDateSet = new Set<string>(opts.recovery?.slippedDates ?? []);
+  if (opts.recovery?.slippedDayIds?.length) {
+    const recoveryDayIds = new Set(opts.recovery.slippedDayIds);
+    for (const day of dayRows) {
+      if (recoveryDayIds.has(day.id)) recoveryDateSet.add(day.plan_date);
+    }
+  }
 
   const itemRows = await db
     .selectFrom("daily_plan_item")
@@ -331,12 +350,30 @@ async function buildPlanningState(
     .orderBy("position")
     .execute();
   const currentPlan: PlanningState["currentPlan"] = {};
+  const recoverySlippedTaskIds: string[] = [];
   for (const item of itemRows) {
     if (!item.task_id || !tasks[item.task_id]) continue;
     const date = dayDateById.get(item.daily_plan_day_id);
     if (!date) continue;
     (currentPlan[date] ??= []).push(item.task_id);
+    if (recoveryDateSet.has(date)) recoverySlippedTaskIds.push(item.task_id);
   }
+  const recoveryTaskSet = new Set(recoverySlippedTaskIds);
+  const recoveryMovableTaskSet = new Set(
+    recoverySlippedTaskIds.filter((taskId) => {
+      const task = tasks[taskId];
+      return task && task.status !== "done" && !task.replacedAt && !task.isTimeFixed;
+    }),
+  );
+  const requestedToday = opts.recovery?.todayTaskIds
+    ? new Set(opts.recovery.todayTaskIds)
+    : recoveryMovableTaskSet;
+  const recoveryTodayTaskSet = new Set(
+    [...requestedToday].filter((taskId) => recoveryMovableTaskSet.has(taskId)),
+  );
+  const recoveryFutureTaskSet = new Set(
+    [...recoveryMovableTaskSet].filter((taskId) => !recoveryTodayTaskSet.has(taskId)),
+  );
 
   const frozenTaskIds = new Set<string>();
   const keepTodayTaskIds = new Set(opts.keepTodayTaskIds ?? []);
@@ -346,7 +383,7 @@ async function buildPlanningState(
       const wp = task ? workPackages[task.workPackageId] : undefined;
       if (!task || !wp) continue;
       if (opts.scope?.project_id && wp.projectId !== opts.scope.project_id) frozenTaskIds.add(taskId);
-      if (date < opts.startDate) frozenTaskIds.add(taskId);
+      if (date < opts.startDate && !recoveryTaskSet.has(taskId)) frozenTaskIds.add(taskId);
       if (stateDayFrozen(dayMeta[date], date, opts.startDate)) frozenTaskIds.add(taskId);
       if (date === opts.startDate && keepTodayTaskIds.has(taskId)) frozenTaskIds.add(taskId);
     }
@@ -415,6 +452,30 @@ async function buildPlanningState(
       [opts.startDate]: Math.max(0, project.capacityHoursPerDay - completedProjectHours),
     };
   }
+  const planningCurrentPlan: PlanningState["currentPlan"] = Object.fromEntries(
+    Object.entries(currentPlan).map(([date, ids]) => [
+      date,
+      ids.filter((taskId) => !recoveryTodayTaskSet.has(taskId)),
+    ]),
+  );
+  const selectedToday = [...recoveryTodayTaskSet].sort();
+  if (selectedToday.length > 0) {
+    const current = planningCurrentPlan[opts.startDate] ?? [];
+    planningCurrentPlan[opts.startDate] = [...current, ...selectedToday.filter((taskId) => !current.includes(taskId))];
+    for (const taskId of selectedToday) frozenTaskIds.add(taskId);
+  }
+  const earliestTaskDateById: Record<string, string> = {};
+  for (const taskId of recoveryFutureTaskSet) earliestTaskDateById[taskId] = addDays(opts.startDate, 1);
+  const recovery =
+    recoveryDateSet.size > 0 || recoverySlippedTaskIds.length > 0
+      ? {
+          local_date: opts.startDate,
+          slipped_dates: [...recoveryDateSet].sort(),
+          slipped_task_ids: [...new Set(recoverySlippedTaskIds)].sort(),
+          selected_today_task_ids: selectedToday,
+          pushed_future_task_ids: [...recoveryFutureTaskSet].sort(),
+        }
+      : null;
 
   return {
     state: {
@@ -425,9 +486,10 @@ async function buildPlanningState(
       tasks,
       taskDependencies,
       workPackageDependencies,
-      currentPlan,
+      currentPlan: planningCurrentPlan,
       dayMeta,
       frozenTaskIds: [...frozenTaskIds],
+      ...(Object.keys(earliestTaskDateById).length > 0 ? { earliestTaskDateById } : {}),
     },
     globalCapacityHoursPerDay,
     globalCapacityHoursByDate,
@@ -438,6 +500,8 @@ async function buildPlanningState(
       completed_hours: completedHours,
       remaining_hours: globalCapacityHoursByDate[opts.startDate]!,
     },
+    recovery,
+    originalCurrentPlan: currentPlan,
   };
 }
 
@@ -469,11 +533,27 @@ export async function analyzeReplan(
   const now = opts.now ?? new Date();
   const startDate = opts.scope?.from_date ?? localDate(ctx.timezone, now);
   const horizonDays = opts.horizonDays ?? DEFAULT_HORIZON_DAYS;
-  const { state, globalCapacityHoursPerDay, globalCapacityHoursByDate, projectCapacityHoursByDate, todayCapacity } = await buildPlanningState(db, ctx, {
+  const {
+    state,
+    globalCapacityHoursPerDay,
+    globalCapacityHoursByDate,
+    projectCapacityHoursByDate,
+    todayCapacity,
+    recovery,
+    originalCurrentPlan,
+  } = await buildPlanningState(db, ctx, {
     startDate,
     scope: opts.scope,
     keepTodayTaskIds: opts.keepTodayTaskIds,
+    recovery: opts.recovery,
   });
+
+  const originalState: PlanningState = {
+    ...state,
+    currentPlan: Object.fromEntries(
+      Object.entries(originalCurrentPlan).map(([date, ids]) => [date, [...ids]]),
+    ),
+  };
 
   const config: PlannerConfig = {
     today: startDate,
@@ -488,12 +568,13 @@ export async function analyzeReplan(
   };
 
   const plan = planRoadmap(state, config);
-  const diff = createProposalDiff(state, plan);
+  const diff = createProposalDiff(originalState, plan);
   const changes = plannerDiffToChanges(diff);
   changes.review_dates = dateSetFromChanges(changes, startDate);
   changes.rejected_dates = [];
   changes.day_decisions = [];
   changes.kept_today_task_ids = opts.keepTodayTaskIds ?? [];
   changes.today_capacity = todayCapacity;
+  if (recovery) changes.recovery = recovery;
   return { summary: summarize(changes), changes };
 }

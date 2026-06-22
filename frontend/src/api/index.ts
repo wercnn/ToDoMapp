@@ -262,6 +262,22 @@ export const replanApi = {
     apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}/days/${date}/reject`, {
       method: "POST",
     }),
+  recoveryPreview: (
+    id: string,
+    body: { today_task_ids: string[]; time_fixed_resolutions?: TimeFixedResolution[] },
+  ) =>
+    apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}/recovery-preview`, {
+      method: "POST",
+      body,
+    }),
+  recoveryApply: (
+    id: string,
+    body: { today_task_ids: string[]; time_fixed_resolutions?: TimeFixedResolution[] },
+  ) =>
+    apiRequest<ReplanProposalDetail>(`/replan-proposals/${id}/recovery-apply`, {
+      method: "POST",
+      body,
+    }),
 };
 
 export const tasksApi = {

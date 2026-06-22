@@ -24,7 +24,7 @@ import type { WorkspaceContext } from "../../auth/context";
 import { withTransaction } from "../../db/transaction";
 import { localDate } from "../../lib/dates";
 import { analyzeReplan } from "../replan/analyze";
-import { createProposalInTx, hasPendingUserIntentProposal } from "../replan/proposals";
+import { createProposalInTx } from "../replan/proposals";
 
 export interface SlippageResult {
   slippedDayIds: string[];
@@ -52,6 +52,7 @@ async function findSlippableDayIds(
           .where("i.status", "=", "planned"),
       ),
     )
+    .orderBy("d.plan_date")
     .execute();
   return rows.map((r) => r.id);
 }
@@ -73,7 +74,10 @@ export async function detectSlippageForUser(
 
   // Analyze BEFORE the write transaction: it's a heavy read and the 'slipped' flag
   // doesn't touch items, so the prospective diff is identical either way.
-  const { summary, changes } = await analyzeReplan(db, ctx, { now });
+  const { summary, changes } = await analyzeReplan(db, ctx, {
+    now,
+    recovery: { slippedDayIds },
+  });
   const actionable =
     changes.moves.length > 0 ||
     changes.time_fixed_conflicts.length > 0 ||
@@ -90,11 +94,6 @@ export async function detectSlippageForUser(
 
     // Nothing to replan → mark the day slipped but don't manufacture a no-op proposal.
     if (!actionable) return { slippedDayIds, proposalCreated: false };
-
-    // Don't clobber a proposal the user initiated and may be about to approve.
-    if (await hasPendingUserIntentProposal(trx, ctx.workspaceId)) {
-      return { slippedDayIds, proposalCreated: false };
-    }
 
     await createProposalInTx(trx, ctx, { trigger: "slippage", summary, changes, now });
     return { slippedDayIds, proposalCreated: true };

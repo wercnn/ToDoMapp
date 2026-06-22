@@ -14,6 +14,7 @@ import {
   Moon,
   Plus,
   RotateCcw,
+  Sparkles,
   Sun,
 } from "lucide-react";
 import { daysApi, morningBriefApi, planItemsApi, tasksApi } from "@/api";
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { deriveTodayProgress } from "@/lib/planningDisplay";
 import { useAddableTasks } from "@/screens/roadmap/useAddableTasks";
 
-export function TopBar() {
+export function TopBar({ onOpenBrief }: { onOpenBrief?: () => void }) {
   const { signOut } = useSession();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -41,6 +42,7 @@ export function TopBar() {
   const taskIds = entries.map((entry) => entry.item.task_id).filter((id): id is string => id != null);
   const progress = deriveTodayProgress(entries);
   const stats = brief.data?.stats;
+  const hasPendingRecovery = Boolean(brief.data?.pending_replan?.changes.recovery);
 
   const addable = useAddableTasks(expanded && quickAddOpen, taskIds);
 
@@ -107,6 +109,24 @@ export function TopBar() {
             size={16}
             className={cn("ml-auto flex-none text-text-tertiary transition-transform", expanded && "rotate-180")}
           />
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenBrief}
+          title="Open morning brief"
+          aria-label="Open morning brief"
+          className={cn(
+            "relative flex h-9 w-9 flex-none items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]",
+            hasPendingRecovery
+              ? "bg-system-soft text-system hover:bg-system-soft/80"
+              : "text-text-tertiary hover:bg-surface-2 hover:text-text-primary",
+          )}
+        >
+          <Sparkles size={16} />
+          {hasPendingRecovery && (
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-system" />
+          )}
         </button>
 
         <div className="hidden items-center gap-5 md:flex">

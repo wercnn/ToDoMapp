@@ -13,13 +13,24 @@ import type { Kysely, Transaction } from "kysely";
 import type { Database, ProposalStatus, ProposalTrigger, ReplanProposal } from "../../db/types";
 import type { AuthContext, WorkspaceContext } from "../../auth/context";
 import { withTransaction } from "../../db/transaction";
-import { conflict, notFound } from "../../lib/errors";
+import { badRequest, conflict, notFound, unprocessable } from "../../lib/errors";
 import { localDate } from "../../lib/dates";
 import { recordEngagement, refreshStats } from "../engagement";
 import { analyzeReplan, type ReplanScope } from "./analyze";
 import { applyChanges, type ApplyResult } from "./apply";
-import { parseChanges, type Changes } from "./types";
-import { proposalHasDayDecisions } from "./dayReview";
+import {
+  emptyChanges,
+  parseChanges,
+  type Changes,
+  type ReplanRecoveryMeta,
+  type TimeFixedResolution,
+} from "./types";
+import {
+  buildProposalPreview,
+  getProposalDetailView,
+  proposalHasDayDecisions,
+  type ReplanProposalDetailView,
+} from "./dayReview";
 
 /** A newer pending proposal supersedes any older one (data-model §9.4). */
 async function expireOlderPending(
@@ -56,28 +67,6 @@ export async function createProposalInTx(
     })
     .returningAll()
     .executeTakeFirstOrThrow();
-}
-
-/**
- * Does this workspace have a pending proposal the USER initiated (`user_request`)
- * or that resulted from their own edit (`new_work_package`)? The automatic slippage
- * detector backs off when one exists rather than superseding it — overwriting a
- * proposal the user is about to approve would erase their intent (Phase 5 product
- * decision). A pending `slippage` proposal carries no such intent, so it may be
- * refreshed/superseded normally.
- */
-export async function hasPendingUserIntentProposal(
-  trx: Transaction<Database>,
-  workspaceId: string,
-): Promise<boolean> {
-  const row = await trx
-    .selectFrom("replan_proposal")
-    .select("id")
-    .where("workspace_id", "=", workspaceId)
-    .where("status", "=", "pending")
-    .where("trigger", "in", ["user_request", "new_work_package"])
-    .executeTakeFirst();
-  return row !== undefined;
 }
 
 /** Analyze current state and persist a pending proposal. Any trigger. */
@@ -132,9 +121,192 @@ export async function getProposal(
   return row;
 }
 
+function normalizeChanges(input: unknown): Changes {
+  return { ...emptyChanges(), ...((input ?? {}) as Changes) };
+}
+
+function assertRecovery(changes: Changes): ReplanRecoveryMeta {
+  if (!changes.recovery) throw badRequest("Proposal does not contain a recovery flow.");
+  return changes.recovery;
+}
+
+function applyTimeFixedRecoveryChoices(
+  changes: Changes,
+  resolutions: TimeFixedResolution[],
+  today: string,
+): Changes {
+  const resolutionByTask = new Map(resolutions.map((r) => [r.task_id, r]));
+  const normalizedResolutions: TimeFixedResolution[] = [];
+  const resolvedTaskIds = new Set(resolutions.map((r) => r.task_id));
+  const moves = [...(changes.moves ?? [])].filter((move) => !resolvedTaskIds.has(move.task_id));
+
+  for (const conflict of changes.time_fixed_conflicts ?? []) {
+    const res = resolutionByTask.get(conflict.task_id);
+    if (!res) continue;
+    if (res.choice === "descope") {
+      moves.push({ task_id: conflict.task_id, from_date: conflict.fixed_date, to_date: null });
+      normalizedResolutions.push(res);
+      continue;
+    }
+    const newDate = res.choice === "prioritize" ? today : res.new_fixed_date;
+    if (!newDate) throw unprocessable(`renegotiate of task ${conflict.task_id} requires new_fixed_date.`);
+    moves.push({ task_id: conflict.task_id, from_date: conflict.fixed_date, to_date: newDate });
+    normalizedResolutions.push({
+      task_id: conflict.task_id,
+      choice: "renegotiate",
+      new_fixed_date: newDate,
+    });
+  }
+
+  return {
+    ...changes,
+    moves,
+    time_fixed_resolutions: normalizedResolutions,
+  };
+}
+
+function unresolvedTimeFixedRecoveryConflicts(
+  changes: Changes,
+  resolutions: TimeFixedResolution[],
+): string[] {
+  const resolved = new Set(resolutions.map((r) => r.task_id));
+  return (changes.time_fixed_conflicts ?? [])
+    .map((conflict) => conflict.task_id)
+    .filter((taskId) => !resolved.has(taskId));
+}
+
+function recoveryBlockingConflicts(changes: Changes): Changes["planning_conflicts"] {
+  const selected = new Set(changes.recovery?.selected_today_task_ids ?? []);
+  return (changes.planning_conflicts ?? []).filter((conflict) => {
+    const type = String((conflict as Record<string, unknown>).type ?? "");
+    const taskId = String((conflict as Record<string, unknown>).task_id ?? "");
+    return type.includes("dependency") && (!taskId || selected.has(taskId));
+  });
+}
+
+async function analyzeRecoveryForProposal(
+  db: Kysely<Database> | Transaction<Database>,
+  ctx: WorkspaceContext,
+  existing: ReplanProposal,
+  todayTaskIds: string[],
+  timeFixedResolutions: TimeFixedResolution[],
+  now: Date,
+): Promise<{ summary: string; changes: Changes }> {
+  const base = normalizeChanges(existing.changes);
+  const recovery = assertRecovery(base);
+  const analyzed = await analyzeReplan(db, ctx, {
+    now,
+    recovery: {
+      slippedDates: recovery.slipped_dates,
+      todayTaskIds,
+    },
+  });
+  analyzed.changes = applyTimeFixedRecoveryChoices(
+    analyzed.changes,
+    timeFixedResolutions,
+    localDate(ctx.timezone, now),
+  );
+  return analyzed;
+}
+
+export async function previewRecoveryProposal(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  proposalId: string,
+  opts: { todayTaskIds: string[]; timeFixedResolutions?: TimeFixedResolution[]; now?: Date },
+): Promise<ReplanProposalDetailView> {
+  const now = opts.now ?? new Date();
+  const existing = await getProposal(db, ctx, proposalId);
+  if (existing.status !== "pending") {
+    throw conflict(`Proposal is '${existing.status}', not 'pending' — cannot preview recovery`);
+  }
+  const { summary, changes } = await analyzeRecoveryForProposal(
+    db,
+    ctx,
+    existing,
+    opts.todayTaskIds,
+    opts.timeFixedResolutions ?? [],
+    now,
+  );
+  const preview = await buildProposalPreview(db, ctx, changes);
+  return {
+    proposal: { ...existing, summary, changes: JSON.stringify(changes) } as ReplanProposal,
+    changes,
+    refs: { tasks: preview.refs },
+    preview,
+  };
+}
+
 export interface ApproveResult {
   proposal: ReplanProposal;
   applied: ApplyResult;
+}
+
+export async function applyRecoveryProposal(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  proposalId: string,
+  opts: { todayTaskIds: string[]; timeFixedResolutions?: TimeFixedResolution[]; now?: Date },
+): Promise<ReplanProposalDetailView> {
+  const now = opts.now ?? new Date();
+  const today = localDate(ctx.timezone, now);
+
+  await withTransaction(db, async (trx) => {
+    const existing = await trx
+      .selectFrom("replan_proposal")
+      .selectAll()
+      .where("id", "=", proposalId)
+      .where("workspace_id", "=", ctx.workspaceId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!existing) throw notFound("Proposal not found");
+    if (existing.status !== "pending") {
+      throw conflict(`Proposal is '${existing.status}', not 'pending' — cannot apply recovery`);
+    }
+
+    const { summary, changes } = await analyzeRecoveryForProposal(
+      trx,
+      ctx,
+      existing,
+      opts.todayTaskIds,
+      opts.timeFixedResolutions ?? [],
+      now,
+    );
+    const unresolved = unresolvedTimeFixedRecoveryConflicts(changes, opts.timeFixedResolutions ?? []);
+    if (unresolved.length > 0) {
+      throw unprocessable(`Resolve time-fixed task(s) before applying recovery: ${unresolved.join(", ")}`);
+    }
+    const blocking = recoveryBlockingConflicts(changes);
+    if (blocking && blocking.length > 0) {
+      throw unprocessable("Today selection violates dependency order. Push blocked tasks to the future first.");
+    }
+
+    const applied = await applyChanges(trx, ctx, changes, now);
+    const appliedChanges: Changes = {
+      ...changes,
+      ...(Object.keys(applied.split_task_id_map).length > 0
+        ? { split_task_id_map: applied.split_task_id_map }
+        : {}),
+    };
+
+    await trx
+      .updateTable("replan_proposal")
+      .set({
+        status: "edited_approved",
+        summary,
+        changes: JSON.stringify(changes),
+        applied_changes: JSON.stringify(appliedChanges),
+        resolved_by_user_id: ctx.userId,
+        resolved_at: now,
+      })
+      .where("id", "=", proposalId)
+      .execute();
+
+    await recordEngagement(trx, { userId: ctx.userId, workspaceId: ctx.workspaceId, localDate: today, now });
+    await refreshStats(trx, { userId: ctx.userId, workspaceId: ctx.workspaceId, localToday: today, now });
+  });
+
+  return getProposalDetailView(db, ctx, proposalId);
 }
 
 /**

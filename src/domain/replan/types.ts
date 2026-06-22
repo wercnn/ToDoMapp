@@ -89,8 +89,18 @@ export interface Changes {
   capacity_proposals?: CapacityProposal[];
   /** Deadline satisfaction per project with a deadline, for the review UI. */
   deadline_results?: DeadlineResult[];
+  /** Slippage-recovery choices used by the morning brief flow. */
+  recovery?: ReplanRecoveryMeta;
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
+}
+
+export interface ReplanRecoveryMeta {
+  local_date: string;
+  slipped_dates: string[];
+  slipped_task_ids: string[];
+  selected_today_task_ids: string[];
+  pushed_future_task_ids: string[];
 }
 
 export interface CapacityProposalDay {
@@ -341,5 +351,6 @@ export function parseChanges(input: unknown): Changes {
     deadline_results: Array.isArray(input.deadline_results)
       ? (input.deadline_results as DeadlineResult[])
       : undefined,
+    recovery: isObj(input.recovery) ? (input.recovery as unknown as ReplanRecoveryMeta) : undefined,
   };
 }

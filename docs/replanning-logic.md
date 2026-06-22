@@ -130,7 +130,7 @@ It produces:
 - `deadline_results`: per-project deadline satisfaction (met or not).
 
 8. A new pending `replan_proposal` is inserted. Older pending proposals are marked
-`expired`, except the slippage job backs off from pending user-intent proposals.
+`expired`, including when a slippage recovery proposal supersedes earlier user intent.
 
 ## Step By Step: Scheduling
 
@@ -358,4 +358,3 @@ total cost =
 
 That would require explicit tradeoff weights and careful tests for locked days,
 time-fixed work, dependency order, and capacity.
-

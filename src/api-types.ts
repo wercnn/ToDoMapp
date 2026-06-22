@@ -343,6 +343,14 @@ export interface ReplanTodayCapacity {
   remaining_hours: number;
 }
 
+export interface ReplanRecoveryMeta {
+  local_date: DateString;
+  slipped_dates: DateString[];
+  slipped_task_ids: string[];
+  selected_today_task_ids: string[];
+  pushed_future_task_ids: string[];
+}
+
 /** The user's explicit choice for a conflict, supplied on edited approval. */
 export interface TimeFixedResolution {
   task_id: string;
@@ -369,6 +377,7 @@ export interface ReplanChanges {
   rejected_dates?: DateString[];
   kept_today_task_ids?: string[];
   today_capacity?: ReplanTodayCapacity;
+  recovery?: ReplanRecoveryMeta;
   /** Present only on edited approval, authorizing time-fixed moves (invariant #4). */
   time_fixed_resolutions?: TimeFixedResolution[];
 }
@@ -466,6 +475,8 @@ export interface MorningBrief {
   today: DayView | null;
   stats: StatsView;
   pending_proposal: { id: string; summary: string } | null;
+  pending_replan: ReplanProposalDetail | null;
+  recovery: ReplanRecoveryMeta | null;
   position: { today: DateString; current_streak: number };
   next_milestone: {
     id: string;

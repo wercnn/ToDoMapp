@@ -387,6 +387,8 @@ function assignQueue(inp: AssignInput): AssignResult {
 
   const floorFor = (taskId: string): DateString | null => {
     let floor = config.today;
+    const explicitFloor = state.earliestTaskDateById?.[taskId];
+    if (explicitFloor && explicitFloor > floor) floor = explicitFloor;
     if (config.objective === "min_disruption") {
       const old = inp.oldAssignment[taskId];
       if (old && old >= config.today && old > floor) floor = old;
