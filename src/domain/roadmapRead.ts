@@ -72,7 +72,11 @@ export async function readTaskRefs(
   ctx: AuthContext,
   taskIds: string[],
 ): Promise<Map<string, RoadmapTaskRef>> {
-  const ids = [...new Set(taskIds.filter(Boolean))];
+  // Synthetic split-part ids (`<uuid>__part_N`, produced in-memory by the replan
+  // scheduler, see planner/replan/taskSplitting.ts) are NOT rows in `task` — querying
+  // them as uuids throws 22P02. They never need a real ref here: callers that deal in
+  // split parts (dayReview.buildTaskRefs) resolve them separately from `split_report`.
+  const ids = [...new Set(taskIds.filter(Boolean))].filter((id) => !id.includes("__part_"));
   if (ids.length === 0) return new Map();
 
   const [rows, blockedIds] = await Promise.all([
