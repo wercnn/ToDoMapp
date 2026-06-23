@@ -59,11 +59,23 @@ export function DayDrawer({
     void qc.invalidateQueries({ queryKey: ["addable-tasks"] });
   }
 
+  // Each action runs its API call AND (optionally) an optimistic patch to the
+  // ["day", date] cache so the drawer reacts on click instead of after the
+  // round-trip; rollback on error, reconcile on settle.
   const run = useMutation({
-    mutationFn: (fn: () => Promise<unknown>) => fn(),
-    onMutate: () => setError(null),
-    onError: (err) => setError(calmMessage(err)),
-    onSuccess: () => invalidate(),
+    mutationFn: (v: { fn: () => Promise<unknown>; optimistic?: (d: DayView) => DayView }) => v.fn(),
+    onMutate: async (v) => {
+      setError(null);
+      await qc.cancelQueries({ queryKey: ["day", date] });
+      const prev = qc.getQueryData<DayView>(["day", date]);
+      if (v.optimistic && prev) qc.setQueryData<DayView>(["day", date], v.optimistic(prev));
+      return { prev };
+    },
+    onError: (err, _v, ctx) => {
+      setError(calmMessage(err));
+      if (ctx?.prev) qc.setQueryData(["day", date], ctx.prev);
+    },
+    onSettled: () => invalidate(),
   });
 
   function handleClose() {
@@ -101,7 +113,12 @@ export function DayDrawer({
           {isProposed && (
             <Button
               size="sm"
-              onClick={() => run.mutate(() => daysApi.confirm(date))}
+              onClick={() =>
+                run.mutate({
+                  fn: () => daysApi.confirm(date),
+                  optimistic: (d) => ({ ...d, day: { ...d.day, status: "confirmed" } }),
+                })
+              }
               disabled={run.isPending}
             >
               Confirm day
@@ -122,7 +139,12 @@ export function DayDrawer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => run.mutate(() => daysApi.setLock(date, !isLocked))}
+              onClick={() =>
+                run.mutate({
+                  fn: () => daysApi.setLock(date, !isLocked),
+                  optimistic: (d) => ({ ...d, day: { ...d.day, is_locked: !isLocked } }),
+                })
+              }
               disabled={run.isPending}
             >
               {isLocked ? <Unlock size={14} /> : <Lock size={14} />}
@@ -155,16 +177,16 @@ export function DayDrawer({
                 </div>
                 {!isLocked && entry.item.status === "planned" && (
                   <div className="flex flex-none items-center gap-0.5">
-                    <IconBtn label="Move up" disabled={index === 0 || run.isPending} onClick={() => run.mutate(() => reorder(index, -1))}>
+                    <IconBtn label="Move up" disabled={index === 0 || run.isPending} onClick={() => run.mutate({ fn: () => reorder(index, -1), optimistic: (d) => optimisticReorder(d, index, -1) })}>
                       <ArrowUp size={14} />
                     </IconBtn>
-                    <IconBtn label="Move down" disabled={index === items.length - 1 || run.isPending} onClick={() => run.mutate(() => reorder(index, 1))}>
+                    <IconBtn label="Move down" disabled={index === items.length - 1 || run.isPending} onClick={() => run.mutate({ fn: () => reorder(index, 1), optimistic: (d) => optimisticReorder(d, index, 1) })}>
                       <ArrowDown size={14} />
                     </IconBtn>
-                    <IconBtn label="Defer" disabled={run.isPending} onClick={() => run.mutate(() => planItemsApi.patch(entry.item.id, { status: "deferred" }))}>
+                    <IconBtn label="Defer" disabled={run.isPending} onClick={() => run.mutate({ fn: () => planItemsApi.patch(entry.item.id, { status: "deferred" }), optimistic: (d) => ({ ...d, items: d.items.map((e) => (e.item.id === entry.item.id ? { ...e, item: { ...e.item, status: "deferred" } } : e)) }) })}>
                       <span className="text-[11px] font-bold">Defer</span>
                     </IconBtn>
-                    <IconBtn label="Remove" disabled={run.isPending} onClick={() => run.mutate(() => planItemsApi.remove(entry.item.id))}>
+                    <IconBtn label="Remove" disabled={run.isPending} onClick={() => run.mutate({ fn: () => planItemsApi.remove(entry.item.id), optimistic: (d) => ({ ...d, items: d.items.filter((e) => e.item.id !== entry.item.id) }) })}>
                       <Trash2 size={14} />
                     </IconBtn>
                   </div>
@@ -193,9 +215,11 @@ export function DayDrawer({
                           className="flex w-full items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm font-semibold hover:bg-surface-2 disabled:opacity-50"
                           disabled={run.isPending}
                           onClick={() =>
-                            run.mutate(async () => {
-                              await daysApi.addItem(date, t.id);
-                              setPicking(false);
+                            run.mutate({
+                              fn: async () => {
+                                await daysApi.addItem(date, t.id);
+                                setPicking(false);
+                              },
                             })
                           }
                         >
@@ -216,6 +240,19 @@ export function DayDrawer({
       )}
     </Sheet>
   );
+}
+
+/** Optimistic swap of two adjacent items (array order + their positions), mirroring
+ * the two-PATCH `reorder` so the row jumps on click instead of after both writes. */
+function optimisticReorder(d: DayView, index: number, dir: -1 | 1): DayView {
+  const j = index + dir;
+  const arr = [...d.items];
+  const a = arr[index];
+  const b = arr[j];
+  if (!a || !b) return d;
+  arr[j] = { ...a, item: { ...a.item, position: b.item.position } };
+  arr[index] = { ...b, item: { ...b.item, position: a.item.position } };
+  return { ...d, items: arr };
 }
 
 function IconBtn({

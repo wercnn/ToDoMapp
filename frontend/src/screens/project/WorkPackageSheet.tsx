@@ -18,7 +18,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Trash2, Plus, ChevronUp, ChevronDown, GripVertical, Link2, X } from "lucide-react";
-import type { MilestoneWithState, ProjectFlow, Task, WorkPackageWithStatus } from "@api-types";
+import type {
+  CompleteTaskResult,
+  MilestoneWithState,
+  ProjectFlow,
+  Task,
+  WorkPackageWithStatus,
+} from "@api-types";
 import { dependenciesApi, projectsApi, tasksApi, workPackagesApi } from "@/api";
 import type { TaskBody } from "@/api";
 import { Button } from "@/components/ui/button";
@@ -148,13 +154,29 @@ export function WorkPackageSheet({
   );
 
   function reorderTasks(fromId: string, toId: string) {
+    if (!wpId) return;
     const ids = (tasks.data ?? []).map((task) => task.id).filter((id) => id !== fromId);
     const index = ids.indexOf(toId);
     if (index < 0) return;
     ids.splice(index, 0, fromId);
+    // Optimistic: the API PATCHes every task to position 0..n, so reindexing the
+    // cache the same way matches the server exactly (no flicker on reconcile).
+    const key = ["work-package", wpId, "tasks"];
+    const prev = qc.getQueryData<(Task & { blocked: boolean })[]>(key);
+    qc.setQueryData<(Task & { blocked: boolean })[]>(key, (old) => {
+      if (!old) return old;
+      const byId = new Map(old.map((t) => [t.id, t]));
+      return ids.flatMap((id, position) => {
+        const t = byId.get(id);
+        return t ? [{ ...t, position }] : [];
+      });
+    });
     Promise.all(ids.map((id, position) => tasksApi.update(id, { position })))
       .then(invalidate)
-      .catch((e) => setError(calmMessage(e)));
+      .catch((e) => {
+        if (prev) qc.setQueryData(key, prev);
+        setError(calmMessage(e));
+      });
   }
 
   return (
@@ -393,32 +415,56 @@ function TaskRow({
     onError: (e) => onError(calmMessage(e)),
   });
 
-  function toggleComplete() {
-    if (done) {
-      tasksApi
-        .reopen(task.id)
-        .then(() => {
-          onChanged();
-          crossInvalidate();
-        })
-        .catch((e) => onError(calmMessage(e)));
-      return;
-    }
-    // Same once-only contract as Home: celebrate iff the response carries the win.
+  // Optimistic check-off: flip this task's status in the WP-tasks cache the instant
+  // it's clicked (the box reacts immediately instead of after the round-trip), roll
+  // back on error, then reconcile the owned + cross-cutting reads on settle.
+  const wpTasksKey = ["work-package", task.work_package_id, "tasks"] as const;
+  const toggle = useMutation({
+    mutationFn: (): Promise<Task | CompleteTaskResult> =>
+      done ? tasksApi.reopen(task.id) : tasksApi.complete(task.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: wpTasksKey });
+      const prev = qc.getQueryData<(Task & { blocked: boolean })[]>(wpTasksKey);
+      qc.setQueryData<(Task & { blocked: boolean })[]>(wpTasksKey, (old) =>
+        old?.map((t) => (t.id === task.id ? { ...t, status: done ? "todo" : "done" } : t)),
+      );
+      return { prev };
+    },
+    onError: (e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(wpTasksKey, ctx.prev);
+      onError(calmMessage(e));
+    },
+    onSuccess: (result) => {
+      // Same once-only contract as Home: celebrate iff the response carries the win.
+      if (result && "milestone_achieved" in result && result.milestone_achieved) {
+        celebrate({
+          milestoneId: result.milestone_achieved.milestone_id,
+          title: result.milestone_achieved.title,
+          bonusPoints: result.milestone_achieved.points_awarded,
+        });
+      }
+    },
+    onSettled: () => {
+      onChanged();
+      crossInvalidate();
+    },
+  });
+  const toggleComplete = () => toggle.mutate();
+
+  // Optimistic delete: drop the row from the WP-tasks cache immediately; restore on error.
+  function deleteTask() {
+    if (!confirm("Delete this task?")) return;
+    const prev = qc.getQueryData<(Task & { blocked: boolean })[]>(wpTasksKey);
+    qc.setQueryData<(Task & { blocked: boolean })[]>(wpTasksKey, (old) =>
+      old?.filter((t) => t.id !== task.id),
+    );
     tasksApi
-      .complete(task.id)
-      .then((result) => {
-        onChanged();
-        crossInvalidate();
-        if (result.milestone_achieved) {
-          celebrate({
-            milestoneId: result.milestone_achieved.milestone_id,
-            title: result.milestone_achieved.title,
-            bonusPoints: result.milestone_achieved.points_awarded,
-          });
-        }
-      })
-      .catch((e) => onError(calmMessage(e)));
+      .remove(task.id)
+      .then(onChanged)
+      .catch((e) => {
+        if (prev) qc.setQueryData(wpTasksKey, prev);
+        onError(calmMessage(e));
+      });
   }
 
   return (
@@ -506,7 +552,7 @@ function TaskRow({
           </button>
           <button
             aria-label="Delete task"
-            onClick={() => confirm("Delete this task?") && run(tasksApi.remove(task.id))}
+            onClick={deleteTask}
             className="p-1 text-text-tertiary hover:text-warning"
           >
             <Trash2 size={14} />

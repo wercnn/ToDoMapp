@@ -53,8 +53,35 @@ export function Home() {
       }
       return tasksApi.complete(taskId);
     },
+    // Optimistic: flip the item (drives the checkmark) and its task (drives the pill)
+    // in the morning-brief cache immediately, so the row reacts on click instead of
+    // after the round-trip. Roll back on error; reconcile every live read on settle.
+    onMutate: async ({ taskId, completed }) => {
+      await qc.cancelQueries({ queryKey: ["morning-brief"] });
+      const prev = qc.getQueryData<MorningBrief>(["morning-brief"]);
+      qc.setQueryData<MorningBrief>(["morning-brief"], (old) => {
+        if (!old?.today) return old;
+        return {
+          ...old,
+          today: {
+            ...old.today,
+            items: old.today.items.map((entry) =>
+              entry.task?.id === taskId
+                ? {
+                    item: { ...entry.item, status: completed ? "planned" : "completed" },
+                    task: { ...entry.task, status: completed ? "todo" : "done" },
+                  }
+                : entry,
+            ),
+          },
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["morning-brief"], ctx.prev);
+    },
     onSuccess: (result) => {
-      invalidateLive();
       if (result?.milestone_achieved) {
         celebrate({
           milestoneId: result.milestone_achieved.milestone_id,
@@ -63,6 +90,7 @@ export function Home() {
         });
       }
     },
+    onSettled: () => invalidateLive(),
   });
   const clearInProgress = (taskId: string) =>
     setInProgress((prev) => {
@@ -87,7 +115,31 @@ export function Home() {
   };
   const defer = useMutation({
     mutationFn: (itemId: string) => planItemsApi.patch(itemId, { status: "deferred" }),
-    onSuccess: invalidateLive,
+    // Optimistic: flip the item to "deferred" in the morning-brief cache so the row
+    // greys out instantly; roll back on error, reconcile on settle.
+    onMutate: async (itemId) => {
+      await qc.cancelQueries({ queryKey: ["morning-brief"] });
+      const prev = qc.getQueryData<MorningBrief>(["morning-brief"]);
+      qc.setQueryData<MorningBrief>(["morning-brief"], (old) => {
+        if (!old?.today) return old;
+        return {
+          ...old,
+          today: {
+            ...old.today,
+            items: old.today.items.map((entry) =>
+              entry.item.id === itemId
+                ? { ...entry, item: { ...entry.item, status: "deferred" } }
+                : entry,
+            ),
+          },
+        };
+      });
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["morning-brief"], ctx.prev);
+    },
+    onSettled: () => invalidateLive(),
   });
   const approveProposal = useMutation({
     mutationFn: (proposalId: string) => replanApi.approve(proposalId),

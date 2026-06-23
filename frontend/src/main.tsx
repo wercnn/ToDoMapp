@@ -12,7 +12,11 @@ initTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+    // staleTime 60s: navigating back to a page within a minute reuses cache instead
+    // of refetching. Safe because every mutation explicitly invalidates what it
+    // changes (and the hot actions update the cache optimistically). gcTime keeps
+    // those cached pages warm for 10 min so revisits are instant.
+    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 60_000, gcTime: 600_000 },
   },
 });
 
