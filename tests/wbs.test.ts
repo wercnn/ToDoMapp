@@ -25,7 +25,11 @@ import {
   updateMilestone,
   deleteMilestone,
 } from "@/domain/milestones";
-import { computeGoalProgress, computeProjectProgress } from "@/domain/progress";
+import {
+  computeGoalProgress,
+  computeProjectProgress,
+  computeProjectProgressBatch,
+} from "@/domain/progress";
 import {
   provisionWorkspace,
   seedScenario,
@@ -246,5 +250,89 @@ describe("Phase 8 — WBS edits/deletes + roll-ups", () => {
     // Single project under the goal → goal roll-up equals project roll-up.
     const gp = await computeGoalProgress(db, ws.ctx, scenario.goalId);
     expect(gp).toEqual(pp);
+  });
+
+  // --- batched progress (Track 3: kills the listProjects N+1) ----------------
+  it("batched progress matches the per-project path for every project, incl. empties", async () => {
+    // Scenario already has projectId (2 tasks). Add a second EMPTY project (no
+    // tasks → percent on empty set) and a third with one done task, all under the
+    // same goal — the exact mix the Sidebar reads via listProjects?include=progress.
+    const empty = await db
+      .insertInto("project")
+      .values({
+        workspace_id: ws.workspaceId,
+        goal_id: scenario.goalId,
+        title: "Empty Project",
+        capacity_hours_per_day: 4,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const third = await db
+      .insertInto("project")
+      .values({
+        workspace_id: ws.workspaceId,
+        goal_id: scenario.goalId,
+        title: "Third Project",
+        capacity_hours_per_day: 4,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const wp3 = await db
+      .insertInto("work_package")
+      .values({ workspace_id: ws.workspaceId, project_id: third.id, title: "WP3", position: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("task")
+      .values({
+        workspace_id: ws.workspaceId,
+        work_package_id: wp3.id,
+        title: "T3 done",
+        difficulty: "mid",
+        status: "done",
+        completed_at: now,
+        position: 0,
+      })
+      .executeTakeFirstOrThrow();
+
+    const ids = [scenario.projectId, empty.id, third.id];
+    const batch = await computeProjectProgressBatch(db, ws.ctx, ids);
+
+    // PARITY: batch == the single-project path it replaces, project by project.
+    for (const id of ids) {
+      const single = await computeProjectProgress(db, ws.ctx, id);
+      expect(batch.get(id)).toEqual(single);
+    }
+
+    // Empty project: percent on an empty set is 0, not NaN, and zero everywhere.
+    expect(batch.get(empty.id)).toMatchObject({
+      percent_done: 0,
+      tasks_done: 0,
+      tasks_total: 0,
+      estimate_done_hours: 0,
+      estimate_total_hours: 0,
+    });
+
+    // Empty input list → empty map (the empty-goal case; no `IN ()` blow-up).
+    expect((await computeProjectProgressBatch(db, ws.ctx, [])).size).toBe(0);
+
+    // listProjects?include=progress (the real Sidebar call) carries the batch result.
+    const withProgress = await listProjects(db, ws.ctx, scenario.goalId, { includeProgress: true });
+    expect(withProgress).toHaveLength(3);
+    for (const p of withProgress) {
+      expect("progress" in p).toBe(true);
+      expect((p as { progress: unknown }).progress).toEqual(batch.get(p.id));
+    }
+  });
+
+  it("empty goal (no projects) → listProjects returns [] with includeProgress", async () => {
+    const lone = await db
+      .insertInto("goal")
+      .values({ workspace_id: ws.workspaceId, title: "Lonely Goal", horizon: "short" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const projects = await listProjects(db, ws.ctx, lone.id, { includeProgress: true });
+    expect(projects).toEqual([]);
   });
 });

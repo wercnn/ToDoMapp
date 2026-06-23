@@ -103,3 +103,45 @@ export async function computeProjectProgress(
     .execute();
   return rollup(rows);
 }
+
+/**
+ * Batch progress for many projects in ONE descendant-task read (replaces the
+ * per-project N+1 the Sidebar used to trigger via `listProjects?include=progress`).
+ *
+ * Fetches every descendant task once, tagged with its `project_id`, then folds
+ * per project in JS with the SAME `resolveHours` — so the difficulty→hours
+ * mapping stays the single source of truth (no SQL CASE duplication / drift).
+ * Projects with no tasks aren't in the result set, so callers get the empty
+ * `rollup([])` (0%, all zeros) — matching the single-project path on empty sets.
+ *
+ * No existence/workspace check per project: the caller already loaded the
+ * projects (workspace-scoped), so the only guard needed is the `workspace_id`
+ * filter here. Returns a Map keyed by project id; missing keys ⇒ empty progress.
+ */
+export async function computeProjectProgressBatch(
+  db: Kysely<Database>,
+  ctx: AuthContext,
+  projectIds: string[],
+): Promise<Map<string, Progress>> {
+  const result = new Map<string, Progress>();
+  for (const id of projectIds) result.set(id, rollup([])); // default empty (no-task projects)
+  if (projectIds.length === 0) return result;
+
+  const rows = await db
+    .selectFrom("task as t")
+    .innerJoin("work_package as wp", "wp.id", "t.work_package_id")
+    .select(["wp.project_id", "t.status", "t.estimate_hours", "t.difficulty"])
+    .where("t.workspace_id", "=", ctx.workspaceId)
+    .where("wp.project_id", "in", projectIds)
+    .where("t.replaced_at", "is", null)
+    .execute();
+
+  const byProject = new Map<string, TaskRow[]>();
+  for (const row of rows) {
+    const bucket = byProject.get(row.project_id) ?? [];
+    bucket.push(row);
+    byProject.set(row.project_id, bucket);
+  }
+  for (const [projectId, taskRows] of byProject) result.set(projectId, rollup(taskRows));
+  return result;
+}

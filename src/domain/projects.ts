@@ -8,7 +8,7 @@ import type { AuthContext } from "../auth/context";
 import { badRequest, notFound } from "../lib/errors";
 import { validateTitle } from "./validation";
 import { isValidDateString } from "../lib/dates";
-import { computeProjectProgress, type Progress } from "./progress";
+import { computeProjectProgress, computeProjectProgressBatch, type Progress } from "./progress";
 
 const PROJECT_STATUSES: ProjectStatus[] = ["active", "completed", "archived"];
 
@@ -90,12 +90,18 @@ export async function listProjects(
   if (filters.status) q = q.where("status", "=", filters.status);
   const projects = await q.orderBy("position").orderBy("created_at").execute();
   if (!filters.includeProgress) return projects;
-  return Promise.all(
-    projects.map(async (project) => ({
-      ...project,
-      progress: await computeProjectProgress(db, ctx, project.id),
-    })),
+  // One batched descendant-task read for ALL projects in this goal, instead of a
+  // per-project N+1 (each project used to cost an existence check + an aggregate).
+  const progressByProject = await computeProjectProgressBatch(
+    db,
+    ctx,
+    projects.map((p) => p.id),
   );
+  return projects.map((project) => ({
+    ...project,
+    // batch pre-seeds an entry for every requested id, so this is always present.
+    progress: progressByProject.get(project.id)!,
+  }));
 }
 
 async function findProject(
